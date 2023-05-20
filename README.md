@@ -1,6 +1,7 @@
 # Symbiote AI Harness
 
-# Author: Wadih Khairallah
+##### Author: Wadih Khairallah
+
 
 ## Running symbiote
 ```
