@@ -18,31 +18,6 @@ openai.api_key = os.getenv("OPENAI_API_KEY")
 # Pull a list of available models to use.
 # available_models = openai.Model.list()
 
-# Turn into reusable menu
-def main_menu():
-    def handle_custom_keybindings(result):
-        if result == "return_to_menu":
-            return main_menu()
-
-        return result
-
-    commands = [choice("chat", name="chat"),
-                choice("convo", name="load conversation"),
-                choice("role", name="load a role"),
-                choice("shell", name="load sym-shell"),
-                choice("exit", name="exit")
-               ]
-
-    # create a top-level menu system using inquirerpy
-    menu_option = inquirer.select(
-        message="select an option:",
-        choices=commands,
-        mandatory=False,
-        keybindings=keybindings
-    ).execute()
-
-    return 
-
 def main():
     ''' Main function '''
     global conversations_file
@@ -53,6 +28,7 @@ def main():
     current_path = os.getcwd()
 
     schat = chat.symchat(working_directory=current_path)
+    schat.chat()
 
     def custom_command(func, *args, **kwargs):
         # Restore the original stdin and stdout
