@@ -11,7 +11,6 @@ import select
 import tty
 import termios
 import subprocess
-
 import symbiote.chat as chat
 
 openai.api_key = os.getenv("OPENAI_API_KEY")
@@ -28,7 +27,7 @@ def main():
     current_path = os.getcwd()
 
     schat = chat.symchat(working_directory=current_path)
-    schat.chat()
+    schat.chat(user_data=user_data)
 
     def custom_command(func, *args, **kwargs):
         # Restore the original stdin and stdout
@@ -200,10 +199,16 @@ def main():
         continue
 
 def entry_point() -> None:
+    global user_data
+    user_data = sys.argv
+    user_data.pop(0)
     os.system('reset')
     main()
 
 if __name__ == "__main__":
+    global user_data
+    user_data = sys.argv
+    user_data.pop(0)
     os.system('reset')
     main()
 

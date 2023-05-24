@@ -348,6 +348,11 @@ class symchat():
     def chat(self, *args, **kwargs):
         # Begin symchat loop
         #history = InMemoryHistory() 
+        if 'user_data' in kwargs:
+            user_data = " ".join(kwargs['user_data'])
+        else:
+            user_data = ""
+
         os.system('reset')
         if 'working_directory' in kwargs:
             self.working_directory = kwargs['working_directory']
@@ -377,8 +382,11 @@ class symchat():
 
             self.user_input = chat_session.prompt(message="symchat> ",
                                                multiline=True,
+                                               default=user_data,
                                                bottom_toolbar=self.toolbar_data,
                                             )
+
+            user_data = ""
 
             self.user_input = self.process_commands(self.user_input)
 
@@ -480,7 +488,13 @@ class symchat():
                 set_value = match.group(2)
                 if setting in self.symbiote_settings:
                     get_type = type(self.symbiote_settings[setting])
-                    set_value = get_type(set_value) 
+                    if get_type == bool:
+                        if re.search(r'^false$|^0$|^off$', set_value):
+                            set_value = False
+                        else:
+                            set_value = True
+                    else:        
+                        set_value = get_type(set_value) 
 
                     self.symbiote_settings[setting] = set_value
                     self.sym.update_symbiote_settings(settings=symbiote_settings)
