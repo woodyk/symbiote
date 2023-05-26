@@ -31,6 +31,7 @@ from prompt_toolkit.completion import WordCompleter
 from prompt_toolkit.styles import Style
 
 import symbiote.core as core
+import symbiote.shell as shell
 import symbiote.roles as roles
 import symbiote.utils as utils
 
@@ -138,6 +139,11 @@ class symchat():
                 open(sys.stdout.fileno(), 'wb', 0),
                 write_through=True
             )
+
+        if 'debug' in kwargs:
+            self.debug = kwargs['debug']
+        else:
+            self.debug = False
 
         if 'working_directory' in kwargs:
             self.working_directory = kwargs['working_directory']
@@ -349,7 +355,7 @@ class symchat():
         # Begin symchat loop
         #history = InMemoryHistory() 
         if 'user_data' in kwargs:
-            user_data = " ".join(kwargs['user_data'])
+            user_data = kwargs['user_data']
         else:
             user_data = ""
 
@@ -394,7 +400,8 @@ class symchat():
                 continue
 
             if re.search(r'^shell::', self.user_input):
-                return
+                shell.symBash().launch_shell()
+                continue
 
             if re.search(r"^reset::", self.user_input):
                 chat_session = PromptSession(key_bindings=bindings, vi_mode=self.symbiote_settings['vi_mode'], history=self.history, style=prompt_style)
