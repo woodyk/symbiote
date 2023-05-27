@@ -51,7 +51,7 @@ def main():
         os.system('reset')
         current_path = os.getcwd()
         schat = chat.symchat(working_directory=current_path)
-        schat.chat(user_data=args.query,debug=args.debug)
+        schat.chat(user_input=args.query,debug=args.debug)
 
 def entry_point() -> None:
     main()

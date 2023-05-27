@@ -39,10 +39,11 @@ setup(
     version='0.0.1',
     description='A command line harness to openai functions.',
     author='Wadih Khairallah',
-    author_email='kato@smallroom.com',
     url='https://github.com/woodyk/symbiote',
     packages=find_packages(),
     install_requires=[
+        'pynput==1.7.6',
+        'clipboard==0.0.4',
         'python_magic==0.4.27',
         'textract==1.6.5',
         'InquirerPy==0.3.4',

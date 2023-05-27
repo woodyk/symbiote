@@ -36,7 +36,7 @@ class symbiotes:
     def process_request(self, messages):
         ''' Send user_input to openai for processing '''
         if not self.suppress:
-            print("\n---")
+            print("---")
 
         message = " "
         chunk_block = ""
@@ -134,7 +134,7 @@ class symbiotes:
 
         return conversation
 
-    def send_request(self, user_input, conversation, suppress=False):
+    def send_request(self, user_input, conversation, suppress=False, role="user"):
         self.suppress = suppress
         total_trunc_tokens = 0
         total_user_tokens = 0
@@ -154,7 +154,7 @@ class symbiotes:
         for index, user_input_chunk in enumerate(user_input_chunks):
             # Update our conversation with the user input
             user_content = {
-                "role": "user",
+                "role": role,
                 "content": user_input_chunk
             }
 

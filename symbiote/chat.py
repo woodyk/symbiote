@@ -214,6 +214,7 @@ class symchat():
         self.command_completer = WordCompleter(commands)
 
         self.suppress = False
+        self.role = "user"
 
     def symhelp(self):
         print("Symbiote Help Menu")
@@ -303,7 +304,7 @@ class symchat():
 
         return
 
-    def symrole(self):
+    def symrole(self, role=False):
         # Handle role functionality
         available_roles = roles.get_roles()
 
@@ -354,10 +355,8 @@ class symchat():
     def chat(self, *args, **kwargs):
         # Begin symchat loop
         #history = InMemoryHistory() 
-        if 'user_data' in kwargs:
-            user_data = kwargs['user_data']
-        else:
-            user_data = ""
+        if 'user_input' in kwargs:
+            self.user_input = kwargs['user_input']
 
         os.system('reset')
         if 'working_directory' in kwargs:
@@ -376,27 +375,25 @@ class symchat():
         #chat_session = PromptSession(key_bindings=bindings, completer=self.command_completer, vi_mode=self.symbiote_settings['vi_mode'], history=self.history, style=prompt_style)
         chat_session = PromptSession(key_bindings=bindings, vi_mode=self.symbiote_settings['vi_mode'], history=self.history, style=prompt_style)
         while True:
-
             # Chack for a change in settings and write them
             check_settings = hash(json.dumps(self.symbiote_settings, sort_keys=True)) 
             if check_settings != self.settings_hash:
                 self.save_settings(settings=self.symbiote_settings)
                 self.settings_hash = check_settings
 
-
             self.toolbar_data = f"Model: {self.symbiote_settings['model']}    Current Conversation: {self.convo_file}\nUser: {self.token_track['user_tokens']} Assistant: {self.token_track['completion_tokens']} Conversation: {self.token_track['truncated_tokens']} Total Used: {self.token_track['rolling_tokens']} Cost: ${self.token_track['cost']:.2f}"
 
-            self.user_input = chat_session.prompt(message="symchat> ",
-                                               multiline=True,
-                                               default=user_data,
-                                               bottom_toolbar=self.toolbar_data,
-                                            )
-
-            user_data = ""
+            if self.user_input is None or self.user_input == "":
+                self.user_input = chat_session.prompt(message="symchat> ",
+                                                   multiline=True,
+                                                   bottom_toolbar=self.toolbar_data,
+                                                   vi_mode=self.symbiote_settings['vi_mode']
+                                                )
 
             self.user_input = self.process_commands(self.user_input)
 
-            if self.user_input is None or self.user_input == "":
+            if self.user_input is None or re.search(r'\n+$', self.user_input) or self.user_input== "":
+                self.user_input = ""
                 continue
 
             if re.search(r'^shell::', self.user_input):
@@ -421,7 +418,8 @@ class symchat():
         if self.suppress:
             self.launch_animation(True)
 
-        returned = self.sym.send_request(user_input, self.current_conversation, suppress=self.suppress)
+        returned = self.sym.send_request(user_input, self.current_conversation, suppress=self.suppress, role=self.role)
+
         if self.suppress:
             self.launch_animation(False)
             pass
@@ -448,6 +446,7 @@ class symchat():
 
         self.sym.change_max_tokens(self.symbiote_settings['default_max_tokens'])
         self.suppress = False
+        self.role = "user"
 
         return
 
@@ -465,9 +464,9 @@ class symchat():
             self.symconvo()
             return None
 
-        if re.search(r'^role::', user_input):
-            self.symrole()
-            return None
+        #if re.search(r'^role::', user_input):
+        #    self.symrole()
+        #    return None
 
         if re.search(r"^clear::", user_input):
             self.symclear()
@@ -485,6 +484,37 @@ class symchat():
             self.save_settings(settings=self.symbiote_settings)
             os.system('reset')
             sys.exit(0)
+
+
+        # Trigger to choose role
+        role_pattern = r'^role::|role:(.*):'
+        match = re.search(role_pattern, user_input)
+        if match:
+            self.suppress = True
+            available_roles = roles.get_roles()
+
+            if match.group(1):
+                selected_role = match.group(1).strip()
+            else:
+                if not available_roles:
+                    return
+
+                role_list = []
+                for role_name in available_roles:
+                    role_list.append(role_name)
+
+                selected_role = inquirer.select(
+                    message="Select a role:",
+                    choices=role_list,
+                    mandatory=False
+                ).execute()
+
+                if selected_role == None:
+                    return
+
+            self.role = "system"
+
+            return available_roles[selected_role] 
 
         # Trigger to display openai settings  
         setting_pattern = r'^setting::|setting:(.*):(.*):'
