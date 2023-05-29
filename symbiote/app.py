@@ -17,6 +17,9 @@ openai.api_key = os.getenv("OPENAI_API_KEY")
 # available_models = openai.Model.list()
 
 def main():
+    os.system('reset')
+    current_path = os.getcwd()
+
     parser = argparse.ArgumentParser(description="Symbiote")
 
     parser.add_argument('-q', '--query',
@@ -27,6 +30,10 @@ def main():
     parser.add_argument('-d', '--debug',
                         action='store_true',
                         help='Query to populate Symbiote with.')
+
+    parser.add_argument('-r', '--run',
+                        action='store_true',
+                        help='Execute query and exit.')
 
     parser.add_argument('-c', '--conversation',
                         type=str,
@@ -42,16 +49,16 @@ def main():
 
     args = parser.parse_args()
 
+    schat = chat.symchat(working_directory=current_path, debug=args.debug)
+
     if args.monitor:
-        monmode = monitor.KeyLogger(debug=args.debug)
+        #schat.chat(user_input="role:HELP_ROLE:", run=True)
+        monmode = monitor.KeyLogger(schat, debug=args.debug)
         monmode.start()
         while True:
             time.sleep(1)
     else:
-        os.system('reset')
-        current_path = os.getcwd()
-        schat = chat.symchat(working_directory=current_path)
-        schat.chat(user_input=args.query,debug=args.debug)
+        schat.chat(user_input=args.query, run=args.run)
 
 def entry_point() -> None:
     main()

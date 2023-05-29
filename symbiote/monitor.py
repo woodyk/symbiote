@@ -12,13 +12,14 @@ import clipboard
 from pynput.keyboard import Listener
 
 class KeyLogger:
-    def __init__(self, debug=False):
+    def __init__(self, schat, debug=False):
         # Autoflush output buffer
-        sys.stdout = io.TextIOWrapper(
-                open(sys.stdout.fileno(), 'wb', 0),
-                write_through=True
-            )
+        #sys.stdout = io.TextIOWrapper(
+        #        open(sys.stdout.fileno(), 'wb', 0),
+        #        write_through=True
+        #    )
         global chat_is_active
+        self.schat = schat
         self.debug = debug
         chat_is_active = False
         self.lastlog = ""
@@ -27,10 +28,13 @@ class KeyLogger:
         self.totallog = ""
         self.previousclip = ""
 
+
         self.key_mapping = {
                 "Key.enter": ' ',
                 "Key.space": ' '
             }
+
+        schat.chat(user_input="role:HELP_ROLE:", run=True)
 
     def pull_clipboard(self):
         # Pull clipboard contents
@@ -71,10 +75,11 @@ class KeyLogger:
             print("Help menu triggered")
             self.lastlog = re.sub(r':help::|Key.ctrlh', '', self.lastlog)
             self.chat_is_active = True
-            issue_command = f'/opt/homebrew/bin/symbiote -q "Help me write the following better: {self.lastlog}"'
+            issue_command = f'/opt/homebrew/bin/symbiote -q "{self.lastlog}"'
             self.command.append(issue_command)
 
             process = subprocess.Popen(self.command, stdout=subprocess.PIPE, stdin=subprocess.PIPE, stderr=subprocess.PIPE)
+
             while process.poll() is None:
                 time.sleep(1)
 

@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 #
 # chat.py
+
 import time
 import sys
 import os
@@ -147,6 +148,8 @@ class symchat():
 
         if 'working_directory' in kwargs:
             self.working_directory = kwargs['working_directory']
+        else:
+            self.working_directory = os.getcwd()
 
         self.symbiote_settings = symbiote_settings 
 
@@ -355,6 +358,11 @@ class symchat():
     def chat(self, *args, **kwargs):
         # Begin symchat loop
         #history = InMemoryHistory() 
+        if 'run' in kwargs:
+            self.run = kwargs['run']
+        else:
+            self.run = False
+
         if 'user_input' in kwargs:
             self.user_input = kwargs['user_input']
 
@@ -392,8 +400,11 @@ class symchat():
 
             self.user_input = self.process_commands(self.user_input)
 
-            if self.user_input is None or re.search(r'\n+$', self.user_input) or self.user_input== "":
+            if self.user_input is None or re.search(r'^\n+$', self.user_input) or self.user_input== "":
                 self.user_input = ""
+                if self.run:
+                    break 
+
                 continue
 
             if re.search(r'^shell::', self.user_input):
@@ -408,6 +419,9 @@ class symchat():
 
             self.user_input = ""
 
+            if self.run:
+                break
+
             continue
 
         self.sym.save_conversation(self.current_conversation, self.conversations_dump)
@@ -415,12 +429,12 @@ class symchat():
         return
 
     def send_message(self, user_input):
-        if self.suppress:
+        if self.suppress and not self.run:
             self.launch_animation(True)
 
         returned = self.sym.send_request(user_input, self.current_conversation, suppress=self.suppress, role=self.role)
 
-        if self.suppress:
+        if self.suppress and not self.run:
             self.launch_animation(False)
             pass
 
@@ -464,10 +478,6 @@ class symchat():
             self.symconvo()
             return None
 
-        #if re.search(r'^role::', user_input):
-        #    self.symrole()
-        #    return None
-
         if re.search(r"^clear::", user_input):
             self.symclear()
             return None
@@ -484,7 +494,6 @@ class symchat():
             self.save_settings(settings=self.symbiote_settings)
             os.system('reset')
             sys.exit(0)
-
 
         # Trigger to choose role
         role_pattern = r'^role::|role:(.*):'
