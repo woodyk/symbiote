@@ -13,11 +13,6 @@ from pynput.keyboard import Listener
 
 class KeyLogger:
     def __init__(self, schat, debug=False):
-        # Autoflush output buffer
-        #sys.stdout = io.TextIOWrapper(
-        #        open(sys.stdout.fileno(), 'wb', 0),
-        #        write_through=True
-        #    )
         global chat_is_active
         self.schat = schat
         self.debug = debug
