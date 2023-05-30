@@ -153,6 +153,10 @@ class symchat():
 
         self.symbiote_settings = symbiote_settings 
 
+        # Load symbiote core 
+        self.sym = core.symbiotes(settings=self.symbiote_settings)
+        signal.signal(signal.SIGINT, self.sym.handle_ctrl_c)
+
         # Set symbiote home path parameters
         home_dir = os.path.expanduser("~")
         symbiote_dir = os.path.join(home_dir, ".symbiote")
@@ -192,9 +196,6 @@ class symchat():
 
         self.history = FileHistory(history_file)
 
-        # Load symbiote core 
-        self.sym = core.symbiotes(settings=self.symbiote_settings)
-        signal.signal(signal.SIGINT, self.sym.handle_ctrl_c)
 
         # Load the default conversation
         self.current_conversation = self.sym.load_conversation(self.conversations_file)
