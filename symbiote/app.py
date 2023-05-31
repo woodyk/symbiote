@@ -47,6 +47,10 @@ def main():
                         type=str,
                         help='Load the given file into Symbiote.')
 
+    parser.add_argument('-l', '--load',
+                        type=str,
+                        help='Load the given file into Symbiote.')
+
     args = parser.parse_args()
 
     schat = chat.symchat(working_directory=current_path, debug=args.debug)

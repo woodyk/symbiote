@@ -19,7 +19,7 @@ class KeyLogger:
         chat_is_active = False
         self.lastlog = ""
         self.chat_is_active = chat_is_active 
-        self.command = ["/opt/homebrew/bin/terminator", "-e"]
+        self.command = ["terminator", "-e"]
         self.totallog = ""
         self.previousclip = ""
 
@@ -70,7 +70,7 @@ class KeyLogger:
             print("Help menu triggered")
             self.lastlog = re.sub(r':help::|Key.ctrlh', '', self.lastlog)
             self.chat_is_active = True
-            issue_command = f'/opt/homebrew/bin/symbiote -q "{self.lastlog}"'
+            issue_command = f'symbiote -q "{self.lastlog}"'
             self.command.append(issue_command)
 
             process = subprocess.Popen(self.command, stdout=subprocess.PIPE, stdin=subprocess.PIPE, stderr=subprocess.PIPE)
