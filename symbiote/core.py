@@ -191,7 +191,10 @@ class symbiotes:
 
         try:
             with open(conversations_file, 'r') as file:
-                data = json.load(file)
+                #data = json.load(file)
+                for line in file:
+                    data.append(json.loads(line))
+
         except Exception as e:
             pass
             print("Error: opening %s: %s" % (conversations_file, e))
@@ -201,18 +204,16 @@ class symbiotes:
 
     def save_conversation(self, conversation_data, conversations_file):
         ''' Save conversation output to loaded conversation file '''
-        self.conversations_file = conversations_file
+        json_conv = {
+                "role": conversation_data['role'],
+                "content": conversation_data['content']
+                }
 
-        if os.path.exists(conversations_file):
-            data = self.load_conversation(conversations_file)
-            data.append(conversation_data)
-        else:
-            data = []
+        jsonl_string = json.dumps(json_conv)
 
-        with open(conversations_file, 'w') as file:
-            json.dump(data, file, indent=2)
-
-        return data
+        with open(conversations_file, 'a') as file:
+            #json.dump(data, file, indent=2)
+            file.write(jsonl_string + "\n")
 
     def tokenize(self, text):
         ''' Tokenize text '''
@@ -259,7 +260,7 @@ class symbiotes:
 
         file_list = []
         for file in files:
-            if re.search(r'\S+.json$', file):
+            if re.search(r'\S+.jsonl$', file):
                 file_list.append(file)
 
         return file_list

@@ -85,7 +85,7 @@ symbiote_settings = {
         "default_max_tokens": 512,
         "conversation_percent": .6,
         "chunk_size": 256,
-        "conversation": "conversation.json",
+        "conversation": "conversation.jsonl",
         "vi_mode": False
     }
 
@@ -181,13 +181,9 @@ class symchat():
         # Set the default conversation
         self.conversations_file = os.path.join(self.conversations_dir, self.symbiote_settings['conversation'])
         self.convo_file = os.path.basename(self.conversations_file)
-        if not os.path.exists(self.conversations_file):
-            self.sym.save_conversation([], self.conversations_file)
 
         # Set conversations catch-all file 
-        self.conversations_dump = os.path.join(self.conversations_dir, "dump.json")
-        if not os.path.exists(self.conversations_file):
-            self.sym.save_conversation([], self.conversations_file)
+        self.conversations_dump = os.path.join(self.conversations_dir, "dump.jsonl")
 
         # Set symbiote shell history file
         history_file = os.path.join(symbiote_dir, "symbiote_shell_history")
@@ -297,7 +293,6 @@ class symchat():
         if selected_file == "new":
             selected_file = inquirer.text(message="File name:").execute()
             self.conversations_file = os.path.join(self.conversations_dir, selected_file)
-            self.current_conversation = self.sym.save_conversation([], self.conversations_file)
 
         self.symbiote_settings['conversation'] = selected_file
         self.conversations_file = os.path.join(self.conversations_dir, selected_file)
@@ -381,8 +376,8 @@ class symchat():
             self.sym.handle_control_x()
             #event.app.exit()
 
-        #chat_session = PromptSession(key_bindings=bindings, completer=self.command_completer, vi_mode=self.symbiote_settings['vi_mode'], history=self.history, style=prompt_style)
         chat_session = PromptSession(key_bindings=bindings, vi_mode=self.symbiote_settings['vi_mode'], history=self.history, style=prompt_style)
+
         while True:
             # Chack for a change in settings and write them
             check_settings = hash(json.dumps(self.symbiote_settings, sort_keys=True)) 
@@ -430,14 +425,14 @@ class symchat():
         return
 
     def send_message(self, user_input):
-        if self.suppress and not self.run:
-            self.launch_animation(True)
+        #if self.suppress and not self.run:
+        #    self.launch_animation(True)
 
         returned = self.sym.send_request(user_input, self.current_conversation, suppress=self.suppress, role=self.role)
 
-        if self.suppress and not self.run:
-            self.launch_animation(False)
-            pass
+        #if self.suppress and not self.run:
+        #    self.launch_animation(False)
+        #    pass
 
         self.current_conversation = returned[0]
 
