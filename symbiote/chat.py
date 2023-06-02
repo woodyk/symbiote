@@ -85,6 +85,7 @@ symbiote_settings = {
         "default_max_tokens": 512,
         "conversation_percent": .6,
         "chunk_size": 256,
+        "completion": False,
         "conversation": "conversation.jsonl",
         "vi_mode": False
     }
@@ -192,7 +193,6 @@ class symchat():
 
         self.history = FileHistory(history_file)
 
-
         # Load the default conversation
         self.current_conversation = self.sym.load_conversation(self.conversations_file)
 
@@ -203,6 +203,7 @@ class symchat():
             'completion_tokens': 0,
             'total_completion_tokens': 0,
             'rolling_tokens': 0,
+            'last_char_count': 0,
             'cost': 0
         }
 
@@ -213,7 +214,11 @@ class symchat():
 
         self.command_completer = WordCompleter(commands)
 
-        self.suppress = False
+        if 'suppress' in kwargs:
+            self.suppress = kwargs['suppress']
+        else:
+            self.suppress = False
+
         self.role = "user"
 
     def symhelp(self):
@@ -273,19 +278,22 @@ class symchat():
             self.animation_thread.join()
             print()
 
-    def symconvo(self):
+    def symconvo(self, convo=False):
         conversation_files = self.sym.list_conversations(self.conversations_dir)
 
-        if not conversation_files:
-            return
+        if convo:
+            selected_file = convo
+        else:
+            if not conversation_files:
+                return
 
-        conversation_files.append(Choice("new", name="Create new conversation."))
+            conversation_files.append(Choice("new", name="Create new conversation."))
 
-        selected_file = inquirer.select(
-            message="Select a conversation:",
-            choices=conversation_files,
-            mandatory=False
-        ).execute()
+            selected_file = inquirer.select(
+                message="Select a conversation:",
+                choices=conversation_files,
+                mandatory=False
+            ).execute()
 
         if selected_file == None:
             return
@@ -359,16 +367,24 @@ class symchat():
         else:
             self.run = False
 
+        if 'completion' in kwargs:
+            completion = kwargs['completion']
+        else:
+            completion = False
+
+        if 'suppress' in kwargs:
+            self.suppress = kwargs['suppress']
+        else:
+            self.suppress = False
+
         if 'user_input' in kwargs:
             self.user_input = kwargs['user_input']
 
-        os.system('reset')
         if 'working_directory' in kwargs:
             self.working_directory = kwargs['working_directory']
             self.previous_directory = self.working_directory
             os.chdir(self.working_directory)
 
-        self.suppress = False
         bindings = KeyBindings()
        
         @bindings.add(Keys.ControlX)
@@ -381,20 +397,22 @@ class symchat():
         while True:
             # Chack for a change in settings and write them
             check_settings = hash(json.dumps(self.symbiote_settings, sort_keys=True)) 
+
+            self.toolbar_data = f"Model: {self.symbiote_settings['model']} Current Conversation: {self.convo_file} Last Char Count: {self.token_track['last_char_count']}\nUser: {self.token_track['user_tokens']} Assistant: {self.token_track['completion_tokens']} Conversation: {self.token_track['truncated_tokens']} Total Used: {self.token_track['rolling_tokens']} Cost: ${self.token_track['cost']:.2f}"
+
+            #if self.user_input is None or self.user_input == "":
+            self.user_input = chat_session.prompt(message="symchat> ",
+                                               multiline=True,
+                                               default=self.user_input,
+                                               bottom_toolbar=self.toolbar_data,
+                                               vi_mode=self.symbiote_settings['vi_mode']
+                                            )
+
+            self.user_input = self.process_commands(self.user_input)
+
             if check_settings != self.settings_hash:
                 self.save_settings(settings=self.symbiote_settings)
                 self.settings_hash = check_settings
-
-            self.toolbar_data = f"Model: {self.symbiote_settings['model']}    Current Conversation: {self.convo_file}\nUser: {self.token_track['user_tokens']} Assistant: {self.token_track['completion_tokens']} Conversation: {self.token_track['truncated_tokens']} Total Used: {self.token_track['rolling_tokens']} Cost: ${self.token_track['cost']:.2f}"
-
-            if self.user_input is None or self.user_input == "":
-                self.user_input = chat_session.prompt(message="symchat> ",
-                                                   multiline=True,
-                                                   bottom_toolbar=self.toolbar_data,
-                                                   vi_mode=self.symbiote_settings['vi_mode']
-                                                )
-
-            self.user_input = self.process_commands(self.user_input)
 
             if self.user_input is None or re.search(r'^\n+$', self.user_input) or self.user_input== "":
                 self.user_input = ""
@@ -420,15 +438,13 @@ class symchat():
 
             continue
 
-        self.sym.save_conversation(self.current_conversation, self.conversations_dump)
-
         return
 
     def send_message(self, user_input):
         #if self.suppress and not self.run:
         #    self.launch_animation(True)
 
-        returned = self.sym.send_request(user_input, self.current_conversation, suppress=self.suppress, role=self.role)
+        returned = self.sym.send_request(user_input, self.current_conversation, completion=self.symbiote_settings['completion'], suppress=self.suppress, role=self.role)
 
         #if self.suppress and not self.run:
         #    self.launch_animation(False)
@@ -442,7 +458,7 @@ class symchat():
         self.token_track['completion_tokens'] = returned[3]
         self.token_track['total_completion_tokens'] += returned[3]
         self.token_track['rolling_tokens'] += self.token_track['truncated_tokens']
-
+        self.token_track['last_char_count'] = returned[4]
 
         if pricing[self.symbiote_settings['model']] is not None:
             prompt_cost = 0
@@ -468,10 +484,6 @@ class symchat():
 
         if re.search(r'^help::', user_input):
             self.symhelp()
-            return None
-
-        if re.search(r'^convo::', user_input):
-            self.symconvo()
             return None
 
         if re.search(r"^clear::", user_input):
@@ -572,6 +584,18 @@ class symchat():
 
             return None
 
+        # Trigger for changing the conversation file
+        convo_pattern = r'^convo::|convo:(.*):'
+        match = re.search(convo_pattern, user_input)
+        if match:
+            if match.group(1):
+                convo_name = match.group(1).strip()
+                self.symconvo(convo_name) 
+            else:
+                self.symconvo()
+        
+            return None
+
         # Trigger for changing working directory in chat
         cd_pattern = r'^cd::|cd:(.*):'
         match = re.search(cd_pattern, user_input)
@@ -603,7 +627,7 @@ class symchat():
             return None
 
         # Trigger for file:filename processing. Load file content into user_input for openai consumption.
-        file_pattern = r'file::|file:(.*:)(.*):|file:(.*):{1,2}'
+        file_pattern = r'file::|file:(.*):'
         match = re.search(file_pattern, user_input)
         file_path = None
         sub_command = None
@@ -611,11 +635,14 @@ class symchat():
         if match: 
             self.suppress = True
             if match.group(1):
+                meta_pattern = r'meta:(.*)'
                 matched = match.group(1)
-                if matched == "meta:":
+
+                matchb = re.search(meta_pattern, matched)
+                if matchb:
                     sub_command = "meta"
-                    if match.group(2):
-                        file_path = os.path.expanduser(match.group(2))
+                    if matchb.group(1):
+                        file_path = os.path.expanduser(matchb.group(1))
                 else:
                     file_path = os.path.expanduser(match.group(1))
 
@@ -667,10 +694,11 @@ class symchat():
 
                 content = content.encode('utf-8')
 
-                file_content = f"The following is the contents of {file_path}.\nIMPORTANT: You will not respond until prompted.\nIMPORTANT: You will only consume the contents and confirm receipt.\nIMPORTANT: You will remember this information for future use.\n"
+                absolute_path = os.path.abspath(file_path)
+
+                file_content = f"File name: {absolute_path}\n"
                 file_content += '\n```\n{}\n```\n'.format(content)
                 user_input = user_input[:match.start()] + file_content + user_input[match.end():]
-
             return user_input
 
         # Trigger for get:URL processing. Load website content into user_input for openai consumption.

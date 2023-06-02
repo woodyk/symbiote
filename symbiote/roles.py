@@ -45,5 +45,16 @@ I may be providing information that is lacking context.  You will not only provi
 You are a very good listener and you will attempt to fall back on any information you may have about myself to provide a fitting response.
 """
 
+roles['RESEARCH_ROLE'] = """You are a research assistant.
+Your purpose is to take in data provided and summarize key aspects.
+IMPORTANT: When asked to summarize the data provided you will extract the following information and provide a json document of the following features of the information.
+- People: Person mentioned, pronouns and anything describing the person mentioned
+- Place: Addresses, phone numbers, city, state, state country or other locations.
+- Things: Such as objects mentioned or other key items found in the text.
+- Sentiment: You will provide the over all sentiment of the "People", "Place", or "Things" mentioned.
+- Main Idea: A short 4 scentence description outlining the information provided.
+- Dates: A list of dates and a 1 scentence description of what happened on the given date.
+"""
+
 def get_roles():
     return roles

@@ -23,65 +23,89 @@ class KeyLogger:
         self.totallog = ""
         self.previousclip = ""
 
-
-        self.key_mapping = {
-                "Key.enter": ' ',
-                "Key.space": ' '
-            }
-
-        schat.chat(user_input="role:HELP_ROLE:", run=True)
+        self.clipboard_content = clipboard.paste()
+        #schat.chat(user_input="role:HELP_ROLE:", run=True)
 
     def pull_clipboard(self):
         # Pull clipboard contents
-        clipboard_content = clipboard.paste()
-        if clipboard_content != self.previousclip:
-            self.previousclip = clipboard_content
+        self.clipboard_content = clipboard.paste()
+        if self.clipboard_content != self.previousclip:
+            self.previousclip = self.clipboard_content
+
+    def scrub_keys(self, log):
+        key_mapping = {
+                ":help::": '',
+                "Key\.enter": '\n',
+                "Key\.space": ' ',
+                "Key\.tab": '\t',
+                "Key\.ctrlh": '',
+                "Key\.ctrlk": '',
+                "Key\.ctrl": '<ctrl>',
+                "Key\.shift_r": '',
+                "Key\.shift": '',
+                "Key\.down": '',
+                "Key\.up": '',
+                "Key\.left": '',
+                "Key\.right": '',
+                "Key\.cmdr": '',
+                "Key\.cmd": '',
+                "Key\.esc": '',
+                "Key\.caps_lock": '',
+                "Key\.alt_r": '',
+                "Key\.alt": ''
+            }
+
+        for key in key_mapping:
+           log = re.sub(key, key_mapping[key], log)
+
+        self.lastlog = ""
+
+        return log 
 
     def on_press(self, key):
-        self.pull_clipboard()
-        register_ctrl = False
-
         if self.chat_is_active:
             return
 
         try:
             pressed = re.sub('\'', "", str(key))
 
-            if re.search(r'^Key\..*', pressed):
-                if pressed in self.key_mapping:
-                    pressed = self.key_mapping[pressed]
-                elif re.search(r'^Key\.backspace', pressed):
-                    self.lastlog = self.lastlog[:-1]
-                    pressed = ""
-                elif pressed == "Key.ctrl":
-                    pass
-                else:
-                    pressed = ""
-
-            if self.debug:
-                print(pressed, end="")
-
-            self.lastlog += pressed 
-
         except AttributeError:
             print("Unable to capture key.")
 
-        if re.search(r":help::|Key\.ctrlh", self.lastlog):
-            print("Help menu triggered")
-            self.lastlog = re.sub(r':help::|Key.ctrlh', '', self.lastlog)
-            self.chat_is_active = True
-            issue_command = f'symbiote -q "{self.lastlog}"'
-            self.command.append(issue_command)
+        if self.debug:
+            print(pressed, end='')
 
-            process = subprocess.Popen(self.command, stdout=subprocess.PIPE, stdin=subprocess.PIPE, stderr=subprocess.PIPE)
+        if re.search(r'^Key\.backspace', pressed):
+            self.lastlog = self.lastlog[:-1]
+            return
 
-            while process.poll() is None:
-                time.sleep(1)
+        self.lastlog += pressed
 
-            self.command.pop()
-            self.chat_is_active = False
-            self.totallog += self.lastlog
-            self.lastlog = ""  # reset the log
+        if re.search(r'Key\.ctrlk', self.lastlog):
+            self.pull_clipboard()
+            content = self.scrub_keys(self.clipboard_content)
+            self.launch_window(content)
+        elif re.search(r'Key\.enter<placeholder>', self.lastlog):
+            self.lastlog = self.scrub_keys(self.lastlog)
+            if len(self.lastlog) > 100:
+                content = self.scrub_keys(self.lastlog)
+                self.schat.chat(user_input=content, suppress=True, run=True)
+        elif re.search(r':help::|Key\.ctrlh', self.lastlog):
+            content = self.scrub_keys(self.lastlog)
+            self.launch_window(content)
+            
+    def launch_window(self, content):
+        self.chat_is_active = True
+        issue_command = f'symbiote -q "{content}"'
+        self.command.append(issue_command)
+
+        process = subprocess.Popen(self.command, stdout=subprocess.PIPE, stdin=subprocess.PIPE, stderr=subprocess.PIPE)
+
+        while process.poll() is None:
+            time.sleep(1)
+
+        self.command.pop()
+        self.chat_is_active = False
 
     def start(self):
         listener = Listener(on_press=self.on_press)

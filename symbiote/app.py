@@ -7,9 +7,11 @@ import os
 import re
 import argparse
 import time
+import select
 
 # subprocess terminal
 import symbiote.chat as chat
+import symbiote.core as core
 import symbiote.monitor as monitor
 
 openai.api_key = os.getenv("OPENAI_API_KEY")
@@ -17,7 +19,14 @@ openai.api_key = os.getenv("OPENAI_API_KEY")
 # available_models = openai.Model.list()
 
 def main():
-    os.system('reset')
+    def is_data():
+        return select.select([sys.stdin], [], [], 0) == ([sys.stdin], [], [])
+
+    piped_query = str()
+    if is_data():
+        for line in sys.stdin:
+            piped_query += line
+
     current_path = os.getcwd()
 
     parser = argparse.ArgumentParser(description="Symbiote")
@@ -55,13 +64,22 @@ def main():
 
     schat = chat.symchat(working_directory=current_path, debug=args.debug)
 
-    if args.monitor:
+    if len(piped_query) > 0:
+        schat.chat(user_input="hello", suppress=True, run=True)
+        os.system('reset')
+        print("User data loaded. How can I help you?")
+        schat.chat(user_input="", run=args.run)
+
+    if args.load:
+        schat.chat(user_input=args.load, suppress=True, run=True)
+    elif args.monitor:
         #schat.chat(user_input="role:HELP_ROLE:", run=True)
         monmode = monitor.KeyLogger(schat, debug=args.debug)
         monmode.start()
         while True:
             time.sleep(1)
     else:
+        os.system('reset')
         schat.chat(user_input=args.query, run=args.run)
 
 def entry_point() -> None:
@@ -69,5 +87,3 @@ def entry_point() -> None:
 
 if __name__ == "__main__":
     main()
-
-os.system('reset')

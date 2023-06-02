@@ -134,11 +134,13 @@ class symbiotes:
 
         return conversation
 
-    def send_request(self, user_input, conversation, suppress=False, role="user"):
+    def send_request(self, user_input, conversation, completion=False, suppress=False, role="user"):
         self.suppress = suppress
         total_trunc_tokens = 0
         total_user_tokens = 0
         total_assist_tokens = 0
+        char_count = 0
+        completion_content = []
 
         # Check if we are processing a string or other data type.
         if not isinstance(user_input, str):
@@ -159,18 +161,21 @@ class symbiotes:
             }
 
             conversation.append(user_content)
+            completion_content.append(user_content)
             self.save_conversation(user_content, self.conversations_file)
 
         # Handle suppressed messaging
         if suppress:
-            return conversation, 0, 0, 0
+            return conversation, 0, 0, 0, char_count
 
-        # Manage openai token balance
-        truncated_conversation, total_user_tokens = self.truncate_messages(conversation)
+        if completion:
+            truncated_conversation, total_user_tokens, char_count = self.truncate_messages(completion_content)
+        else:
+            truncated_conversation, total_user_tokens, char_count = self.truncate_messages(conversation)
 
         # Push queries to openai
         response = self.process_request(truncated_conversation)
-        
+
         total_assist_tokens, _ = self.tokenize(response)
 
         # update our conversation with the assistant response
@@ -182,23 +187,24 @@ class symbiotes:
         conversation.append(assistant_content)
         self.save_conversation(assistant_content, self.conversations_file)
 
-        return conversation, (total_user_tokens + total_assist_tokens), total_user_tokens, total_assist_tokens
+        return conversation, (total_user_tokens + total_assist_tokens), total_user_tokens, total_assist_tokens, char_count
 
     def load_conversation(self, conversations_file):
         ''' Load openai conversation json file '''
         self.conversations_file = conversations_file
         data = []
 
-        try:
-            with open(conversations_file, 'r') as file:
-                #data = json.load(file)
-                for line in file:
-                    data.append(json.loads(line))
+        if os.path.exists(self.conversations_file):
+            try:
+                with open(conversations_file, 'r') as file:
+                    #data = json.load(file)
+                    for line in file:
+                        data.append(json.loads(line))
 
-        except Exception as e:
-            pass
-            print("Error: opening %s: %s" % (conversations_file, e))
-            sys.exit(10)
+            except Exception as e:
+                pass
+                print("Error: opening %s: %s" % (conversations_file, e))
+                sys.exit(10)
 
         return data
 
@@ -232,25 +238,28 @@ class symbiotes:
         max_length = int(self.remember * self.settings['conversation_percent'] - self.settings['max_tokens'])
         total_tokens = 0
         truncated_tokens = 0
+        char_count = 0
         
         total_tokens, encoded_tokens = self.tokenize(conversation)
 
-        if total_tokens <= max_length:
-            return conversation, total_tokens
+        #if total_tokens <= max_length:
+        #    return conversation, total_tokens, char_count
         
         truncated_conversation = []
         while truncated_tokens < max_length and len(conversation) > 1:
             last_message = conversation.pop()
             truncated_conversation.insert(0, last_message)
             t_tokens, _ = self.tokenize(last_message['content'])
+            char_count += len(last_message['content'])
             truncated_tokens += t_tokens
 
         while truncated_tokens > max_length:
             removed_message = truncated_conversation.pop(0)
             t_tokens, _ = self.tokenize(removed_message['content'])
+            char_count += len(last_message['content'])
             truncated_tokens -= t_tokens
 
-        return truncated_conversation, truncated_tokens
+        return truncated_conversation, truncated_tokens, char_count
 
     def list_conversations(self, conversations_dir):
         files = os.listdir(conversations_dir)

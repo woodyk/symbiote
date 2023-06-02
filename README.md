@@ -12,6 +12,7 @@ pip3 install .
 ```
 
 # ToDo
+- Add ability to pipe data into symbiote.
 - Work on bottom toolbar with prompt_toolkit
 - Retrofit prompt_toolkit instead of InquiererPy
 - Create class for pull_content() function
