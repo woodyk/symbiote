@@ -401,12 +401,13 @@ class symchat():
             self.toolbar_data = f"Model: {self.symbiote_settings['model']} Current Conversation: {self.convo_file} Last Char Count: {self.token_track['last_char_count']}\nUser: {self.token_track['user_tokens']} Assistant: {self.token_track['completion_tokens']} Conversation: {self.token_track['truncated_tokens']} Total Used: {self.token_track['rolling_tokens']} Cost: ${self.token_track['cost']:.2f}"
 
             #if self.user_input is None or self.user_input == "":
-            self.user_input = chat_session.prompt(message="symchat> ",
-                                               multiline=True,
-                                               default=self.user_input,
-                                               bottom_toolbar=self.toolbar_data,
-                                               vi_mode=self.symbiote_settings['vi_mode']
-                                            )
+            if self.run is False:
+                self.user_input = chat_session.prompt(message="symchat> ",
+                                                   multiline=True,
+                                                   default=self.user_input,
+                                                   bottom_toolbar=self.toolbar_data,
+                                                   vi_mode=self.symbiote_settings['vi_mode']
+                                                )
 
             self.user_input = self.process_commands(self.user_input)
 

@@ -24,7 +24,7 @@ class KeyLogger:
         self.previousclip = ""
 
         self.clipboard_content = clipboard.paste()
-        #schat.chat(user_input="role:HELP_ROLE:", run=True)
+        #schat.chat(user_input="role:HELP_ROLE:", suppress=True, run=True)
 
     def pull_clipboard(self):
         # Pull clipboard contents
@@ -39,7 +39,8 @@ class KeyLogger:
                 "Key\.space": ' ',
                 "Key\.tab": '\t',
                 "Key\.ctrlh": '',
-                "Key\.ctrlk": '',
+                "Key\.ctrl=": '',
+                "Key\.ctrl]": '',
                 "Key\.ctrl": '<ctrl>',
                 "Key\.shift_r": '',
                 "Key\.shift": '',
@@ -81,15 +82,19 @@ class KeyLogger:
 
         self.lastlog += pressed
 
-        if re.search(r'Key\.ctrlk', self.lastlog):
+        if re.search(r'Key\.ctrl\]', self.lastlog):
             self.pull_clipboard()
             content = self.scrub_keys(self.clipboard_content)
+            if re.search(r'^http:\/\/.*|^https:\/\/.*', content):
+                content = f'get:{content}:'
+
+            self.schat.chat(user_input=content, suppress=True, run=True)
+            content = ""
             self.launch_window(content)
-        elif re.search(r'Key\.enter<placeholder>', self.lastlog):
+        elif re.search(r'Key\.ctrl=', self.lastlog):
             self.lastlog = self.scrub_keys(self.lastlog)
-            if len(self.lastlog) > 100:
-                content = self.scrub_keys(self.lastlog)
-                self.schat.chat(user_input=content, suppress=True, run=True)
+            content = self.scrub_keys(self.lastlog)
+            self.schat.chat(user_input=content, suppress=True, run=True)
         elif re.search(r':help::|Key\.ctrlh', self.lastlog):
             content = self.scrub_keys(self.lastlog)
             self.launch_window(content)
@@ -97,6 +102,7 @@ class KeyLogger:
     def launch_window(self, content):
         self.chat_is_active = True
         issue_command = f'symbiote -q "{content}"'
+
         self.command.append(issue_command)
 
         process = subprocess.Popen(self.command, stdout=subprocess.PIPE, stdin=subprocess.PIPE, stderr=subprocess.PIPE)

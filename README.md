@@ -12,6 +12,7 @@ pip3 install .
 ```
 
 # ToDo
+- Add ability to recognize file paths or urls in copy buffer or entered text to interact with remote data.
 - Add ability to pipe data into symbiote.
 - Work on bottom toolbar with prompt_toolkit
 - Retrofit prompt_toolkit instead of InquiererPy

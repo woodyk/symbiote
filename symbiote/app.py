@@ -38,7 +38,7 @@ def main():
 
     parser.add_argument('-d', '--debug',
                         action='store_true',
-                        help='Query to populate Symbiote with.')
+                        help='Turn on debugging')
 
     parser.add_argument('-r', '--run',
                         action='store_true',
@@ -58,7 +58,7 @@ def main():
 
     parser.add_argument('-l', '--load',
                         type=str,
-                        help='Load the given file into Symbiote.')
+                        help='Load input into Symbiote.')
 
     args = parser.parse_args()
 
@@ -78,9 +78,11 @@ def main():
         monmode.start()
         while True:
             time.sleep(1)
+    elif args.query:
+        schat.chat(user_input=args.query, run=args.run)
     else:
         os.system('reset')
-        schat.chat(user_input=args.query, run=args.run)
+        schat.chat(user_input="")
 
 def entry_point() -> None:
     main()
