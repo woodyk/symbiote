@@ -43,6 +43,7 @@ setup(
     packages=find_packages(),
     install_requires=[
         'pynput==1.7.6',
+        'evdev==1.6.1',
         'clipboard==0.0.4',
         'python_magic==0.4.27',
         'textract==1.6.5',
