@@ -721,7 +721,7 @@ class symchat():
 
             print(f"Fetching content from: {url}")
             website_content = self.pull_website_content(url)
-            user_input = re.sub(match.re, website_content, user_input)
+            user_input = user_input[:match.start()] + website_content + user_input[match.end():]
 
             return user_input 
 
@@ -778,8 +778,13 @@ class symchat():
         return user_input
 
     def pull_website_content(self, url):
+        # Headers with User-Agent
+        headers = {
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/89.0.4389.82 Safari/537.36"
+        }
+
         try:
-            response = requests.get(url)
+            response = requests.get(url, headers=headers)
             response.raise_for_status()
         except requests.exceptions.RequestException as e:
             print(f"Error fetching the website content: {e}")
@@ -800,7 +805,8 @@ class symchat():
         text = '\n'.join(chunk for chunk in chunks if chunk)
 
         # Encapsulate the extracted text within triple backticks
-        text = f"Here is more content from the website {url}.\nIMPORTANT: Do not provide feedback from this content unless specifically asked.\n```{text}``` "
+        text = f"URL / Website: {url}.\n\n```{text}```\n\n"
+        text = str(text)
 
         return text
 

@@ -9,8 +9,13 @@ import threading
 import time
 import subprocess
 import clipboard
-from evdev import InputDevice, categorize, ecodes
+import platform
+import pyaudio
+import speech_recognition as sr
 from pynput.keyboard import Listener
+
+if platform.system() == 'Linux':
+    from evdev import InputDevice, categorize, ecodes
 
 class KeyLogger:
     def __init__(self, schat, debug=False):
@@ -25,6 +30,14 @@ class KeyLogger:
         self.previousclip = ""
 
         self.clipboard_content = clipboard.paste()
+
+        # Activation key combinations to monitor for.
+        self.keys_activate = {
+                "clipboard": r'Key\.ctrl\]',
+                "append": r'Key\.ctrl=',
+                "keyboard": r':help::|Key\.ctrlh'
+                }
+
         #schat.chat(user_input="role:HELP_ROLE:", suppress=True, run=True)
 
     def linux_find_keyboard_device(self):
@@ -59,7 +72,7 @@ class KeyLogger:
             self.previousclip = self.clipboard_content
 
     def scrub_keys(self, log):
-        key_mapping = {
+        self.key_mapping = {
                 ":help::": '',
                 "Key\.enter": '\n',
                 "Key\.space": ' ',
@@ -67,7 +80,7 @@ class KeyLogger:
                 "Key\.ctrlh": '',
                 "Key\.ctrl=": '',
                 "Key\.ctrl]": '',
-                "Key\.ctrl": '<ctrl>',
+                "Key\.ctrl": '',
                 "Key\.shift_r": '',
                 "Key\.shift": '',
                 "Key\.down": '',
@@ -82,8 +95,8 @@ class KeyLogger:
                 "Key\.alt": ''
             }
 
-        for key in key_mapping:
-           log = re.sub(key, key_mapping[key], log)
+        for key in self.key_mapping:
+           log = re.sub(key, self.key_mapping[key], log)
 
         self.lastlog = ""
 
@@ -108,20 +121,22 @@ class KeyLogger:
 
         self.lastlog += pressed
 
-        if re.search(r'Key\.ctrl\]', self.lastlog):
+        if re.search(self.keys_activate['clipboard'], self.lastlog):
             self.pull_clipboard()
             content = self.scrub_keys(self.clipboard_content)
             if re.search(r'^http:\/\/.*|^https:\/\/.*', content):
                 content = f'get:{content}:'
+                if self.debug:
+                    print(content)
 
             self.schat.chat(user_input=content, suppress=True, run=True)
             content = ""
             self.launch_window(content)
-        elif re.search(r'Key\.ctrl=', self.lastlog):
+        elif re.search(self.keys_activate['append'], self.lastlog):
             self.lastlog = self.scrub_keys(self.lastlog)
             content = self.scrub_keys(self.lastlog)
             self.schat.chat(user_input=content, suppress=True, run=True)
-        elif re.search(r':help::|Key\.ctrlh', self.lastlog):
+        elif re.search(self.keys_activate['keyboard'], self.lastlog):
             content = self.scrub_keys(self.lastlog)
             self.launch_window(content)
             
