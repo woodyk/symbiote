@@ -13,22 +13,20 @@ import platform
 import pyaudio
 import speech_recognition as sr
 from pynput.keyboard import Listener
+import symbiote.speech as speech
 
 if platform.system() == 'Linux':
     from evdev import InputDevice, categorize, ecodes
 
 class KeyLogger:
     def __init__(self, schat, debug=False):
-        global chat_is_active
         self.schat = schat
         self.debug = debug
-        chat_is_active = False
+        self.chat_is_active = False
         self.lastlog = ""
-        self.chat_is_active = chat_is_active 
         self.command = ["terminator", "-e"]
         self.totallog = ""
         self.previousclip = ""
-
         self.clipboard_content = clipboard.paste()
 
         # Activation key combinations to monitor for.
@@ -37,6 +35,9 @@ class KeyLogger:
                 "append": r'Key\.ctrl=',
                 "keyboard": r':help::|Key\.ctrlh'
                 }
+
+        self.symspeech = speech.SymSpeech(schat=self.schat, debug=self.debug)
+        self.symspeech.start_keyword_listen()
 
         #schat.chat(user_input="role:HELP_ROLE:", suppress=True, run=True)
 
@@ -131,16 +132,16 @@ class KeyLogger:
 
             self.schat.chat(user_input=content, suppress=True, run=True)
             content = ""
-            self.launch_window(content)
+            self.mon_launch_window(content)
         elif re.search(self.keys_activate['append'], self.lastlog):
             self.lastlog = self.scrub_keys(self.lastlog)
             content = self.scrub_keys(self.lastlog)
             self.schat.chat(user_input=content, suppress=True, run=True)
         elif re.search(self.keys_activate['keyboard'], self.lastlog):
             content = self.scrub_keys(self.lastlog)
-            self.launch_window(content)
+            self.mon_launch_window(content)
             
-    def launch_window(self, content):
+    def mon_launch_window(self, content):
         self.chat_is_active = True
         issue_command = f'symbiote -q "{content}"'
 

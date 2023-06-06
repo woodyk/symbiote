@@ -78,7 +78,7 @@ symbiote_settings = {
         "top_p": 1,
         "n": 0,
         "stream": True,
-        "stop": "stop::",
+        "stop": "<<<stop>>>",
         "presence_penalty": 0,
         "frequency_penalty": 0,
         "logit_bias": 0,
@@ -379,6 +379,12 @@ class symchat():
         else:
             self.suppress = False
 
+        if 'enable' in kwargs:
+            self.enable = kwargs['enable']
+            self.run = True
+        else:
+            self.enable = False
+
         if 'user_input' in kwargs:
             self.user_input = kwargs['user_input']
 
@@ -400,9 +406,18 @@ class symchat():
             # Chack for a change in settings and write them
             check_settings = hash(json.dumps(self.symbiote_settings, sort_keys=True)) 
 
+            if self.symbiote_settings['speech'] and self.run is False:
+                if not hasattr(self, 'symspeech'):
+                    self.symspeech = speech.SymSpeech(debug=self.debug)
+
+                #self.launch_animation(True)
+                self.user_input = self.symspeech.keyword_listen()
+                #self.launch_animation(False)
+                self.enable = True
+                self.run = True
+
             self.toolbar_data = f"Model: {self.symbiote_settings['model']} Current Conversation: {self.convo_file} Last Char Count: {self.token_track['last_char_count']}\nUser: {self.token_track['user_tokens']} Assistant: {self.token_track['completion_tokens']} Conversation: {self.token_track['truncated_tokens']} Total Used: {self.token_track['rolling_tokens']} Cost: ${self.token_track['cost']:.2f}"
 
-            #if self.user_input is None or self.user_input == "":
             if self.run is False:
                 self.user_input = chat_session.prompt(message="symchat> ",
                                                    multiline=True,
@@ -419,9 +434,11 @@ class symchat():
 
             if self.user_input is None or re.search(r'^\n+$', self.user_input) or self.user_input== "":
                 self.user_input = ""
-                if self.run:
+                if self.run is True and self.enable is False:
                     break 
 
+                self.enable = False
+                self.run = False
                 continue
 
             if re.search(r'^shell::', self.user_input):
@@ -436,7 +453,11 @@ class symchat():
 
             self.user_input = ""
 
-            if self.run:
+            if self.enable is True:
+                self.run = False
+                self.enable = False
+
+            if self.run is True:
                 break
 
             continue
@@ -479,7 +500,7 @@ class symchat():
 
         if self.symbiote_settings['speech']:
             if not hasattr(self, 'symspeech'):
-                self.symspeech = speech.SymSpeech()
+                self.symspeech = speech.SymSpeech(debug=self.debug)
 
             last_message = self.current_conversation[-1]
             self.symspeech.say(last_message['content'])
@@ -512,6 +533,9 @@ class symchat():
             self.save_settings(settings=self.symbiote_settings)
             os.system('reset')
             sys.exit(0)
+
+        if re.search(r'keyword speech off', user_input):
+            user_input = 'setting:speech:0:'
 
         # Trigger to choose role
         role_pattern = r'^role::|role:(.*):'
@@ -562,6 +586,7 @@ class symchat():
 
                     self.symbiote_settings[setting] = set_value
                     self.sym.update_symbiote_settings(settings=symbiote_settings)
+                    self.save_settings(settings=self.symbiote_settings)
             else:
                 print("Current OpenAI Settings:")
 

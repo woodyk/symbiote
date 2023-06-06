@@ -13,6 +13,7 @@ import select
 import symbiote.chat as chat
 import symbiote.core as core
 import symbiote.monitor as monitor
+import symbiote.speech as speech
 
 openai.api_key = os.getenv("OPENAI_API_KEY")
 # Pull a list of available models to use.
@@ -43,6 +44,10 @@ def main():
     parser.add_argument('-r', '--run',
                         action='store_true',
                         help='Execute query and exit.')
+
+    parser.add_argument('-e', '--enable',
+                        action='store_true',
+                        help='Execute query and and drop to Symbiote prompt.')
 
     parser.add_argument('-c', '--conversation',
                         type=str,
@@ -79,7 +84,7 @@ def main():
         while True:
             time.sleep(1)
     elif args.query:
-        schat.chat(user_input=args.query, run=args.run)
+        schat.chat(user_input=args.query, run=args.run, enable=args.enable)
     else:
         os.system('reset')
         schat.chat(user_input="")

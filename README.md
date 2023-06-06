@@ -12,6 +12,7 @@ pip3 install .
 ```
 
 # ToDo
+- Repair monitor mode window launch
 - Add ability to recognize file paths or urls in copy buffer or entered text to interact with remote data.
 - Add ability to pipe data into symbiote.
 - Work on bottom toolbar with prompt_toolkit
