@@ -35,6 +35,7 @@ import symbiote.core as core
 import symbiote.shell as shell
 import symbiote.roles as roles
 import symbiote.utils as utils
+import symbiote.speech as speech
 
 command_list = {
         "help::": "This help output.",
@@ -87,7 +88,8 @@ symbiote_settings = {
         "chunk_size": 256,
         "completion": False,
         "conversation": "conversation.jsonl",
-        "vi_mode": False
+        "vi_mode": False,
+        "speech": False
     }
 
 keybindings = {}
@@ -474,6 +476,13 @@ class symchat():
         self.sym.change_max_tokens(self.symbiote_settings['default_max_tokens'])
         self.suppress = False
         self.role = "user"
+
+        if self.symbiote_settings['speech']:
+            if not hasattr(self, 'symspeech'):
+                self.symspeech = speech.SymSpeech()
+
+            last_message = self.current_conversation[-1]
+            self.symspeech.say(last_message['content'])
 
         return
 

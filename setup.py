@@ -56,7 +56,10 @@ setup(
         'requests==2.28.2',
         'rich==13.3.4',
         'setuptools==67.6.1',
-        'gitignore_parser==0.1.3'
+        'gitignore_parser==0.1.3',
+        'pyttsx3==2.90',
+        'PyAudio==0.2.13',
+        'SpeechRecognition==3.8.1'
     ],
     classifiers=[
         'Development Status :: 3 - Alpha',
