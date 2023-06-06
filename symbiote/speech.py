@@ -50,14 +50,13 @@ class SymSpeech():
 
                     # Check if the keyword is in the recognized text
                     if keyword.lower() in text.lower():
+                        # Stop the stream
+                        stream.stop_stream()
                         if self.debug:
                             print("Keyword detected!")
 
                         ready = "Symbiote here. How can I help you?"
                         self.say(ready)
-
-                        # Stop the stream
-                        stream.stop_stream()
 
                         self.listen(5)
 
@@ -65,7 +64,6 @@ class SymSpeech():
 
                 except sr.UnknownValueError:
                     # Google Speech Recognition could not understand audio
-                    print("Unknown Error")
                     pass
                 except sr.RequestError as e:
                     # Could not request results from Google Speech Recognition service
