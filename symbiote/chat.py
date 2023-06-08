@@ -52,6 +52,7 @@ command_list = {
         "cd::": "Change working directory.",
         "pwd::": "Show current working directory.",
         "file::": "Load a file for submission.",
+        "summary::": "Pull nouns, summary, and metadata for a file.",
         "get::": "Load a webpage for submission.",
         "tree::": "Load a directory tree for submission.",
         "shell::": "Load the symbiote bash shell.",
@@ -75,7 +76,8 @@ audio_triggers = {
         'clipboard': [r'keyword get clipboard', 'clipboard::'],
         'exit': [r'keyword exit now', 'exit::'],
         'help': [r'keyword show help', 'help::'],
-        'tokens': [r'keyword show tokens', 'tokens::']
+        'tokens': [r'keyword show tokens', 'tokens::'],
+        'summary': [r'keyword summarize file', 'summary::']
         }
 
 # Configure prompt settings.
@@ -111,7 +113,8 @@ symbiote_settings = {
         "conversation": "conversation.jsonl",
         "vi_mode": False,
         "speech": False,
-        "listen": False
+        "listen": False,
+        "debug": False
     }
 
 keybindings = {}
@@ -165,17 +168,17 @@ class symchat():
                 write_through=True
             )
 
+        self.symbiote_settings = symbiote_settings 
+
         if 'debug' in kwargs:
-            self.debug = kwargs['debug']
-        else:
-            self.debug = False
+            self.symbiote_settings['debug'] = kwargs['debug']
+            
+        self.debug = symbiote_settings['debug']
 
         if 'working_directory' in kwargs:
             self.working_directory = kwargs['working_directory']
         else:
             self.working_directory = os.getcwd()
-
-        self.symbiote_settings = symbiote_settings 
 
         # Load symbiote core 
         self.sym = core.symbiotes(settings=self.symbiote_settings)
@@ -218,6 +221,9 @@ class symchat():
 
         # Load the default conversation
         self.current_conversation = self.sym.load_conversation(self.conversations_file)
+
+        # Load utils object
+        self.symutils = utils.utilities()
 
         self.token_track = {
             'truncated_tokens': 0,
@@ -431,7 +437,7 @@ class symchat():
 
             if self.symbiote_settings['listen'] and self.run is False:
                 if not hasattr(self, 'symspeech'):
-                    self.symspeech = speech.SymSpeech(debug=self.debug)
+                    self.symspeech = speech.SymSpeech(debug=self.symbiote_settings['debug'])
 
                 print("symchat listening> ", end="")
                 self.launch_animation(True)
@@ -515,7 +521,7 @@ class symchat():
 
         if self.symbiote_settings['speech'] and self.suppress is False:
             if not hasattr(self, 'symspeech'):
-                self.symspeech = speech.SymSpeech(debug=self.debug)
+                self.symspeech = speech.SymSpeech(debug=self.symbiote_settings['debug'])
 
             last_message = self.current_conversation[-1]
             self.symspeech.say(last_message['content'])
@@ -702,6 +708,45 @@ class symchat():
             print(self.working_directory)
             return None
 
+        # Trigger for summarize:: processing. Load file content and generate a json object about the file.
+        summary_pattern = r'summary::|summary:(.*):'
+        match = re.search(summary_pattern, user_input)
+        file_path = None
+        
+        if match:
+            self.suppress = True
+            if match.group(1):
+                file_path = match.group(1)
+
+            if file_path is None:
+                start_path = "./"
+                file_path = inquirer.filepath(
+                        message="Summarize file:",
+                        default=start_path,
+                        validate=PathValidator(is_file=True, message="Input is not a file"),
+                        wrap_lines=True,
+                        mandatory=False,
+                        keybindings=keybindings
+                    ).execute()
+
+            if file_path is None:
+                return None
+
+            file_path = os.path.expanduser(file_path)
+
+            if not os.path.isfile(file_path):
+                print(f"File not found: {file_path}")
+                return None
+
+            summary = self.symutils.summarizeFile(file_path)
+
+            if self.symbiote_settings['debug']:
+                print(json.dumps(summary, indent=4))
+
+            user_input = user_input[:match.start()] + json.dumps(summary) + user_input[match.end():]
+
+            return user_input
+
         # Trigger for file:filename processing. Load file content into user_input for openai consumption.
         file_pattern = r'file::|file:(.*):'
         match = re.search(file_pattern, user_input)
@@ -743,38 +788,30 @@ class symchat():
                 return None
             
             mime_type = magic.from_file(file_path, mime=True)
+            absolute_path = os.path.abspath(file_path)
 
             if sub_command is not None:
                 # Process file sub commands
                 if sub_command == "meta":
-                    meta_data = utils.extract_metadata(file_path)
+                    meta_data = self.symutils.extractMetadata(file_path)
                     content = json.dumps(meta_data)
                 else:
                     print(f"Unknown sub command: {sub_command}")
+                    return None
 
-                user_input = user_input[:match.start()] + content + user_input[match.end():]
+                meta_content = f"File name: {absolute_path}\n"
+                meta_content += '\n```\n{}\n```\n'.format(content)
+                user_input = user_input[:match.start()] + meta_content + user_input[match.end():]
 
             else:
-                if re.search(r'^text\/', mime_type):
-                    with open(file_path, 'r') as f:
-                        content = f.read()
-
-                elif re.search(r'^image\/', mime_type):
-                    content = textract.process(file_path, method='tesseract', language='eng')
-
-                elif mime_type == "application/pdf":
-                    content = textract.process(file_path, method='tesseract', language='eng')
-
-                else:
-                    content = textract.process(file_path)
-
-                #content = content.encode('utf-8')
-
-                absolute_path = os.path.abspath(file_path)
+                content = self.symutils.extractText(file_path)
 
                 file_content = f"File name: {absolute_path}\n"
                 file_content += '\n```\n{}\n```\n'.format(content)
                 user_input = user_input[:match.start()] + file_content + user_input[match.end():]
+
+            if self.symbiote_settings['debug']:
+                print(content)
 
             return user_input
 
