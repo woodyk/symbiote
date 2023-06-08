@@ -36,7 +36,7 @@ class KeyLogger:
                 "keyboard": r':help::|Key\.ctrlh'
                 }
 
-        self.symspeech = speech.SymSpeech(schat=self.schat, debug=self.debug)
+        self.symspeech = speech.SymSpeech(monitor=True, debug=self.debug)
         self.symspeech.start_keyword_listen()
 
         #schat.chat(user_input="role:HELP_ROLE:", suppress=True, run=True)

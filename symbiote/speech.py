@@ -15,8 +15,8 @@ os.environ['PYGAME_HIDE_SUPPORT_PROMPT'] = '1'
 import pygame
 
 class SymSpeech():
-    def __init__(self, schat=False, debug=False):
-        self.schat = schat
+    def __init__(self, monitor=False, debug=False):
+        self.monitor = monitor 
         self.debug = debug
 
         # Create a recognizer instance
@@ -26,6 +26,8 @@ class SymSpeech():
         self.keywords = [ 
                     "symbiote",
                     "help",
+                    "someone",
+                    "bob"
                     ]
 
     def start_keyword_listen(self):
@@ -86,23 +88,21 @@ class SymSpeech():
                     if self.debug:
                         print("Keyword detected!")
 
-                    if self.schat:
-                        ready = "Symbiote here. How can I help you?"
-                        self.say(ready)
-                        recorded = self.listen(5)
+                    ready = "Yes?"
+                    self.say(ready)
+                    recorded = self.listen(5)
+
+                    if self.monitor:
                         self.launch_window(recorded)
                     else:
-                        ready = "Yes?"
-                        self.say(ready)
-                        recorded = self.listen(5)
                         return recorded
 
             mdata = b''
             text = '' 
 
-    def say(self, user_input):
+    def say(self, say_message):
         try:
-            text_to_speech = gTTS(text=user_input)
+            text_to_speech = gTTS(text=say_message)
         except:
             print("Unable to get text to speech.")
             return
@@ -124,6 +124,7 @@ class SymSpeech():
         os.remove(tempfile_path)
 
     def listen(self, duration):
+        request_text = str()
         with sr.Microphone() as source:
             if self.debug:
                 print("Speak:")
@@ -134,11 +135,20 @@ class SymSpeech():
                 print("Recognizing...")
 
             # convert speech to text
-            request_text = self.r.recognize_google(audio_data)
+            try:
+                request_text = self.r.recognize_google(audio_data)
+            except:
+                # Google Speech Recognition could not understand audio
+                requested_text = None 
+
             if self.debug:
                 print(request_text)
 
+            if len(request_text) < 4:
+                request_text = None
+
             return request_text
+
 
     def launch_window(self, content):
         command = ["terminator", "-e"]

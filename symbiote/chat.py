@@ -14,6 +14,7 @@ import textract
 import magic
 import subprocess
 import platform
+import clipboard
 import json
 
 from bs4 import BeautifulSoup
@@ -54,7 +55,27 @@ command_list = {
         "get::": "Load a webpage for submission.",
         "tree::": "Load a directory tree for submission.",
         "shell::": "Load the symbiote bash shell.",
+        "clipboard::": "Load clipboard contents into symbiote.",
         "ls::": "Load ls output for submission."
+        }
+
+
+audio_triggers = {
+        'speech_off': [r'keyword speech off', 'setting:speech:0:'],
+        'speech_on': [r'keyword speech on', 'setting:speech:1:'],
+        'interactive': [r'keyword interactive mode', 'setting:listen:0:'],
+        'settings': [r'keyword show setting', 'setting::'],
+        'file': [r'keyword open file', 'file::'],
+        'shell': [r'keyword open shell|keyword openshell', 'shell::'],
+        'role': [r'keyword change [role|roll]', 'role::'],
+        'conversation': [r'keyword change conversation', 'convo::'],
+        'model': [r'keyword change model', 'model::'],
+        'get': [r'keyword get website', 'get::'],
+        'clipboard_url': [r'keyword get clipboard [url|\S+site]', 'clipboard:get:'],
+        'clipboard': [r'keyword get clipboard', 'clipboard::'],
+        'exit': [r'keyword exit now', 'exit::'],
+        'help': [r'keyword show help', 'help::'],
+        'tokens': [r'keyword show tokens', 'tokens::']
         }
 
 # Configure prompt settings.
@@ -89,7 +110,8 @@ symbiote_settings = {
         "completion": False,
         "conversation": "conversation.jsonl",
         "vi_mode": False,
-        "speech": False
+        "speech": False,
+        "listen": False
     }
 
 keybindings = {}
@@ -133,7 +155,6 @@ def check_libmagic():
             print('Unable to determine OS. Please install libmagic-devel or libmagic-dev using your package manager.')
 
 check_libmagic()
-
 
 class symchat():
     ''' Chat class '''
@@ -264,6 +285,8 @@ class symchat():
                     for frame in frames:
                         print(f"\r{frame}", end="", flush=True)
                         time.sleep(0.2)
+                        if stop_event.is_set():
+                            break
                 print()
                 show_cursor()
 
@@ -406,13 +429,14 @@ class symchat():
             # Chack for a change in settings and write them
             check_settings = hash(json.dumps(self.symbiote_settings, sort_keys=True)) 
 
-            if self.symbiote_settings['speech'] and self.run is False:
+            if self.symbiote_settings['listen'] and self.run is False:
                 if not hasattr(self, 'symspeech'):
                     self.symspeech = speech.SymSpeech(debug=self.debug)
 
-                #self.launch_animation(True)
+                print("symchat listening> ", end="")
+                self.launch_animation(True)
                 self.user_input = self.symspeech.keyword_listen()
-                #self.launch_animation(False)
+                self.launch_animation(False)
                 self.enable = True
                 self.run = True
 
@@ -440,14 +464,6 @@ class symchat():
                 self.enable = False
                 self.run = False
                 continue
-
-            if re.search(r'^shell::', self.user_input):
-                shell.symBash().launch_shell()
-                continue
-
-            if re.search(r"^reset::", self.user_input):
-                chat_session = PromptSession(key_bindings=bindings, vi_mode=self.symbiote_settings['vi_mode'], history=self.history, style=prompt_style)
-                continue  
 
             self.send_message(self.user_input)
 
@@ -495,15 +511,16 @@ class symchat():
             self.token_track['cost'] = "unknown"
 
         self.sym.change_max_tokens(self.symbiote_settings['default_max_tokens'])
-        self.suppress = False
         self.role = "user"
 
-        if self.symbiote_settings['speech']:
+        if self.symbiote_settings['speech'] and self.suppress is False:
             if not hasattr(self, 'symspeech'):
                 self.symspeech = speech.SymSpeech(debug=self.debug)
 
             last_message = self.current_conversation[-1]
             self.symspeech.say(last_message['content'])
+
+        self.suppress = False
 
         return
 
@@ -512,13 +529,22 @@ class symchat():
         return self.token_track
 
     def process_commands(self, user_input):
+        # Audio keyword triggers
+        for keyword in audio_triggers:
+            if re.search(audio_triggers[keyword][0], user_input):
+                user_input = audio_triggers[keyword][1]
+                break
+
+        if re.search(r'^shell::', self.user_input):
+            shell.symBash().launch_shell()
+            return None
 
         if re.search(r'^help::', user_input):
             self.symhelp()
             return None
 
-        if re.search(r"^clear::", user_input):
-            self.symclear()
+        if re.search(r"^clear::|^reset::", user_input):
+            os.system('reset')
             return None
 
         if re.search(r"^tokens::", user_input):
@@ -534,8 +560,23 @@ class symchat():
             os.system('reset')
             sys.exit(0)
 
-        if re.search(r'keyword speech off', user_input):
-            user_input = 'setting:speech:0:'
+        # Trigger to read clipboard contents
+        clipboard_pattern = r'clipboard::|clipboard:(.*):'
+        match = re.search(clipboard_pattern, user_input)
+        if match:
+            self.suppress = True
+            contents = clipboard.paste()
+            if match.group(1):
+                sub_command = match.group(1).strip()
+                if sub_command == 'get':
+                    if re.search(r'^https?://\S+', contents):
+                        print(f"Fetching content from: {contents}")
+                        website_content = self.pull_website_content(contents)
+                        user_input = user_input[:match.start()] + website_content + user_input[match.end():]
+            else:
+                user_input = user_input[:match.start()] + contents + user_input[match.end():]
+
+            return user_input
 
         # Trigger to choose role
         role_pattern = r'^role::|role:(.*):'
@@ -727,13 +768,14 @@ class symchat():
                 else:
                     content = textract.process(file_path)
 
-                content = content.encode('utf-8')
+                #content = content.encode('utf-8')
 
                 absolute_path = os.path.abspath(file_path)
 
                 file_content = f"File name: {absolute_path}\n"
                 file_content += '\n```\n{}\n```\n'.format(content)
                 user_input = user_input[:match.start()] + file_content + user_input[match.end():]
+
             return user_input
 
         # Trigger for get:URL processing. Load website content into user_input for openai consumption.
