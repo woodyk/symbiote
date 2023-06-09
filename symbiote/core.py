@@ -24,6 +24,9 @@ class symbiotes:
         self.settings = settings 
         self.remember = self.models[self.settings['model']]
 
+        if self.settings['debug']:
+            print(self.settings)
+
         return
 
     def get_models(self):
@@ -238,11 +241,14 @@ class symbiotes:
         total_tokens = 0
         truncated_tokens = 0
         char_count = 0
+        truncated_conversation = []
         
         total_tokens, encoded_tokens = self.tokenize(conversation)
 
-        truncated_conversation = []
-        while truncated_tokens < max_length and len(conversation) > 1:
+        if self.settings['debug']:
+            print(conversation)
+
+        while truncated_tokens < max_length and len(conversation) > 0:
             last_message = conversation.pop()
             truncated_conversation.insert(0, last_message)
             t_tokens, _ = self.tokenize(last_message['content'])

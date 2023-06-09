@@ -8,6 +8,8 @@ import re
 import argparse
 import time
 import select
+import subprocess
+import platform
 
 # subprocess terminal
 import symbiote.chat as chat
@@ -20,6 +22,9 @@ openai.api_key = os.getenv("OPENAI_API_KEY")
 # available_models = openai.Model.list()
 
 def main():
+    check_libmagic()
+    check_nl_packages()
+
     def is_data():
         return select.select([sys.stdin], [], [], 0) == ([sys.stdin], [], [])
 
@@ -88,6 +93,56 @@ def main():
     else:
         os.system('reset')
         schat.chat(user_input="")
+
+def check_libmagic():
+    ret_code = 0
+
+    try:
+        subprocess.check_output(["file", "--version"])
+    except (subprocess.CalledProcessError, FileNotFoundError):
+        ret_code = 1
+
+    system = platform.system()
+
+   # Check if libmagic is installed
+    if ret_code != 0:
+        # libmagic is not installed
+        print('libmagic is not installed on this system.')
+
+        # Check the OS and suggest a package manager to install libmagic
+        if system == 'Linux':
+            # Linux
+            if os.path.isfile('/etc/lsb-release'):
+                # Ubuntu
+                print('Please run `sudo apt-get install libmagic-dev` to install libmagic on Ubuntu.')
+            elif os.path.isfile('/etc/redhat-release'):
+                # RedHat/CentOS
+                print('Please run `sudo yum install libmagic-devel` to install libmagic on RedHat/CentOS.')
+            elif os.path.isfile('/etc/os-release'):
+                # Other Linux distros
+                print('Please use your package manager to install libmagic-devel or libmagic-dev on this system.')
+
+        elif system == 'Darwin':
+            # macOS
+            print('Please run `brew install libmagic` to install libmagic on macOS using Homebrew.')
+
+        elif system == 'Windows':
+            print('Please install libmagic-devel or libmagic-dev using your package manager.')
+
+        else:
+            print('Unable to determine OS. Please install libmagic-devel or libmagic-dev using your package manager.')
+
+def check_nl_packages():
+    try:
+        subprocess.call(['python', '-m', 'spacy', 'download', 'en_core_web_sm'])
+    except:
+        print("Error installing spacy en_core_web_sm")
+
+    try:
+        subprocess.call(['python', '-m', 'nltk.downloader', 'vader_lexicon'])
+    except:
+        print("Error installing nltk vader_lexicon")
+
 
 def entry_point() -> None:
     main()

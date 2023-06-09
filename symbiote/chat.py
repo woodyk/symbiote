@@ -67,17 +67,18 @@ audio_triggers = {
         'interactive': [r'keyword interactive mode', 'setting:listen:0:'],
         'settings': [r'keyword show setting', 'setting::'],
         'file': [r'keyword open file', 'file::'],
-        'shell': [r'keyword open shell|keyword openshell', 'shell::'],
-        'role': [r'keyword change [role|roll]', 'role::'],
+        'shell': [r'keyword (open shell|openshell)', 'shell::'],
+        'role': [r'keyword change (role|roll)', 'role::'],
         'conversation': [r'keyword change conversation', 'convo::'],
         'model': [r'keyword change model', 'model::'],
         'get': [r'keyword get website', 'get::'],
         'clipboard_url': [r'keyword get clipboard [url|\S+site]', 'clipboard:get:'],
         'clipboard': [r'keyword get clipboard', 'clipboard::'],
         'exit': [r'keyword exit now', 'exit::'],
-        'help': [r'keyword show help', 'help::'],
-        'tokens': [r'keyword show tokens', 'tokens::'],
-        'summary': [r'keyword summarize file', 'summary::']
+        'help': [r'keyword (get|show) help', 'help::'],
+        'tokens': [r'keyword (get|show) tokens', 'tokens::'],
+        'summary': [r'keyword summarize file', 'summary::'],
+        'keyword': [r'keyword (get|show) keyword', 'keywords::']
         }
 
 # Configure prompt settings.
@@ -119,46 +120,6 @@ symbiote_settings = {
 
 keybindings = {}
 
-def check_libmagic():
-    ret_code = 0
-
-    try:
-        subprocess.check_output(["file", "--version"])
-    except (subprocess.CalledProcessError, FileNotFoundError):
-        ret_code = 1
-
-    system = platform.system()
-
-   # Check if libmagic is installed
-    if ret_code != 0:
-        # libmagic is not installed
-        print('libmagic is not installed on this system.')
-        
-        # Check the OS and suggest a package manager to install libmagic
-        if system == 'Linux':
-            # Linux
-            if os.path.isfile('/etc/lsb-release'):
-                # Ubuntu
-                print('Please run `sudo apt-get install libmagic-dev` to install libmagic on Ubuntu.')
-            elif os.path.isfile('/etc/redhat-release'):
-                # RedHat/CentOS
-                print('Please run `sudo yum install libmagic-devel` to install libmagic on RedHat/CentOS.')
-            elif os.path.isfile('/etc/os-release'):
-                # Other Linux distros
-                print('Please use your package manager to install libmagic-devel or libmagic-dev on this system.')
-
-        elif system == 'Darwin':
-            # macOS
-            print('Please run `brew install libmagic` to install libmagic on macOS using Homebrew.')
-
-        elif system == 'Windows':
-            print('Please install libmagic-devel or libmagic-dev using your package manager.')
-
-        else:
-            print('Unable to determine OS. Please install libmagic-devel or libmagic-dev using your package manager.')
-
-check_libmagic()
-
 class symchat():
     ''' Chat class '''
     def __init__(self, *args, **kwargs):
@@ -169,6 +130,7 @@ class symchat():
             )
 
         self.symbiote_settings = symbiote_settings 
+        self.audio_triggers = audio_triggers
 
         if 'debug' in kwargs:
             self.symbiote_settings['debug'] = kwargs['debug']
@@ -398,9 +360,9 @@ class symchat():
             self.run = False
 
         if 'completion' in kwargs:
-            completion = kwargs['completion']
+            self.completion = kwargs['completion']
         else:
-            completion = False
+            self.completion = False
 
         if 'suppress' in kwargs:
             self.suppress = kwargs['suppress']
@@ -530,9 +492,9 @@ class symchat():
 
     def process_commands(self, user_input):
         # Audio keyword triggers
-        for keyword in audio_triggers:
-            if re.search(audio_triggers[keyword][0], user_input):
-                user_input = audio_triggers[keyword][1]
+        for keyword in self.audio_triggers:
+            if re.search(self.audio_triggers[keyword][0], user_input):
+                user_input = self.audio_triggers[keyword][1]
                 break
 
         if re.search(r'^shell::', self.user_input):
@@ -626,7 +588,7 @@ class symchat():
                         set_value = get_type(set_value) 
 
                     self.symbiote_settings[setting] = set_value
-                    self.sym.update_symbiote_settings(settings=symbiote_settings)
+                    self.sym.update_symbiote_settings(settings=self.symbiote_settings)
                     self.save_settings(settings=self.symbiote_settings)
             else:
                 print("Current OpenAI Settings:")
@@ -695,6 +657,15 @@ class symchat():
 
             return None
 
+        # Trigger to list verbal keywords prompts.
+        keywords_pattern = r'^keywords::'
+        match = re.search(keywords_pattern, user_input)
+        if match:
+            for keyword in self.audio_triggers:
+                print(f'trigger: {self.audio_triggers[keyword][0]}')
+
+            return None
+
         # Trigger to get current working directory
         pwd_pattern = r'^pwd::'
         match = re.search(pwd_pattern, user_input)
@@ -748,7 +719,11 @@ class symchat():
         sub_command = None
 
         if match: 
-            self.suppress = True
+            if re.search(r'^file', user_input):
+                self.suppress = True
+            else:
+                self.suppress = False
+
             if match.group(1):
                 meta_pattern = r'meta:(.*)'
                 matched = match.group(1)
