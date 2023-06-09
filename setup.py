@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 from setuptools import setup, Command, find_packages
+import platform
 import os
 import shutil
 
@@ -33,6 +34,15 @@ class CleanCommand(Command):
                 os.remove(filename)
             except OSError:
                 pass
+module = []
+modules = []
+# open the file
+with open('requirements.txt', 'r') as f:
+    for module in f:
+        modules.append(module.strip())
+
+if platform.system() == 'Linux':
+    modules.append('evdev==1.6.1')
 
 setup(
     name='symbiote',
@@ -41,23 +51,7 @@ setup(
     author='Wadih Khairallah',
     url='https://github.com/woodyk/symbiote',
     packages=find_packages(),
-    install_requires=[
-        'pynput==1.7.6',
-        'evdev==1.6.1',
-        'clipboard==0.0.4',
-        'python_magic==0.4.27',
-        'textract==1.6.5',
-        'InquirerPy==0.3.4',
-        'openai==0.27.4',
-        'tiktoken==0.3.3',
-        'beautifulsoup4',
-        'pexpect==4.8.0',
-        'prompt_toolkit==3.0.38',
-        'requests==2.28.2',
-        'rich==13.3.4',
-        'setuptools==67.6.1',
-        'gitignore_parser==0.1.3'
-    ],
+    install_requires=modules,
     classifiers=[
         'Development Status :: 3 - Alpha',
         'Intended Audience :: Developers',
@@ -73,4 +67,5 @@ setup(
         'clean': CleanCommand,
     }
 )
+
 

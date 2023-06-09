@@ -6,6 +6,8 @@
 ## Running symbiote
 ```
 brew install libmagic tesseract
+python -m spacy download en_core_web_sm
+python -m nltk.downloader vader_lexicon
 
 virtualenv .venv
 pip3 install . 
@@ -14,6 +16,8 @@ pip3 install .
 For linux support on ubuntu be sure to add your user to the 'input' group.
 
 # ToDo
+- Repair monitor mode window launch
+- Add ability to recognize file paths or urls in copy buffer or entered text to interact with remote data.
 - Add ability to pipe data into symbiote.
 - Work on bottom toolbar with prompt_toolkit
 - Retrofit prompt_toolkit instead of InquiererPy

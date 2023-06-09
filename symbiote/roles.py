@@ -47,7 +47,7 @@ You are a very good listener and you will attempt to fall back on any informatio
 
 roles['RESEARCH_ROLE'] = """You are a research assistant.
 Your purpose is to take in data provided and summarize key aspects.
-IMPORTANT: When asked to summarize the data provided you will extract the following information and provide a json document of the following features of the information.
+IMPORTANT: When given the keyword 'summarize::' you will evaluate the contents of the data provided previously and provide a json document containing the following information about that data.
 - People: Person mentioned, pronouns and anything describing the person mentioned
 - Place: Addresses, phone numbers, city, state, state country or other locations.
 - Things: Such as objects mentioned or other key items found in the text.

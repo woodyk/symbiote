@@ -9,23 +9,37 @@ import threading
 import time
 import subprocess
 import clipboard
-from evdev import InputDevice, categorize, ecodes
+import platform
+import pyaudio
+import speech_recognition as sr
 from pynput.keyboard import Listener
+import symbiote.speech as speech
+
+if platform.system() == 'Linux':
+    from evdev import InputDevice, categorize, ecodes
 
 class KeyLogger:
     def __init__(self, schat, debug=False):
-        global chat_is_active
         self.schat = schat
         self.debug = debug
-        chat_is_active = False
+        self.chat_is_active = False
         self.lastlog = ""
-        self.chat_is_active = chat_is_active 
         self.command = ["terminator", "-e"]
         self.totallog = ""
         self.previousclip = ""
-
         self.clipboard_content = clipboard.paste()
-        #schat.chat(user_input="role:HELP_ROLE:", run=True)
+
+        # Activation key combinations to monitor for.
+        self.keys_activate = {
+                "clipboard": r'Key\.ctrl\]',
+                "append": r'Key\.ctrl=',
+                "keyboard": r':help::|Key\.ctrlh'
+                }
+
+        self.symspeech = speech.SymSpeech(monitor=True, debug=self.debug)
+        self.symspeech.start_keyword_listen()
+
+        #schat.chat(user_input="role:HELP_ROLE:", suppress=True, run=True)
 
     def linux_find_keyboard_device(self):
         ''' Find keyboard device for linux '''
@@ -59,14 +73,15 @@ class KeyLogger:
             self.previousclip = self.clipboard_content
 
     def scrub_keys(self, log):
-        key_mapping = {
+        self.key_mapping = {
                 ":help::": '',
                 "Key\.enter": '\n',
                 "Key\.space": ' ',
                 "Key\.tab": '\t',
                 "Key\.ctrlh": '',
-                "Key\.ctrlk": '',
-                "Key\.ctrl": '<ctrl>',
+                "Key\.ctrl=": '',
+                "Key\.ctrl]": '',
+                "Key\.ctrl": '',
                 "Key\.shift_r": '',
                 "Key\.shift": '',
                 "Key\.down": '',
@@ -81,8 +96,8 @@ class KeyLogger:
                 "Key\.alt": ''
             }
 
-        for key in key_mapping:
-           log = re.sub(key, key_mapping[key], log)
+        for key in self.key_mapping:
+           log = re.sub(key, self.key_mapping[key], log)
 
         self.lastlog = ""
 
@@ -107,22 +122,29 @@ class KeyLogger:
 
         self.lastlog += pressed
 
-        if re.search(r'Key\.ctrlk', self.lastlog):
+        if re.search(self.keys_activate['clipboard'], self.lastlog):
             self.pull_clipboard()
             content = self.scrub_keys(self.clipboard_content)
-            self.launch_window(content)
-        elif re.search(r'Key\.enter<placeholder>', self.lastlog):
+            if re.search(r'^http:\/\/.*|^https:\/\/.*', content):
+                content = f'get:{content}:'
+                if self.debug:
+                    print(content)
+
+            self.schat.chat(user_input=content, suppress=True, run=True)
+            content = ""
+            self.mon_launch_window(content)
+        elif re.search(self.keys_activate['append'], self.lastlog):
             self.lastlog = self.scrub_keys(self.lastlog)
-            if len(self.lastlog) > 100:
-                content = self.scrub_keys(self.lastlog)
-                self.schat.chat(user_input=content, suppress=True, run=True)
-        elif re.search(r':help::|Key\.ctrlh', self.lastlog):
             content = self.scrub_keys(self.lastlog)
-            self.launch_window(content)
+            self.schat.chat(user_input=content, suppress=True, run=True)
+        elif re.search(self.keys_activate['keyboard'], self.lastlog):
+            content = self.scrub_keys(self.lastlog)
+            self.mon_launch_window(content)
             
-    def launch_window(self, content):
+    def mon_launch_window(self, content):
         self.chat_is_active = True
         issue_command = f'symbiote -q "{content}"'
+
         self.command.append(issue_command)
 
         process = subprocess.Popen(self.command, stdout=subprocess.PIPE, stdin=subprocess.PIPE, stderr=subprocess.PIPE)
