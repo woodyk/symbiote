@@ -234,7 +234,6 @@ class symbiotes:
 
     def truncate_messages(self, conversation):
         ''' Truncate data to stay within token thresholds for openai '''
-        #max_length = int(self.remember - self.settings['max_tokens'] * self.settings['conversation_percent'])
         max_length = int(self.remember * self.settings['conversation_percent'] - self.settings['max_tokens'])
         total_tokens = 0
         truncated_tokens = 0
@@ -242,9 +241,6 @@ class symbiotes:
         
         total_tokens, encoded_tokens = self.tokenize(conversation)
 
-        #if total_tokens <= max_length:
-        #    return conversation, total_tokens, char_count
-        
         truncated_conversation = []
         while truncated_tokens < max_length and len(conversation) > 1:
             last_message = conversation.pop()
@@ -274,8 +270,8 @@ class symbiotes:
 
         return file_list
 
-    def handle_ctrl_c(self, signum, frame):
-        print("\nControl-C detected. Sending 'stop::' command.")
+    def handle_control_c(self, signum, frame):
+        print("\nControl-C detected.")
         sys.exit(0)
 
     def handle_control_x(self):

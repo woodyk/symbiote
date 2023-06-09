@@ -50,7 +50,6 @@ class SymSpeech():
 
         text = ''
         data = b''
-        mdata = b''
 
         while True:
             try:
@@ -58,13 +57,16 @@ class SymSpeech():
                 stream.start_stream()
 
                 # Read a chunk from the stream
-                data = stream.read(8000, exception_on_overflow = False)
-                mdata = mdata + data
+                data += stream.read(8000, exception_on_overflow = False)
+
+                if len(data) > 100000:
+                    data = b''
+                    continue
 
                 # Use recognize_google to convert audio to text
                 try:
                     # Convert the audio to text
-                    text = self.r.recognize_google(sr.AudioData(mdata, sample_rate=16000, sample_width=2))
+                    text = self.r.recognize_google(sr.AudioData(data, sample_rate=16000, sample_width=2))
                 except sr.UnknownValueError:
                     # Google Speech Recognition could not understand audio
                     continue
@@ -77,11 +79,13 @@ class SymSpeech():
                 pass
 
             if self.debug:
-                print("Recognized: ", text)
+                if len(text) > 0:
+                    print("Recognized: ", text)
 
             # Check if the keyword is in the recognized text
             for keyword in self.keywords:
                 if keyword.lower() in text.lower():
+                    data = b''
                     # Stop the stream
                     stream.stop_stream()
 
@@ -92,12 +96,14 @@ class SymSpeech():
                     self.say(ready)
                     recorded = self.listen(5)
 
+                    if recorded is None:
+                        break
+
                     if self.monitor:
                         self.launch_window(recorded)
                     else:
                         return recorded
 
-            mdata = b''
             text = '' 
 
     def say(self, say_message):

@@ -182,7 +182,7 @@ class symchat():
 
         # Load symbiote core 
         self.sym = core.symbiotes(settings=self.symbiote_settings)
-        signal.signal(signal.SIGINT, self.sym.handle_ctrl_c)
+        signal.signal(signal.SIGINT, self.sym.handle_control_c)
 
         # Set symbiote home path parameters
         home_dir = os.path.expanduser("~")
@@ -265,7 +265,6 @@ class symchat():
             print("\t{:<{width}}{}".format(cmd, desc, width=cmd_col_width))
 
     def launch_animation(self, state):
-
         def hide_cursor():
             sys.stdout.write("\033[?25l")
             sys.stdout.flush()
@@ -283,14 +282,14 @@ class symchat():
                 for code_point in range(start_code_point, end_code_point):
                     frames.append(chr(code_point))
 
-                print()
                 hide_cursor()
 
                 # loop through the animation frames
                 while not stop_event.is_set():
                     for frame in frames:
-                        print(f"\r{frame}", end="", flush=True)
-                        time.sleep(0.2)
+                        print(f"{frame}", end="", flush=True)
+                        time.sleep(0.3)
+                        print("\b", end="", flush=True)
                         if stop_event.is_set():
                             break
                 print()
@@ -424,11 +423,6 @@ class symchat():
 
         bindings = KeyBindings()
        
-        @bindings.add(Keys.ControlX)
-        def _(event):
-            self.sym.handle_control_x()
-            #event.app.exit()
-
         chat_session = PromptSession(key_bindings=bindings, vi_mode=self.symbiote_settings['vi_mode'], history=self.history, style=prompt_style)
 
         while True:
