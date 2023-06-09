@@ -11,6 +11,8 @@ virtualenv .venv
 pip3 install . 
 ```
 
+For linux support on ubuntu be sure to add your user to the 'input' group.
+
 # ToDo
 - Add ability to pipe data into symbiote.
 - Work on bottom toolbar with prompt_toolkit
