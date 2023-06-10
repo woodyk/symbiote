@@ -15,7 +15,7 @@ key_map = {
     'KEY_0': ('0', ')'),
     'KEY_MINUS': ('-', '_'),
     'KEY_EQUAL': ('=', '+'),
-    'KEY_BACKSPACE': ('\x7f', '\x7f'),
+    'KEY_BACKSPACE': ('\b \b', '\b \b'),
     'KEY_TAB': ('\t', '\t'),
     'KEY_Q': ('q', 'Q'),
     'KEY_W': ('w', 'W'),
@@ -57,17 +57,17 @@ key_map = {
 }
 
 modifier_keys = {
-    'KEY_LEFTSHIFT': 42,
-    'KEY_RIGHTSHIFT': 54,
-    'KEY_LEFTCTRL': 29,
-    'KEY_RIGHTCTRL': 97,
-    'KEY_LEFTALT': 56,
-    'KEY_RIGHTALT': 100,
-    'KEY_LEFTMETA': 125,  # Left "Windows" or "Super" key
-    'KEY_RIGHTMETA': 126,  # Right "Windows" or "Super" key
-    'KEY_CAPSLOCK': 58,
-    'KEY_NUMLOCK': 69,
-    'KEY_SCROLLLOCK': 70,
+    'KEY_LEFTSHIFT': 'KEY_LEFTSHIFT',
+    'KEY_RIGHTSHIFT': 'KEY_RIGHTSHIFT',
+    'KEY_LEFTCTRL': 'KEY_LEFTCTRL',
+    'KEY_RIGHTCTRL': 'KEY_RIGHTCTRL',
+    'KEY_LEFTALT': 'KEY_LEFTALT',
+    'KEY_RIGHTALT': 'KEY_RIGHTALT',
+    'KEY_LEFTMETA': 'KEY_LEFTMETA',  # Left "Windows" or "Super" key
+    'KEY_RIGHTMETA': 'KEY_RIGHTMETA',  # Right "Windows" or "Super" key
+    'KEY_CAPSLOCK': 'KEY_CAPSLOCK',
+    'KEY_NUMLOCK': 'KEY_NUMLOCK',
+    'KEY_SCROLLLOCK': 'KEY_SCROLLLOCK',
 }
 
 def find_keyboard_device():

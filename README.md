@@ -9,6 +9,8 @@ brew install libmagic tesseract
 python -m spacy download en_core_web_sm
 python -m nltk.downloader vader_lexicon
 
+# Ubuntu
+apt-get install portaudio19-dev libmagic1 tesseract-ocr
 virtualenv .venv
 pip3 install . 
 ```
