@@ -402,7 +402,7 @@ class symchat():
                 self.enable = True
                 self.run = True
 
-            self.toolbar_data = f"Model: {self.symbiote_settings['model']} Current Conversation: {self.convo_file} Last Char Count: {self.token_track['last_char_count']}\nUser: {self.token_track['user_tokens']} Assistant: {self.token_track['completion_tokens']} Conversation: {self.token_track['truncated_tokens']} Total Used: {self.token_track['rolling_tokens']} Cost: ${self.token_track['cost']:.2f}"
+            self.toolbar_data = f"Model: {self.symbiote_settings['model']} Current Conversation: {self.convo_file}\nLast Char Count: {self.token_track['last_char_count']}\nUser: {self.token_track['user_tokens']} Assistant: {self.token_track['completion_tokens']} Conversation: {self.token_track['truncated_tokens']} Total Used: {self.token_track['rolling_tokens']} Cost: ${self.token_track['cost']:.2f}"
 
             if self.run is False:
                 self.user_input = chat_session.prompt(message="symchat> ",
