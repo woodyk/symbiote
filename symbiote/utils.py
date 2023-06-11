@@ -53,7 +53,10 @@ class utilities():
         self.sia = SentimentIntensityAnalyzer()
         self.tokenizer = Tokenizer("english")
 
-        text = text.decode('utf-8')
+        try:
+            text = text.decode('utf-8')
+        except:
+            pass
 
         doc = self.nlp(text)
 
@@ -99,6 +102,7 @@ class utilities():
         summary = summarizer(parser.document, 10)
         main_idea = " ".join(str(sentence) for sentence in summary)
 
+        entity_dict['EPOCH'] = time.time()
         entity_dict['FILE_META_DATA'] = meta
         entity_dict['SENTIMENT'] = sentiment
         entity_dict['SUMMARY'] = main_idea

@@ -1,4 +1,6 @@
 #!/usr/bin/env python3
+
+import time
 import sys
 import json
 import openai
@@ -129,6 +131,7 @@ class symbiotes:
         conversation = kwargs['conversation']
 
         content = {
+                "epoch": time.time(),
                 "role": kwargs['role'],
                 "content": kwargs['prompt'] 
                 }
@@ -159,6 +162,7 @@ class symbiotes:
         for index, user_input_chunk in enumerate(user_input_chunks):
             # Update our conversation with the user input
             user_content = {
+                "epoch": time.time(),
                 "role": role,
                 "content": user_input_chunk
             }
@@ -175,7 +179,6 @@ class symbiotes:
             truncated_conversation, total_user_tokens, char_count = self.truncate_messages(completion_content)
         else:
             truncated_conversation, total_user_tokens, char_count = self.truncate_messages(conversation)
-
         # Push queries to openai
         response = self.process_request(truncated_conversation)
 
@@ -183,6 +186,7 @@ class symbiotes:
 
         # update our conversation with the assistant response
         assistant_content = {
+            "epoch": time.time(),
             "role": "assistant",
             "content": response
         }
@@ -200,7 +204,6 @@ class symbiotes:
         if os.path.exists(self.conversations_file):
             try:
                 with open(conversations_file, 'r') as file:
-                    #data = json.load(file)
                     for line in file:
                         data.append(json.loads(line))
 
@@ -214,6 +217,7 @@ class symbiotes:
     def save_conversation(self, conversation_data, conversations_file):
         ''' Save conversation output to loaded conversation file '''
         json_conv = {
+                "epoch": conversation_data['epoch'],
                 "role": conversation_data['role'],
                 "content": conversation_data['content']
                 }
@@ -250,6 +254,7 @@ class symbiotes:
 
         while truncated_tokens < max_length and len(conversation) > 0:
             last_message = conversation.pop()
+            del last_message['epoch']
             truncated_conversation.insert(0, last_message)
             t_tokens, _ = self.tokenize(last_message['content'])
             char_count += len(last_message['content'])

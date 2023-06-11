@@ -135,29 +135,27 @@ class symchat():
         if 'debug' in kwargs:
             self.symbiote_settings['debug'] = kwargs['debug']
             
-        self.debug = symbiote_settings['debug']
-
         if 'working_directory' in kwargs:
             self.working_directory = kwargs['working_directory']
         else:
             self.working_directory = os.getcwd()
-
-        # Load symbiote core 
-        self.sym = core.symbiotes(settings=self.symbiote_settings)
-        signal.signal(signal.SIGINT, self.sym.handle_control_c)
-
+       
         # Set symbiote home path parameters
         home_dir = os.path.expanduser("~")
         symbiote_dir = os.path.join(home_dir, ".symbiote")
         if not os.path.exists(symbiote_dir):
             os.mkdir(symbiote_dir)
 
-        # Set symbiote conf file
+         # Set symbiote conf file
         self.config_file = os.path.join(symbiote_dir, "config")
         if not os.path.exists(self.config_file):
             self.save_settings(settings=self.symbiote_settings)
         else:
             self.symbiote_settings = self.load_settings()
+
+        # Load symbiote core 
+        self.sym = core.symbiotes(settings=self.symbiote_settings)
+        signal.signal(signal.SIGINT, self.sym.handle_control_c)
 
         # Get hash for current settings
         self.settings_hash = hash(json.dumps(self.symbiote_settings, sort_keys=True))
