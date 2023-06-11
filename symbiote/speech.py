@@ -10,6 +10,7 @@ import threading
 import pyaudio
 import speech_recognition as sr
 from gtts import gTTS
+from queue import Queue
 
 os.environ['PYGAME_HIDE_SUPPORT_PROMPT'] = '1'
 import pygame
@@ -31,14 +32,16 @@ class SymSpeech():
                     ]
 
     def start_keyword_listen(self):
-        t = threading.Thread(target=self.keyword_listen)
+        q = Queue()
+        t = threading.Thread(target=self.keyword_listen, args=(q))
         t.start()
-        return True
+        t.join
+        return q 
 
     def stop_keyword_listen(self):
         self.stop_listening.set()
 
-    def keyword_listen(self):
+    def keyword_listen(self, q=False):
         # Initialize PyAudio
         p = pyaudio.PyAudio()
 
@@ -101,6 +104,8 @@ class SymSpeech():
 
                     if self.monitor:
                         self.launch_window(recorded)
+                    elif q:
+                        q.put(recorded)
                     else:
                         return recorded
 

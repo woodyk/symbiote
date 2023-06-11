@@ -9,11 +9,16 @@ brew install libmagic tesseract
 python -m spacy download en_core_web_sm
 python -m nltk.downloader vader_lexicon
 
+# Ubuntu
+apt-get install portaudio19-dev libmagic1 tesseract-ocr
 virtualenv .venv
 pip3 install . 
 ```
 
+For linux support on ubuntu be sure to add your user to the 'input' group.
+
 # ToDo
+- Make listen mode possible at the same time as interactive mode.
 - Repair monitor mode window launch
 - Add ability to recognize file paths or urls in copy buffer or entered text to interact with remote data.
 - Add ability to pipe data into symbiote.
