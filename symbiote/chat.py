@@ -687,7 +687,7 @@ class symchat():
             print(self.working_directory)
             return None
 
-        # Trigger for summarize:: processing. Load file content and generate a json object about the file.
+        # Trigger for summary:: processing. Load file content and generate a json object about the file.
         summary_pattern = r'summary::|summary:(.*):'
         match = re.search(summary_pattern, user_input)
         file_path = None
@@ -698,6 +698,10 @@ class symchat():
 
             if match.group(1):
                 file_path = match.group(1)
+                screenshot_pattern = r'^screenshot$'
+                if re.search(screenshot_pattern, file_path):
+                    file_path = self.symutils.getScreenShot()
+                    index = True
 
             if file_path is None:
                 start_path = "./"
@@ -716,7 +720,7 @@ class symchat():
             file_path = os.path.expanduser(file_path)
 
             if os.path.isdir(file_path):
-                # prompt to convirm path indexing
+                # prompt to confirm path indexing
                 if index is False:
                     index = inquirer.confirm(message=f'Index {file_path}?').execute()
 
@@ -728,14 +732,16 @@ class symchat():
                 print(f"File not found: {file_path}")
                 return None
 
-            summary = self.symutils.summarizeFile(file_path)
+            self.symutils.createIndex(file_path)
 
-            if self.symbiote_settings['debug']:
-                print(json.dumps(summary, indent=4))
+            #summary = self.symutils.summarizeFile(file_path)
 
-            user_input = user_input[:match.start()] + json.dumps(summary) + user_input[match.end():]
+            #if self.symbiote_settings['debug']:
+            #    print(json.dumps(summary, indent=4))
 
-            return user_input
+            #user_input = user_input[:match.start()] + json.dumps(summary) + user_input[match.end():]
+
+            return None 
 
         search_pattern = r'^search::|search:(.*):'
         match = re.search(search_pattern, user_input)

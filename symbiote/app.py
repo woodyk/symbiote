@@ -187,6 +187,7 @@ def check_libpostal():
         print("Run the following before executing symbiote.")
         print('echo \'export LD_LIBRARY_PATH="$HOME/.local/share/include:$LD_LIBRARY_PATH"\' >> ~/.bashrc')
         print('export CPATH="$HOME/.local/share/include:$CPATH"')
+        print('export PATH="$HOME/.local/bin:$PATH"')
         print('export LDFLAGS="-L$HOME/.local/share/lib"')
         print('source ~/.bashrc')
 

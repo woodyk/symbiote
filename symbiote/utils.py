@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 #
-# symbiote/content_parse.py
+# symbiote/utils.py
 
 import json
 import spacy
@@ -12,6 +12,10 @@ import subprocess
 import magic
 import textract
 import hashlib
+
+from mss import mss
+from PIL import Image
+import numpy as np
 
 from nltk.sentiment import SentimentIntensityAnalyzer
 from spacy.lang.en.stop_words import STOP_WORDS
@@ -31,6 +35,31 @@ class utilities():
         self.settings = settings
         return
 
+    def getScreenShot(self):
+        # Screenshot storage path
+        path = r'/tmp/symScreenShot.png'
+
+        with mss() as sct:
+            monitor = {"top": 0, "left": 0, "width": 0, "height": 0}
+            
+            for mon in sct.monitors:
+                # get furthest left point
+                monitor["left"] = min(mon["left"], monitor["left"])
+                # get highest point
+                monitor["top"] = min(mon["top"], monitor["top"])
+                # get furthest right point
+                monitor["width"] = max(mon["width"]+mon["left"]-monitor["left"], monitor["width"])
+                # get lowest point
+                monitor["height"] = max(mon["height"]+mon["top"]-monitor["top"], monitor["height"])
+            
+            screenshot = sct.grab(monitor)
+
+        img = Image.frombytes("RGB", screenshot.size, screenshot.bgra, "raw", "BGRX")
+        img_gray = img.convert("L")
+        img_gray.save(path)
+
+        return path
+
     def getSHA256(self, file_path):
         with open(file_path, "rb") as f:
             digest = hashlib.file_digest(f, "sha256")
@@ -44,9 +73,10 @@ class utilities():
 
         sha256 = self.getSHA256(file_path)
 
-        result = subprocess.run(['exiftool', '-j', file_path], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        if result.returncode != 0:
-            raise RuntimeError(f'exiftool failed with code {result.returncode}: {result.stderr.decode()}')
+        try:
+            result = subprocess.run(['exiftool', '-j', file_path], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        except exceptions as e:
+            print(f'exiftool failed: {e}')
 
         metadata = json.loads(result.stdout.decode())[0]
         metadata['SHA256'] = sha256
@@ -68,19 +98,41 @@ class utilities():
         email_pattern = r"[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+"
         matches = re.findall(email_pattern, text)
         
-        return matches
+        clean = self.cleanMatches(matches)
+
+        return clean
+
+    def cleanMatches(self, matches):
+        clean = []
+        for match in matches:
+            if type(match) == tuple or type(match) == list:
+                for entry in match:
+                    if entry is not None and not "" and entry not in clean:
+                        clean.append(entry)
+            elif type(match) == str:
+                clean.append(match)
+            else:
+                pass
+
+        return clean
 
     def extractURL(self, text):
-        url_pattern = r"http[s]?://(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\\(\\),]|(?:%[0-9a-fA-F][0-9a-fA-F]))+"
+        #url_pattern = r"(?:http[s]?:\/\/)?(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\\(\\),]|(?:%[0-9a-fA-F][0-9a-fA-F]))+"
+        #url_pattern = r'(?:http[s]?:\/\/)?[\w.-]+(?:\.[\w\.-]+)+[\w\-\._~:/?#[\]@!\$&\'\(\)\*\+,;=.]+'
+        url_pattern = r"(?i)\b((?:https?://|www\d{0,3}[.]|[a-z0-9.\-]+[.][a-z]{2,4}/)(?:[^\s()<>]+|\(([^\s()<>]+|(\([^\s()<>]+\)))*\))+(?:\(([^\s()<>]+|(\([^\s()<>]+\)))*\)|[^\s`!()\[\]{};:'\".,<>?«»“”‘’]))"
         matches = re.findall(url_pattern, text)
 
-        return matches
+        clean = self.cleanMatches(matches)
+
+        return clean 
 
     def extractPhone(self, text):
         phone_number_pattern = r"\b(\(\d{3}\)\s*\d{3}[-\.\s]??\d{4}|\d{3}[-\.\s]??\d{3}[-\.\s]??\d{4}|\d{3}[-\.\s]??\d{4})\b"
         matches = re.findall(phone_number_pattern, text)
 
-        return matches
+        clean = self.cleanMatches(matches)
+
+        return clean
 
     def extractAddress(self, text):
         components = [ 'house_number', 'road', 'postcode', 'city', 'state' ]
@@ -101,11 +153,17 @@ class utilities():
         card_pattern = r'\b(?:\d[ -]*?){13,16}\b'
         matches = re.findall(card_pattern, text)
 
-        return matches
+        clean = self.cleanMatches(matches)
+
+        return clean
 
     def extractSocialSecurity(self, text):
         ss_pattern = r'\b\d{3}-?\d{2}-?\d{4}\b'
         matches = re.findall(ss_pattern, text)
+
+        clean = self.cleanMatches(matches)
+
+        return clean
 
     def analyze_text(self, text, meta):
         self.nlp = spacy.load('en_core_web_sm')
@@ -206,6 +264,11 @@ class utilities():
                 content = ""
                 pass
 
+        content = content.decode('utf-8')
+
+        if self.settings['debug']:
+            print(content)
+
         return content
 
     def esConnect(self):
@@ -218,40 +281,44 @@ class utilities():
         return es
 
     def createIndex(self, path):
+        es = self.esConnect()
         
-        if self.settings['debug']:
-            print(f'Processing files in {path}.')
+        file_list = []
+        if os.path.isdir(path):
+            for root, _, files in os.walk(path):
+                for file in files:
+                    file_list.append(os.path.join(root, file))
+        elif os.path.isfile(path):
+            file_list.append(path)
 
         fcount = 0
-        for root, _, files in os.walk(path):
-            for file in files:
-                fcount += 1
-                file_path = os.path.join(root, file)
-                content = self.summarizeFile(file_path)
+        for file in file_list:
+            fcount += 1
+            content = self.summarizeFile(file)
 
-                if self.settings['debug']:
-                    print(f'Processing file {file_path}. count:{fcount}')
+            if self.settings['debug']:
+                print(f'Processing file {file}. count:{fcount}')
 
-                doc_id = content['FILE_META_DATA']['SourceFile']
-                index = self.settings['elasticsearch_index']
+            doc_id = content['FILE_META_DATA']['SourceFile']
+            index = self.settings['elasticsearch_index']
 
-                if not es.indices.exists(index=index):
-                    es.indices.create(index=index)
+            if not es.indices.exists(index=index):
+                es.indices.create(index=index)
 
-                try:
-                    es.index(index=index, id=doc_id, document=json.dumps(content))
-                except exceptions.RequestError as e:
-                    print(f"RequestError: {e}")
-                except exceptions.ConnectionError as e:
-                    print(f"ConnectionError: {e}")
-                except exceptions.TransportError as e:
-                    print(f"TransportError: {e}")
-                except Exception as e:
-                    print("UnknownError: {e}")
+            try:
+                es.index(index=index, id=doc_id, document=json.dumps(content))
+            except exceptions.RequestError as e:
+                print(f"RequestError: {e}")
+            except exceptions.ConnectionError as e:
+                print(f"ConnectionError: {e}")
+            except exceptions.TransportError as e:
+                print(f"TransportError: {e}")
+            except Exception as e:
+                print("UnknownError: {e}")
 
-                es.indices.refresh(index=index)
+            es.indices.refresh(index=index)
 
-        return content
+        return True
 
     def searchIndex(self, query):
         es = self.esConnect()
