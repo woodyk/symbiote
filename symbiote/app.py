@@ -178,7 +178,7 @@ def check_libpostal():
         # Install libpostal
         os.chdir("libpostal")
         home = os.path.expanduser("~")
-        subprocess.run(["./bootstrap.sh"])
+        subprocess.run(["autoreconf", "-fi", "--warning=no-portability"])
         subprocess.run(["./configure", f'--prefix="{home}/.local/share"', f'--datadir="{home}/.cache/libpostal"'])
         subprocess.run(["make", "-j4"])
         subprocess.run(["make", "install"])
@@ -186,8 +186,8 @@ def check_libpostal():
         print("############################################")
         print("Run the following before executing symbiote.")
         print('echo \'export LD_LIBRARY_PATH="$HOME/.local/share/include:$LD_LIBRARY_PATH"\' >> ~/.bashrc')
-        print('echo \'export CPATH="$HOME/.local/share/include:$CPATH"\' >> ~/.bashrc')
-        print('echo \'export LDFLAGS="-L$HOME/.local/share/lib"\' >> ~/.bashrc')
+        print('export CPATH="$HOME/.local/share/include:$CPATH"')
+        print('export LDFLAGS="-L$HOME/.local/share/lib"')
         print('source ~/.bashrc')
 
         response = input("Hit any key to continue.")
