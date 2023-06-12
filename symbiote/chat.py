@@ -57,7 +57,8 @@ command_list = {
         "tree::": "Load a directory tree for submission.",
         "shell::": "Load the symbiote bash shell.",
         "clipboard::": "Load clipboard contents into symbiote.",
-        "ls::": "Load ls output for submission."
+        "ls::": "Load ls output for submission.",
+        "index::": "Create a search index for all files in a given path."
         }
 
 
@@ -115,7 +116,9 @@ symbiote_settings = {
         "vi_mode": False,
         "speech": False,
         "listen": False,
-        "debug": False
+        "debug": False,
+        "elasticsearch": "http://dockera.vm.sr:9200",
+        "elasticsearch_index": "symbiote"
     }
 
 keybindings = {}
@@ -183,7 +186,7 @@ class symchat():
         self.current_conversation = self.sym.load_conversation(self.conversations_file)
 
         # Load utils object
-        self.symutils = utils.utilities()
+        self.symutils = utils.utilities(settings=self.symbiote_settings)
 
         self.token_track = {
             'truncated_tokens': 0,
@@ -587,6 +590,7 @@ class symchat():
 
                     self.symbiote_settings[setting] = set_value
                     self.sym.update_symbiote_settings(settings=self.symbiote_settings)
+                    self.symutils = utils.utilities(settings=self.symbiote_settings)
                     self.save_settings(settings=self.symbiote_settings)
             else:
                 print("Current OpenAI Settings:")
@@ -678,6 +682,8 @@ class symchat():
         
         if match:
             self.suppress = True
+            index = False
+
             if match.group(1):
                 file_path = match.group(1)
 
@@ -686,7 +692,7 @@ class symchat():
                 file_path = inquirer.filepath(
                         message="Summarize file:",
                         default=start_path,
-                        validate=PathValidator(is_file=True, message="Input is not a file"),
+                        #validate=PathValidator(is_file=True, message="Input is not a file"),
                         wrap_lines=True,
                         mandatory=False,
                         keybindings=keybindings
@@ -697,7 +703,16 @@ class symchat():
 
             file_path = os.path.expanduser(file_path)
 
-            if not os.path.isfile(file_path):
+            if os.path.isdir(file_path):
+                # prompt to convirm path indexing
+                if index is False:
+                    index = inquirer.confirm(message=f'Index {file_path}?').execute()
+
+                if index is True:
+                    self.symutils.createIndex(file_path)
+
+                return None
+            elif not os.path.isfile(file_path):
                 print(f"File not found: {file_path}")
                 return None
 

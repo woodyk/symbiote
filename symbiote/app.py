@@ -11,20 +11,12 @@ import select
 import subprocess
 import platform
 
-# subprocess terminal
-import symbiote.chat as chat
-import symbiote.core as core
-import symbiote.monitor as monitor
-import symbiote.speech as speech
 
 openai.api_key = os.getenv("OPENAI_API_KEY")
 # Pull a list of available models to use.
 # available_models = openai.Model.list()
 
 def main():
-    check_libmagic()
-    check_nl_packages()
-
     def is_data():
         return select.select([sys.stdin], [], [], 0) == ([sys.stdin], [], [])
 
@@ -70,7 +62,24 @@ def main():
                         type=str,
                         help='Load input into Symbiote.')
 
+    parser.add_argument('-i', '--install',
+                        action='store_true',
+                        help='Install required packages.')
+
     args = parser.parse_args()
+
+    if args.install:
+        os.chdir('/tmp')
+        check_libmagic()
+        check_nl_packages()
+        check_libpostal()
+        return
+
+    # subprocess terminal
+    import symbiote.chat as chat
+    import symbiote.core as core
+    import symbiote.monitor as monitor
+    import symbiote.speech as speech
 
     schat = chat.symchat(working_directory=current_path, debug=args.debug)
 
@@ -143,6 +152,43 @@ def check_nl_packages():
     except:
         print("Error installing nltk vader_lexicon")
 
+def check_libpostal():
+    install = False
+    try:
+        import postal
+    except:
+        install = True
+
+    system = platform.system()
+
+    if system not in ['Linux', 'Darwin']:
+        print("This function only supports MacOS and Linux")
+        return
+
+    if install:
+        # Install prerequisites
+        if system == 'Linux':
+            subprocess.run(["sudo", "apt-get", "install", "curl", "autoconf", "automake", "libtool", "pkg-config"])
+        elif system == 'Darwin':
+            subprocess.run(["brew", "install", "curl", "autoconf", "automake", "libtool", "pkg-config"])
+
+        # Clone libpostal repository
+        subprocess.run(["git", "clone", "https://github.com/openvenues/libpostal"])
+
+        # Install libpostal
+        os.chdir("libpostal")
+        home = os.path.expanduser("~")
+        subprocess.run(["./bootstrap.sh"])
+        subprocess.run(["./configure", f'--prefix="{home}/.local/share"', f'--datadir="{home}/.cache/libpostal"'])
+        subprocess.run(["make", "-j4"])
+        subprocess.run(["make", "install"])
+        subprocess.run(["pip3", "install", "postal"])
+
+        # Run ldconfig on Linux
+        if system == 'Linux':
+            subprocess.run(["sudo", "ldconfig"])
+
+        print("libpostal installation completed")
 
 def entry_point() -> None:
     main()

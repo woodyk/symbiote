@@ -11,29 +11,45 @@ import time
 import subprocess
 import magic
 import textract
+import hashlib
 
 from nltk.sentiment import SentimentIntensityAnalyzer
 from spacy.lang.en.stop_words import STOP_WORDS
 from sumy.parsers.plaintext import PlaintextParser
 from sumy.nlp.tokenizers import Tokenizer
 from sumy.summarizers.lsa import LsaSummarizer
+from postal.parser import parse_address
 from dateutil.parser import parse
 from collections import defaultdict
+from elasticsearch import Elasticsearch, exceptions
+
+import warnings
+warnings.filterwarnings("ignore", category=UserWarning, module="sumy")
 
 class utilities():
-    def __init__(self):
+    def __init__(self, settings):
+        self.settings = settings
         return
+
+    def getSHA256(self, file_path):
+        with open(file_path, "rb") as f:
+            digest = hashlib.file_digest(f, "sha256")
+    
+        return digest.hexdigest()
 
     def extractMetadata(self, file_path):
         """Extracts metadata from a file using exiftool"""
         file_path = os.path.expanduser(file_path)
         file_path = os.path.abspath(file_path)
 
+        sha256 = self.getSHA256(file_path)
+
         result = subprocess.run(['exiftool', '-j', file_path], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         if result.returncode != 0:
             raise RuntimeError(f'exiftool failed with code {result.returncode}: {result.stderr.decode()}')
 
         metadata = json.loads(result.stdout.decode())[0]
+        metadata['SHA256'] = sha256
 
         return metadata
 
@@ -47,6 +63,49 @@ class utilities():
             return False
         except:
             return False
+
+    def extractEmail(self, text):
+        email_pattern = r"[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+"
+        matches = re.findall(email_pattern, text)
+        
+        return matches
+
+    def extractURL(self, text):
+        url_pattern = r"http[s]?://(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\\(\\),]|(?:%[0-9a-fA-F][0-9a-fA-F]))+"
+        matches = re.findall(url_pattern, text)
+
+        return matches
+
+    def extractPhone(self, text):
+        phone_number_pattern = r"\b(\(\d{3}\)\s*\d{3}[-\.\s]??\d{4}|\d{3}[-\.\s]??\d{3}[-\.\s]??\d{4}|\d{3}[-\.\s]??\d{4})\b"
+        matches = re.findall(phone_number_pattern, text)
+
+        return matches
+
+    def extractAddress(self, text):
+        components = [ 'house_number', 'road', 'postcode', 'city', 'state' ]
+        parsed_address = parse_address(text)
+        addresses = []
+        address = {} 
+
+        for component in parsed_address:
+            if component[1] in address:
+                addresses.append(address)
+                address = {} 
+            if component[1] in components:
+                address[component[1]] = component[0]
+
+        return addresses
+
+    def extractCreditCard(self, text):
+        card_pattern = r'\b(?:\d[ -]*?){13,16}\b'
+        matches = re.findall(card_pattern, text)
+
+        return matches
+
+    def extractSocialSecurity(self, text):
+        ss_pattern = r'\b\d{3}-?\d{2}-?\d{4}\b'
+        matches = re.findall(ss_pattern, text)
 
     def analyze_text(self, text, meta):
         self.nlp = spacy.load('en_core_web_sm')
@@ -80,18 +139,19 @@ class utilities():
                      '#CARDINAL': 'CARDINALS',
                      }
 
-        # Initialize a default dictionary to store entities
-        entity_dict = defaultdict(lambda: defaultdict(int))
+        # Document container
+        content = {}
 
         # Iterate over the entities
+        ent_count = {}
         for ent in doc.ents:
             # Only include common labels
             if ent.label_ in label_map: 
                 # Increment the count of the entity text for the given label
-                entity_dict[label_map[ent.label_]][ent.text] += 1
-
-        # Convert the defaultdict to a regular dict for JSON serialization
-        entity_dict = {label: dict(entities) for label, entities in entity_dict.items()}
+                if label_map[ent.label_] not in content:
+                    content[label_map[ent.label_]] = []
+                elif ent.text not in content[label_map[ent.label_]]:
+                    content[label_map[ent.label_]].append(ent.text)
 
         sentiment = self.sia.polarity_scores(text)
 
@@ -102,12 +162,18 @@ class utilities():
         summary = summarizer(parser.document, 10)
         main_idea = " ".join(str(sentence) for sentence in summary)
 
-        entity_dict['EPOCH'] = time.time()
-        entity_dict['FILE_META_DATA'] = meta
-        entity_dict['SENTIMENT'] = sentiment
-        entity_dict['SUMMARY'] = main_idea
+        content['EPOCH'] = time.time()
+        content['EMAILS'] = self.extractEmail(text)
+        content['WEBSITES'] = self.extractURL(text)
+        content['PHONE_NUMBERS'] = self.extractPhone(text)
+        content['CREDIT_CARDS'] = self.extractCreditCard(text)
+        content['SOCIAL_SECURITY_NUMBERS'] = self.extractSocialSecurity(text)
+        content['ADDRESSES'] = self.extractAddress(text)
+        content['FILE_META_DATA'] = meta
+        content['SENTIMENT'] = sentiment
+        content['SUMMARY'] = main_idea
 
-        return entity_dict 
+        return content 
 
     def summarizeText(self, text):
         result = self.analyze_text(text, meta)
@@ -127,14 +193,59 @@ class utilities():
         if re.search(r'^text\/', mime_type):
             with open(file_path, 'r') as f:
                 content = f.read()
-
         elif re.search(r'^image\/', mime_type):
             content = textract.process(file_path, method='tesseract', language='eng')
-
         elif mime_type == "application/pdf":
             content = textract.process(file_path, method='tesseract', language='eng')
-
         else:
-            content = textract.process(file_path)
+            try:
+                content = textract.process(file_path)
+            except Exception as e:
+                content = ""
+                pass
 
         return content
+
+    def createIndex(self, path):
+        es = Elasticsearch(self.settings['elasticsearch'])
+
+        if not es.ping():
+            print(f'Unable to reach {self.settings["elasticsearch"]}')
+            return None
+
+        if self.settings['debug']:
+            print(f'Processing files in {path}.')
+
+        fcount = 0
+        for root, _, files in os.walk(path):
+            for file in files:
+                fcount += 1
+                file_path = os.path.join(root, file)
+                content = self.summarizeFile(file_path)
+
+                if self.settings['debug']:
+                    print(f'Processing file {file_path}. count:{fcount}')
+
+                doc_id = content['FILE_META_DATA']['SourceFile']
+                index = self.settings['elasticsearch_index']
+
+                if not es.indices.exists(index=index):
+                    es.indices.create(index=index)
+
+                try:
+                    es.index(index=index, id=doc_id, document=json.dumps(content))
+                except exceptions.RequestError as e:
+                    print(f"RequestError: {e}")
+                except exceptions.ConnectionError as e:
+                    print(f"ConnectionError: {e}")
+                except exceptions.TransportError as e:
+                    print(f"TransportError: {e}")
+                except Exception as e:
+                    print("UnknownError: {e}")
+
+                es.indices.refresh(index=index)
+
+        return content
+
+    def searchIndex(self):
+        pass
