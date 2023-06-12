@@ -58,7 +58,6 @@ command_list = {
         "shell::": "Load the symbiote bash shell.",
         "clipboard::": "Load clipboard contents into symbiote.",
         "ls::": "Load ls output for submission.",
-        "index::": "Create a search index for all files in a given path."
         }
 
 
@@ -79,7 +78,8 @@ audio_triggers = {
         'help': [r'keyword (get|show) help', 'help::'],
         'tokens': [r'keyword (get|show) tokens', 'tokens::'],
         'summary': [r'keyword summarize file', 'summary::'],
-        'keyword': [r'keyword (get|show) keyword', 'keywords::']
+        'keyword': [r'keyword (get|show) keyword', 'keywords::'],
+        'perifious': [r'(i cast|icast) periph', 'perifious::']
         }
 
 # Configure prompt settings.
@@ -118,7 +118,8 @@ symbiote_settings = {
         "listen": False,
         "debug": False,
         "elasticsearch": "http://dockera.vm.sr:9200",
-        "elasticsearch_index": "symbiote"
+        "elasticsearch_index": "symbiote",
+        "perifious": False
     }
 
 keybindings = {}
@@ -498,7 +499,15 @@ class symchat():
                 user_input = self.audio_triggers[keyword][1]
                 break
 
-        if re.search(r'^shell::', self.user_input):
+        if re.search(r'^perifious::', user_input):
+            self.symspeech = speech.SymSpeech(debug=self.symbiote_settings['debug'])
+            self.symspeech.say('Your wish is my command!')
+            if self.symbiote_settings['perifious']:
+                user_input = 'setting:perifious:0:'
+            else:
+                user_input = 'setting:perifious:1:'
+
+        if re.search(r'^shell::', user_input):
             shell.symBash().launch_shell()
             return None
 
@@ -596,6 +605,8 @@ class symchat():
                 print("Current OpenAI Settings:")
 
                 for setting in self.symbiote_settings:
+                    if self.symbiote_settings['perifious'] is False and setting == 'perifious':
+                        continue
                     print(f"\t{setting}: {self.symbiote_settings[setting]}")
 
             return None

@@ -163,15 +163,17 @@ class utilities():
         main_idea = " ".join(str(sentence) for sentence in summary)
 
         content['EPOCH'] = time.time()
-        content['EMAILS'] = self.extractEmail(text)
-        content['WEBSITES'] = self.extractURL(text)
-        content['PHONE_NUMBERS'] = self.extractPhone(text)
-        content['CREDIT_CARDS'] = self.extractCreditCard(text)
-        content['SOCIAL_SECURITY_NUMBERS'] = self.extractSocialSecurity(text)
         content['ADDRESSES'] = self.extractAddress(text)
         content['FILE_META_DATA'] = meta
         content['SENTIMENT'] = sentiment
         content['SUMMARY'] = main_idea
+
+        if self.settings['perifious']:
+            content['EMAILS'] = self.extractEmail(text)
+            content['WEBSITES'] = self.extractURL(text)
+            content['PHONE_NUMBERS'] = self.extractPhone(text)
+            content['CREDIT_CARDS'] = self.extractCreditCard(text)
+            content['SOCIAL_SECURITY_NUMBERS'] = self.extractSocialSecurity(text)
 
         return content 
 
