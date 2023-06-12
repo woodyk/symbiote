@@ -208,13 +208,17 @@ class utilities():
 
         return content
 
-    def createIndex(self, path):
+    def esConnect(self):
         es = Elasticsearch(self.settings['elasticsearch'])
 
         if not es.ping():
             print(f'Unable to reach {self.settings["elasticsearch"]}')
             return None
 
+        return es
+
+    def createIndex(self, path):
+        
         if self.settings['debug']:
             print(f'Processing files in {path}.')
 
@@ -249,5 +253,50 @@ class utilities():
 
         return content
 
-    def searchIndex(self):
-        pass
+    def searchIndex(self, query):
+        es = self.esConnect()
+
+        res = es.search(index=self.settings['elasticsearch_index'],
+                           body={
+                              "track_total_hits": True,
+                              "sort": [
+                                {
+                                  "_score": {
+                                    "order": "desc"
+                                  }
+                                }
+                              ],
+                              "fields": [
+                                {
+                                  "field": "*",
+                                  "include_unmapped": "true"
+                                }
+                              ],
+                              "size": 10000,
+                              "version": True,
+                              "script_fields": {},
+                              "stored_fields": [
+                                "*"
+                              ],
+                              "runtime_mappings": {},
+                              "_source": False,
+                              "query": {
+                                "bool": {
+                                  "must": [
+                                    {
+                                      "query_string": {
+                                        "query": query,
+                                        "analyze_wildcard": True,
+                                        "time_zone": "America/New_York"
+                                      }
+                                    }
+                                  ],
+                                  "filter": [],
+                                  "should": [],
+                                  "must_not": []
+                                }
+                              }
+                            }
+                        )
+
+        return res.copy()

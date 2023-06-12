@@ -58,6 +58,7 @@ command_list = {
         "shell::": "Load the symbiote bash shell.",
         "clipboard::": "Load clipboard contents into symbiote.",
         "ls::": "Load ls output for submission.",
+        "search::": "Search index for specific data."
         }
 
 
@@ -735,6 +736,16 @@ class symchat():
             user_input = user_input[:match.start()] + json.dumps(summary) + user_input[match.end():]
 
             return user_input
+
+        search_pattern = r'^search::|search:(.*):'
+        match = re.search(search_pattern, user_input)
+        if match:
+            if match.group(1):
+                results = self.symutils.searchIndex(match.group(1))
+                if self.symbiote_settings['debug']:
+                    print(json.dumps(results, indent=4))
+
+            return None 
 
         # Trigger for file:filename processing. Load file content into user_input for openai consumption.
         file_pattern = r'file::|file:(.*):'
