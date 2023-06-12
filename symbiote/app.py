@@ -182,6 +182,16 @@ def check_libpostal():
         subprocess.run(["./configure", f'--prefix="{home}/.local/share"', f'--datadir="{home}/.cache/libpostal"'])
         subprocess.run(["make", "-j4"])
         subprocess.run(["make", "install"])
+
+        print("############################################")
+        print("Run the following before executing symbiote.")
+        print('echo \'export LD_LIBRARY_PATH="$HOME/.local/share/include:$LD_LIBRARY_PATH"\' >> ~/.bashrc')
+        print('echo \'export CPATH="$HOME/.local/share/include:$CPATH"\' >> ~/.bashrc')
+        print('echo \'export LDFLAGS="-L$HOME/.local/share/lib"\' >> ~/.bashrc')
+        print('source ~/.bashrc')
+
+        response = input("Hit any key to continue.")
+
         subprocess.run(["pip3", "install", "postal"])
 
         # Run ldconfig on Linux
