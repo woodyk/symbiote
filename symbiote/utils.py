@@ -422,8 +422,9 @@ class utilities():
     def displayDocuments(self, json_data):
         # Load the JSON data
         data = json.loads(json_data)
+        output = None
 
-        display_fields = ["METADATA.SourceFile", "METADATA.MIMEType"]
+        display_fields = ["METADATA.SourceFile"]
 
         # Extract the 'hits' data
         hits = data["hits"]["hits"]
@@ -445,26 +446,33 @@ class utilities():
         # Print the DataFrame as a table
         try:
             output = df[display_fields]
-            print(output)
         except:
             print("No results found.")
         #print(df[['METADATA.SourceFile']])
 
-        return 
+        return output 
 
     def grepFiles(self, es_results, search_term):
-        source_files = []
+        file_list = []
+
+        regex_search = self.lucene_like_to_regex(search_term)
+        if regex_search is False:
+            return None
+
         for hit in es_results['hits']['hits']:
-            source_file = hit["_source"].get("METADATA", {}).get("SourceFile")
-            if file_list:
+            source_file = hit["fields"]['METADATA.SourceFile'][0]
+            if source_file is not None:
                 file_list.append(source_file)
 
         text = ""
         for file_path in file_list:
+            if self.settings['debug']:
+                print(f"Scanning {file_path}")
             with open(file_path, 'r') as file:
                 for line_no, line in enumerate(file.readlines(), start=1):
-                    if re.search(search_term, line):
+                    if re.search(regex_search, line, re.I):
                         text += line
+
         return text
 
     def convert_audio_to_wav(self, file_path):
@@ -499,3 +507,39 @@ class utilities():
             print(f"Could not request results from Google Speech Recognition service; {e}")
 
         return text
+
+    def lucene_like_to_regex(self, query):
+        # Replace field:term to term
+        single_term_regex = re.sub(r'\S+:(\S+)', r'\1', query)
+
+        # Escape special regex characters, but leave our syntax elements
+        escaped = re.sub(r'([\\.+^$[\]{}=!<>|:,\-])', r'\\\1', single_term_regex)
+
+        # Restore escaped spaces (i.e., '\ ' to ' ')
+        escaped = re.sub(r'\\ ', ' ', escaped)
+
+        # Process grouping parentheses and quoted strings
+        groups_and_quotes = re.sub(r'([()])', r'\\\1', escaped)
+        groups_and_quotes = re.sub(r'"(.*?)"', r'\1', groups_and_quotes)
+
+        # Convert wildcard queries to regex
+        wildcard_regex = groups_and_quotes.replace('?', '.').replace('*', '.*')
+
+        # Convert TO (range) queries to regex
+        range_regex = re.sub(r'\[(\d+)\sTO\s(\d+)\]', lambda m: f"[{m.group(1)}-{m.group(2)}]", wildcard_regex)
+
+        # Convert AND, OR and NOT queries to regex
+        # AND operator is a bit tricky. We use positive lookaheads to emulate AND behavior in regex
+        and_operator_regex = re.sub(r'(\S+)\sAND\s(\S+)', r'(?=.*\1)(?=.*\2)', range_regex)
+        or_operator_regex = and_operator_regex.replace(' OR ', '|')
+        not_operator_regex = or_operator_regex.replace(' NOT ', '^(?!.*')
+
+        # Closing parentheses for each NOT operator
+        final_regex = not_operator_regex.replace(' ', ').*')
+
+        try:
+            re.compile(final_regex)
+            return final_regex
+        except re.error:
+            print(f"Invalid search term: {query}")
+            return False

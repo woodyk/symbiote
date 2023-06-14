@@ -750,20 +750,22 @@ class symchat():
 
             return None 
 
-
         # Trigger to search es index
-        search_pattern = r'^search::|search:(.*):'
+        search_pattern = r'^search::|^search:(.*):'
         match = re.search(search_pattern, user_input)
         if match:
             self.suppress = True
             if match.group(1):
-                results = self.symutils.searchIndex(match.group(1))
-                user_input = json.dumps(results)
-                self.symutils.displayDocuments(user_input)
-                if self.symbiote_settings['debug']:
-                    print(json.dumps(results, indent=4))
+                query = match.group(1)
 
-            return user_input 
+                results = self.symutils.searchIndex(query)
+                print(json.dumps(results, indent=4))
+
+                user_input = self.symutils.grepFiles(results, query)
+                if self.symbiote_settings['debug']:
+                    print(user_input)
+
+            return user_input
 
         # Trigger for file:filename processing. Load file content into user_input for openai consumption.
         file_pattern = r'file::|file:(.*):'
