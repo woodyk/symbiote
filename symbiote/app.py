@@ -144,19 +144,19 @@ def check_libmagic():
 def check_nl_packages():
     try:
         subprocess.call(['python', '-m', 'spacy', 'download', 'en_core_web_sm'])
-    except:
-        print("Error installing spacy en_core_web_sm")
+    except Exception as e:
+        print(f"Error installing spacy en_core_web_sm: {e}")
 
     try:
         subprocess.call(['python', '-m', 'nltk.downloader', 'vader_lexicon'])
-    except:
-        print("Error installing nltk vader_lexicon")
+    except Exception as e:
+        print(f"Error installing nltk vader_lexicon: {e}")
 
 def check_libpostal():
     install = False
     try:
         import postal
-    except:
+    except Exception as e:
         install = True
 
     system = platform.system()

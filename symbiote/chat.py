@@ -688,7 +688,7 @@ class symchat():
             return None
 
         # Trigger for summary:: processing. Load file content and generate a json object about the file.
-        summary_pattern = r'summary::|summary:(.*):'
+        summary_pattern = r'summary::|summary:(.*):(\d):|summary:(.*):'
         match = re.search(summary_pattern, user_input)
         file_path = None
         
@@ -702,6 +702,13 @@ class symchat():
                 if re.search(screenshot_pattern, file_path):
                     file_path = self.symutils.getScreenShot()
                     index = True
+
+            if match.group(2):
+                reindex = match.group(2)
+                if reindex.lower() == ("1" or "true"):
+                    reindex = True
+                else:
+                    reindex = False
 
             if file_path is None:
                 start_path = "./"
@@ -725,14 +732,14 @@ class symchat():
                     index = inquirer.confirm(message=f'Index {file_path}?').execute()
 
                 if index is True:
-                    self.symutils.createIndex(file_path)
+                    self.symutils.createIndex(file_path, reindex=reindex)
 
                 return None
             elif not os.path.isfile(file_path):
                 print(f"File not found: {file_path}")
                 return None
 
-            self.symutils.createIndex(file_path)
+            self.symutils.createIndex(file_path, reindex=reindex)
 
             #summary = self.symutils.summarizeFile(file_path)
 
@@ -743,15 +750,20 @@ class symchat():
 
             return None 
 
+
+        # Trigger to search es index
         search_pattern = r'^search::|search:(.*):'
         match = re.search(search_pattern, user_input)
         if match:
+            self.suppress = True
             if match.group(1):
                 results = self.symutils.searchIndex(match.group(1))
+                user_input = json.dumps(results)
+                self.symutils.displayDocuments(user_input)
                 if self.symbiote_settings['debug']:
                     print(json.dumps(results, indent=4))
 
-            return None 
+            return user_input 
 
         # Trigger for file:filename processing. Load file content into user_input for openai consumption.
         file_pattern = r'file::|file:(.*):'

@@ -16,6 +16,9 @@ import hashlib
 from mss import mss
 from PIL import Image
 import numpy as np
+import pandas as pd
+import speech_recognition as sr
+from pydub import AudioSegment
 
 from nltk.sentiment import SentimentIntensityAnalyzer
 from spacy.lang.en.stop_words import STOP_WORDS
@@ -61,6 +64,9 @@ class utilities():
         return path
 
     def getSHA256(self, file_path):
+        file_path = os.path.expanduser(file_path)
+        file_path = os.path.abspath(file_path)
+
         with open(file_path, "rb") as f:
             digest = hashlib.file_digest(f, "sha256")
     
@@ -75,7 +81,7 @@ class utilities():
 
         try:
             result = subprocess.run(['exiftool', '-j', file_path], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        except exceptions as e:
+        except Exception as e:
             print(f'exiftool failed: {e}')
 
         metadata = json.loads(result.stdout.decode())[0]
@@ -116,6 +122,16 @@ class utilities():
 
         return clean
 
+    def removeSpecial(self, values):
+
+        if type(values) == str:
+            values = re.sub('[^\-\.,\#A-Za-z0-9 ]+', '', values)
+        elif type(values) == (str or list or tuple):
+            for value in values:
+                values[index(value)] = re.sub('[^\-\.,\#A-Za-z0-9 ]+', '', value)
+
+        return values 
+
     def extractURL(self, text):
         #url_pattern = r"(?:http[s]?:\/\/)?(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\\(\\),]|(?:%[0-9a-fA-F][0-9a-fA-F]))+"
         #url_pattern = r'(?:http[s]?:\/\/)?[\w.-]+(?:\.[\w\.-]+)+[\w\-\._~:/?#[\]@!\$&\'\(\)\*\+,;=.]+'
@@ -127,10 +143,11 @@ class utilities():
         return clean 
 
     def extractPhone(self, text):
-        phone_number_pattern = r"\b(\(\d{3}\)\s*\d{3}[-\.\s]??\d{4}|\d{3}[-\.\s]??\d{3}[-\.\s]??\d{4}|\d{3}[-\.\s]??\d{4})\b"
+        phone_number_pattern = r"\b\d{10,11}\b|\b(\(\d{3}\)\s*\d{3}[-\.\s]??\d{4}|\d{3}[-\.\s]??\d{3}[-\.\s]??\d{4}|\d{3}[-\.\s]??\d{4})\b"
         matches = re.findall(phone_number_pattern, text)
 
         clean = self.cleanMatches(matches)
+        clean = self.removeSpecial(clean)
 
         return clean
 
@@ -145,7 +162,7 @@ class utilities():
                 addresses.append(address)
                 address = {} 
             if component[1] in components:
-                address[component[1]] = component[0]
+                address[component[1]] = self.removeSpecial(component[0])
 
         return addresses
 
@@ -154,6 +171,7 @@ class utilities():
         matches = re.findall(card_pattern, text)
 
         clean = self.cleanMatches(matches)
+        clean = self.removeSpecial(clean)
 
         return clean
 
@@ -162,6 +180,7 @@ class utilities():
         matches = re.findall(ss_pattern, text)
 
         clean = self.cleanMatches(matches)
+        clean = self.removeSpecial(clean)
 
         return clean
 
@@ -208,8 +227,9 @@ class utilities():
                 # Increment the count of the entity text for the given label
                 if label_map[ent.label_] not in content:
                     content[label_map[ent.label_]] = []
-                elif ent.text not in content[label_map[ent.label_]]:
-                    content[label_map[ent.label_]].append(ent.text)
+                elif ent.text not in content[label_map[ent.label_]] and ent.text is not (None or ""):
+                    clean_text = self.removeSpecial(ent.text)
+                    content[label_map[ent.label_]].append(clean_text)
 
         sentiment = self.sia.polarity_scores(text)
 
@@ -222,7 +242,8 @@ class utilities():
 
         content['EPOCH'] = time.time()
         content['ADDRESSES'] = self.extractAddress(text)
-        content['FILE_META_DATA'] = meta
+        #content.update(meta)
+        content['METADATA'] = meta
         content['SENTIMENT'] = sentiment
         content['SUMMARY'] = main_idea
 
@@ -252,19 +273,23 @@ class utilities():
 
         if re.search(r'^text\/', mime_type):
             with open(file_path, 'r') as f:
-                content = f.read()
-        elif re.search(r'^image\/', mime_type):
-            content = textract.process(file_path, method='tesseract', language='eng')
-        elif mime_type == "application/pdf":
-            content = textract.process(file_path, method='tesseract', language='eng')
+                try:
+                    content = f.read()
+                except UnicodeDecodeError as e:
+                    content = ""
+        elif re.search(r'^audio\/', mime_type):
+            #content = self.transcribe_audio_file(file_path)
+            content = ""
         else:
             try:
-                content = textract.process(file_path)
+                content = textract.process(file_path, method='tesseract', language='eng')
             except Exception as e:
                 content = ""
-                pass
 
-        content = content.decode('utf-8')
+        try:
+            content = content.decode('utf-8')
+        except:
+            pass
 
         if self.settings['debug']:
             print(content)
@@ -280,41 +305,60 @@ class utilities():
 
         return es
 
-    def createIndex(self, path):
+    def createIndex(self, path, reindex=False):
         es = self.esConnect()
         
         file_list = []
         if os.path.isdir(path):
             for root, _, files in os.walk(path):
                 for file in files:
-                    file_list.append(os.path.join(root, file))
+                    full_path = os.path.join(root, file)
+                    if not os.path.isdir(full_path):
+                        file_list.append(full_path)
         elif os.path.isfile(path):
             file_list.append(path)
+
+        index = self.settings['elasticsearch_index']
+
+        if not es.indices.exists(index=index):
+            es.indices.create(index=index)
 
         fcount = 0
         for file in file_list:
             fcount += 1
-            content = self.summarizeFile(file)
-
             if self.settings['debug']:
                 print(f'Processing file {file}. count:{fcount}')
 
-            doc_id = content['FILE_META_DATA']['SourceFile']
-            index = self.settings['elasticsearch_index']
+            doc_id = self.getSHA256(file)
 
-            if not es.indices.exists(index=index):
-                es.indices.create(index=index)
+            if not reindex:
+                if es.exists(index=index, id=doc_id):
+                    if self.settings['debug']:
+                        print(f"Document {doc_id} found. skipping...")
+                    continue
+
+            content = self.summarizeFile(file)
 
             try:
                 es.index(index=index, id=doc_id, document=json.dumps(content))
+            except exceptions.NotFoundError as e:
+                if self.settings['debug']:
+                    print(f"Document not found: {e}")
             except exceptions.RequestError as e:
-                print(f"RequestError: {e}")
+                if self.settings['debug']:
+                    print(f"Problem with the request: {e}")
             except exceptions.ConnectionError as e:
-                print(f"ConnectionError: {e}")
+                if self.settings['debug']:
+                    print(f"Problem with the connection: {e}")
+            except exceptions.ConflictError as e:
+                if self.settings['debug']:
+                    print(f"Conflict occurred. Probably the document with this id already exists.")
             except exceptions.TransportError as e:
-                print(f"TransportError: {e}")
+                if self.settings['debug']:
+                    print(f"General transport error: {e}")
             except Exception as e:
-                print("UnknownError: {e}")
+                if self.settings['debug']:
+                    print(f"Error: {e}")
 
             es.indices.refresh(index=index)
 
@@ -323,47 +367,135 @@ class utilities():
     def searchIndex(self, query):
         es = self.esConnect()
 
-        res = es.search(index=self.settings['elasticsearch_index'],
-                           body={
-                              "track_total_hits": True,
-                              "sort": [
-                                {
-                                  "_score": {
-                                    "order": "desc"
-                                  }
-                                }
-                              ],
-                              "fields": [
-                                {
-                                  "field": "*",
-                                  "include_unmapped": "true"
-                                }
-                              ],
-                              "size": 10000,
-                              "version": True,
-                              "script_fields": {},
-                              "stored_fields": [
-                                "*"
-                              ],
-                              "runtime_mappings": {},
-                              "_source": False,
-                              "query": {
-                                "bool": {
-                                  "must": [
+        ret = ""
+
+        try:
+            res = es.search(index=self.settings['elasticsearch_index'],
+                               body={
+                                  "track_total_hits": True,
+                                  "sort": [
                                     {
-                                      "query_string": {
-                                        "query": query,
-                                        "analyze_wildcard": True,
-                                        "time_zone": "America/New_York"
+                                      "_score": {
+                                        "order": "desc"
                                       }
                                     }
                                   ],
-                                  "filter": [],
-                                  "should": [],
-                                  "must_not": []
+                                  "fields": [
+                                    {
+                                      "field": "*",
+                                      "include_unmapped": "true"
+                                    }
+                                  ],
+                                  "size": 10000,
+                                  "version": True,
+                                  "script_fields": {},
+                                  "stored_fields": [
+                                    "*"
+                                  ],
+                                  "runtime_mappings": {},
+                                  "_source": False,
+                                  "query": {
+                                    "bool": {
+                                      "must": [
+                                        {
+                                          "query_string": {
+                                            "query": query,
+                                            "analyze_wildcard": True,
+                                            "time_zone": "America/New_York"
+                                          }
+                                        }
+                                      ],
+                                      "filter": [],
+                                      "should": [],
+                                      "must_not": []
+                                    }
+                                  }
                                 }
-                              }
-                            }
-                        )
+                            )
 
-        return res.copy()
+            ret = res.copy()
+        except:
+            print(f'Error running query: {query}')
+
+        return ret 
+
+    def displayDocuments(self, json_data):
+        # Load the JSON data
+        data = json.loads(json_data)
+
+        display_fields = ["METADATA.SourceFile", "METADATA.MIMEType"]
+
+        # Extract the 'hits' data
+        hits = data["hits"]["hits"]
+
+        # Create a list to store the documents
+        documents = []
+
+        # Iterate through the hits and extract the fields data
+        for hit in hits:
+            fields = hit["fields"]
+
+            fields = {k: v for k, v in fields.items() if not k.endswith('.keyword')}
+
+            documents.append(fields)
+
+        # Create a Pandas DataFrame from the documents
+        df = pd.DataFrame(documents)
+
+        # Print the DataFrame as a table
+        try:
+            output = df[display_fields]
+            print(output)
+        except:
+            print("No results found.")
+        #print(df[['METADATA.SourceFile']])
+
+        return 
+
+    def grepFiles(self, es_results, search_term):
+        source_files = []
+        for hit in es_results['hits']['hits']:
+            source_file = hit["_source"].get("METADATA", {}).get("SourceFile")
+            if file_list:
+                file_list.append(source_file)
+
+        text = ""
+        for file_path in file_list:
+            with open(file_path, 'r') as file:
+                for line_no, line in enumerate(file.readlines(), start=1):
+                    if re.search(search_term, line):
+                        text += line
+        return text
+
+    def convert_audio_to_wav(self, file_path):
+        # Extract the file extension
+        _, ext = os.path.splitext(file_path)
+        ext = ext.lstrip('.')
+
+        # Use pydub to convert to WAV
+        audio = AudioSegment.from_file(file_path, format=ext)
+        wav_file_path = file_path.replace(ext, 'wav')
+        audio.export(wav_file_path, format='wav')
+
+        return wav_file_path
+
+    def transcribe_audio_file(self, audio_file):
+        recognizer = sr.Recognizer()
+        text = ""
+
+        # Convert the file to WAV if necessary
+        _, ext = os.path.splitext(audio_file)
+        if ext.lower() not in ['.wav', '.wave']:
+            audio_file = self.convert_audio_to_wav(audio_file)
+
+        with sr.AudioFile(audio_file) as source:
+            audio = recognizer.record(source)
+        try:
+            text = recognizer.recognize_google(audio)
+            print("Google Speech Recognition thinks you said: " + text)
+        except sr.UnknownValueError:
+            print("Google Speech Recognition could not understand audio")
+        except sr.RequestError as e:
+            print(f"Could not request results from Google Speech Recognition service; {e}")
+
+        return text
