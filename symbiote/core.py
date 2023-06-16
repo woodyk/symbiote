@@ -13,6 +13,7 @@ class symbiotes:
         # Available models
         self.models = {
             "gpt-4": 8192,
+            "gpt-3.5-turbo-16k": 16000,
             "gpt-4-32k": 32768,
             "gpt-3.5-turbo": 4096,
             "text-davinci-002": 4097,
@@ -40,6 +41,9 @@ class symbiotes:
 
     def process_request(self, messages):
         ''' Send user_input to openai for processing '''
+        if self.settings['debug']:
+            print(messages)
+
         if not self.suppress:
             print("---")
 

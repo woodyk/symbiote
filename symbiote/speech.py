@@ -155,7 +155,7 @@ class SymSpeech():
             if self.debug:
                 print(request_text)
 
-            if len(request_text) < 4:
+            if len(request_text) < 2:
                 request_text = None
 
             return request_text

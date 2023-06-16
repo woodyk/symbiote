@@ -18,6 +18,7 @@ pip3 install .
 For linux support on ubuntu be sure to add your user to the 'input' group.
 
 # ToDo
+- Add fuzzy search to grep
 - Add reindex option to summary.
 - Create switch for processing audio during indexing.
 - Make listen mode possible at the same time as interactive mode.

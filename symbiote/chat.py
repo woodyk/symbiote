@@ -79,6 +79,7 @@ audio_triggers = {
         'help': [r'keyword (get|show) help', 'help::'],
         'tokens': [r'keyword (get|show) tokens', 'tokens::'],
         'summary': [r'keyword summarize file', 'summary::'],
+        'search': [r'keyword search query', 'search::'],
         'keyword': [r'keyword (get|show) keyword', 'keywords::'],
         'perifious': [r'(i cast|icast) periph', 'perifious::']
         }
@@ -93,7 +94,8 @@ prompt_style = Style.from_dict({
 
 pricing = {"gpt-4": { "prompt": .03, "completion": .06 },
            "gpt-4-32k": { "prompt": .06, "completion": .12},
-           "gpt-3.5-turbo": { "prompt": .002, "completion": .002}
+           "gpt-3.5-turbo": { "prompt": .002, "completion": .002},
+           "gpt-3.5-turbo-16k": { "prompt": .003, "completion": .004}
            }
 
 # Default settings for openai and symbiot module.
@@ -398,7 +400,7 @@ class symchat():
                 if not hasattr(self, 'symspeech'):
                     self.symspeech = speech.SymSpeech(debug=self.symbiote_settings['debug'])
 
-                print("symchat listening> ", end="")
+                print("Symbiote listening> ", end="")
                 self.launch_animation(True)
                 self.user_input = self.symspeech.keyword_listen()
                 self.launch_animation(False)
@@ -757,13 +759,24 @@ class symchat():
             self.suppress = True
             if match.group(1):
                 query = match.group(1)
-
+            elif self.symbiote_settings['listen']:
+                obj = speech.SymSpeech(debug=self.symbiote_settings['debug'])
+                obj.say("What do you want to search for?")
+                query = obj.listen(5)
+                print(query)
+                del obj
+            else:
+                query = inquirer.text(message="Search Term:").execute()
+            
+            if query is not None:
                 results = self.symutils.searchIndex(query)
-                print(json.dumps(results, indent=4))
 
                 user_input = self.symutils.grepFiles(results, query)
                 if self.symbiote_settings['debug']:
+                    print(json.dumps(results, indent=4))
                     print(user_input)
+            else:
+                return None
 
             return user_input
 

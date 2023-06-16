@@ -41,6 +41,8 @@ with open('requirements.txt', 'r') as f:
     for module in f:
         modules.append(module.strip())
 
+modules.append("python-Levenshtein")
+
 if platform.system() == 'Linux':
     modules.append('evdev==1.6.1')
 

@@ -4,6 +4,7 @@
 
 import json
 import spacy
+#import scispacy
 import sys
 import re
 import os
@@ -19,6 +20,8 @@ import numpy as np
 import pandas as pd
 import speech_recognition as sr
 from pydub import AudioSegment
+from thefuzz import fuzz
+from thefuzz import process
 
 from nltk.sentiment import SentimentIntensityAnalyzer
 from spacy.lang.en.stop_words import STOP_WORDS
@@ -183,6 +186,14 @@ class utilities():
         clean = self.removeSpecial(clean)
 
         return clean
+
+    def exctractMedical(self, text):
+        self.nlpm = spacy.load("en_core_sci_sm")
+
+        doc = self.nlpm(text)
+
+        for ent in doc.ents:
+            print(ent.label_, ent.text)
 
     def analyze_text(self, text, meta):
         self.nlp = spacy.load('en_core_web_sm')
@@ -454,6 +465,7 @@ class utilities():
 
     def grepFiles(self, es_results, search_term):
         file_list = []
+        fuzzy = re.sub(r'~\d\b|\bAND\b|\bOR\b', ' ', search_term)
 
         regex_search = self.lucene_like_to_regex(search_term)
         if regex_search is False:
@@ -472,8 +484,24 @@ class utilities():
                 for line_no, line in enumerate(file.readlines(), start=1):
                     if re.search(regex_search, line, re.I):
                         text += line
+                        continue
+                    
+                    chunks = self.break_text(line, 1) 
+
+                    for chunk in chunks:
+                        ratio = fuzz.ratio(fuzzy.lower(), chunk.lower())
+                        if ratio > 50:
+                            if self.settings['debug']:
+                                print(ratio, chunk, "\n", line)
+                            text += line
+                            break
 
         return text
+
+    def break_text(self, text, num_words):
+        words = text.split()
+        chunks = [' '.join(words[i:i + num_words]) for i in range(0, len(words), num_words)]
+        return chunks
 
     def convert_audio_to_wav(self, file_path):
         # Extract the file extension
