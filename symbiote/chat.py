@@ -678,6 +678,8 @@ class symchat():
         match = re.search(keywords_pattern, user_input)
         if match:
             for keyword in self.audio_triggers:
+                if keyword == 'perifious':
+                    continue
                 print(f'trigger: {self.audio_triggers[keyword][0]}')
 
             return None
