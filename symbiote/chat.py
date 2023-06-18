@@ -16,6 +16,7 @@ import subprocess
 import platform
 import clipboard
 import json
+import queue
 
 from bs4 import BeautifulSoup
 
@@ -285,6 +286,7 @@ class symchat():
                 return
 
             conversation_files.append(Choice("new", name="Create new conversation."))
+            conversation_files.append(Choice("clear", name="Clear conversation."))
 
             selected_file = inquirer.select(
                 message="Select a conversation:",
@@ -297,7 +299,27 @@ class symchat():
 
         if selected_file == "new":
             selected_file = inquirer.text(message="File name:").execute()
-            self.conversations_file = os.path.join(self.conversations_dir, selected_file)
+        elif selected_file == "clear":
+            clear_file = inquirer.select(
+                message="Select a conversation:",
+                choices=conversation_files, 
+                mandatory=False
+            ).execute()
+
+            clear_file = os.path.join(self.conversations_dir, clear_file)
+
+            try:
+                with open(clear_file, 'w') as file:
+                    pass
+            except:
+                print(f"Unable to clear {clear_file}")
+
+            if self.symbiote_settings['conversation'] == os.path.basename(clear_file):
+                self.current_conversation = self.sym.load_conversation(clear_file)
+
+            print(f"Conversation cleared: {clear_file}")
+
+            return
 
         self.symbiote_settings['conversation'] = selected_file
         self.conversations_file = os.path.join(self.conversations_dir, selected_file)
@@ -398,7 +420,8 @@ class symchat():
 
             if self.symbiote_settings['listen'] and self.run is False:
                 if not hasattr(self, 'symspeech'):
-                    self.symspeech = speech.SymSpeech(debug=self.symbiote_settings['debug'])
+                    self.symspeech = speech.SymSpeech(settings=self.symbiote_settings)
+                    self.speechQueue = self.symspeech.start_keyword_listen()
 
                 print("Symbiote listening> ", end="")
                 self.launch_animation(True)
@@ -426,13 +449,14 @@ class symchat():
             if self.user_input is None or re.search(r'^\n+$', self.user_input) or self.user_input== "":
                 self.user_input = ""
                 if self.run is True and self.enable is False:
-                    break 
+                    return "OK"
+                    break
 
                 self.enable = False
                 self.run = False
                 continue
 
-            self.send_message(self.user_input)
+            returned = self.send_message(self.user_input)
 
             self.user_input = ""
 
@@ -441,15 +465,16 @@ class symchat():
                 self.enable = False
 
             if self.run is True:
-                break
+                return returned
 
             continue
 
-        return
+        return 
 
     def send_message(self, user_input):
         #if self.suppress and not self.run:
         #    self.launch_animation(True)
+        self.current_conversation = self.sym.load_conversation(self.conversations_file)
 
         returned = self.sym.send_request(user_input, self.current_conversation, completion=self.symbiote_settings['completion'], suppress=self.suppress, role=self.role)
 
@@ -489,7 +514,7 @@ class symchat():
 
         self.suppress = False
 
-        return
+        return returned
 
     def symtokens(self):
         print(f"\nToken Details:\n\tLast User: {self.token_track['user_tokens']}\n\tTotal User: {self.token_track['total_user_tokens']}\n\tLast Completion: {self.token_track['completion_tokens']}\n\tTotal Completion: {self.token_track['total_completion_tokens']}\n\tLast Conversation: {self.token_track['truncated_tokens']}\n\tTotal Used Tokens: {self.token_track['rolling_tokens']}\n\tToken Cost: ${self.token_track['cost']:.2f}\n")
@@ -811,7 +836,7 @@ class symchat():
                 file_path = inquirer.filepath(
                         message="Insert file contents:",
                         default=start_path,
-                        validate=PathValidator(is_file=True, message="Input is not a file"),
+                        #validate=PathValidator(is_file=True, message="Input is not a file"),
                         wrap_lines=True,
                         mandatory=False,
                         keybindings=keybindings
@@ -821,12 +846,6 @@ class symchat():
                 return None 
             
             file_path = os.path.expanduser(file_path)
-
-            if not os.path.isfile(file_path):
-                print(f"File not found: {file_path}")
-                return None
-            
-            mime_type = magic.from_file(file_path, mime=True)
             absolute_path = os.path.abspath(file_path)
 
             if sub_command is not None:
@@ -842,15 +861,18 @@ class symchat():
                 meta_content += '\n```\n{}\n```\n'.format(content)
                 user_input = user_input[:match.start()] + meta_content + user_input[match.end():]
 
-            else:
+            elif os.path.isfile(file_path):
                 content = self.symutils.extractText(file_path)
 
                 file_content = f"File name: {absolute_path}\n"
                 file_content += '\n```\n{}\n```\n'.format(content)
                 user_input = user_input[:match.start()] + file_content + user_input[match.end():]
 
-            if self.symbiote_settings['debug']:
-                print(content)
+            elif os.path.isdir(file_path):
+                dir_content = self.symutils.extractDirText(file_path)
+                if dir_content is None:
+                    return dir_content
+                user_input = user_input[:match.start()] + dir_content + user_input[match.end():]
 
             return user_input
 

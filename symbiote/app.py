@@ -66,6 +66,10 @@ def main():
                         action='store_true',
                         help='Install required packages.')
 
+    parser.add_argument('-a', '--api',
+                        action='store_true',
+                        help='Launch the symbiote API')
+
     args = parser.parse_args()
 
     if args.install:
@@ -75,13 +79,17 @@ def main():
         check_libpostal()
         return
 
-    # subprocess terminal
     import symbiote.chat as chat
     import symbiote.core as core
     import symbiote.monitor as monitor
     import symbiote.speech as speech
+    import symbiote.api as api
 
     schat = chat.symchat(working_directory=current_path, debug=args.debug)
+
+    if args.api:
+        symapi = api.SymbioteAPI(schat, debug=args.debug)
+        symapi.start()
 
     if len(piped_query) > 0:
         schat.chat(user_input="hello", suppress=True, run=True)

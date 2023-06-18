@@ -39,10 +39,71 @@ class symbiotes:
 
         return model_list
 
-    def process_request(self, messages):
+    def process_requestJ2(self, message):
+        url = "https://api.ai21.com/studio/v1/j2-mid/complete"
+        payload = {
+            "numResults": 1,
+            "maxTokens": self.settings['max_tokens'],
+            "minTokens": 10,
+            "temperature": self.settings['temperature'],
+            "topP": self.settings['top_p'],
+            "topKReturn": 0,
+            "stopSequences": [self.settings['stop']],
+            "frequencyPenalty": {
+                "scale": self.settings['frequency_penalty'],
+                "applyToWhitespaces": True,
+                "applyToPunctuations": True,
+                "applyToNumbers": True,
+                "applyToStopwords": True,
+                "applyToEmojis": True
+            },
+            "presencePenalty": {
+                "scale": self.settings['presence_penalty'],
+                "applyToWhitespaces": True,
+                "applyToPunctuations": True,
+                "applyToNumbers": True,
+                "applyToStopwords": True,
+                "applyToEmojis": True
+            },
+            "countPenalty": {
+                "scale": 1,
+                "applyToWhitespaces": True,
+                "applyToPunctuations": True,
+                "applyToNumbers": True,
+                "applyToStopwords": True,
+                "applyToEmojis": True
+            }
+        }
+
+        headers = {
+            "accept": "application/json",
+            "content-type": "application/json",
+            "Authorization": "Bearer YOUR_API_KEY"
+        }
+
+        if self.settings['debug']:
+            print(json.dumps(messages, indent=4))
+
+        if not self.suppress:
+            print("---")
+
+        message = " "
+        chunk_block = ""
+        response = {} 
+
+        response = requests.post(url, json=payload, headers=headers)
+        message = response.choices[0].message.content
+
+        if not self.suppress:
+            print(message)
+            print("---\n")
+
+        return message.strip()
+
+    def process_requestOpenAI(self, messages):
         ''' Send user_input to openai for processing '''
         if self.settings['debug']:
-            print(messages)
+            print(json.dumps(messages, indent=4))
 
         if not self.suppress:
             print("---")
@@ -184,7 +245,7 @@ class symbiotes:
         else:
             truncated_conversation, total_user_tokens, char_count = self.truncate_messages(conversation)
         # Push queries to openai
-        response = self.process_request(truncated_conversation)
+        response = self.process_requestOpenAI(truncated_conversation)
 
         total_assist_tokens, _ = self.tokenize(response)
 
@@ -197,6 +258,7 @@ class symbiotes:
 
         conversation.append(assistant_content)
         self.save_conversation(assistant_content, self.conversations_file)
+        conversation = self.load_conversation(self.conversations_file)
 
         return conversation, (total_user_tokens + total_assist_tokens), total_user_tokens, total_assist_tokens, char_count
 
@@ -252,9 +314,6 @@ class symbiotes:
         truncated_conversation = []
         
         total_tokens, encoded_tokens = self.tokenize(conversation)
-
-        if self.settings['debug']:
-            print(conversation)
 
         while truncated_tokens < max_length and len(conversation) > 0:
             last_message = conversation.pop()

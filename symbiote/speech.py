@@ -16,9 +16,9 @@ os.environ['PYGAME_HIDE_SUPPORT_PROMPT'] = '1'
 import pygame
 
 class SymSpeech():
-    def __init__(self, monitor=False, debug=False):
+    def __init__(self, monitor=False, settings=False):
         self.monitor = monitor 
-        self.debug = debug
+        self.settings = settings 
 
         # Create a recognizer instance
         self.r = sr.Recognizer()
@@ -33,7 +33,7 @@ class SymSpeech():
 
     def start_keyword_listen(self):
         q = Queue()
-        t = threading.Thread(target=self.keyword_listen, args=(q))
+        t = threading.Thread(target=self.keyword_listen, args=(q,))
         t.start()
         t.join
         return q 
@@ -48,7 +48,7 @@ class SymSpeech():
         # Start the stream in non-blocking mode
         stream = p.open(format=pyaudio.paInt16, channels=1, rate=16000, input=True, frames_per_buffer=1024, input_device_index=p.get_default_input_device_info()['index'], start=False)
 
-        if self.debug:
+        if self.settings['debug']: 
             print("Listening...")
 
         text = ''
@@ -72,16 +72,23 @@ class SymSpeech():
                     text = self.r.recognize_google(sr.AudioData(data, sample_rate=16000, sample_width=2))
                 except sr.UnknownValueError:
                     # Google Speech Recognition could not understand audio
+                    if self.settings['debug']:
+                        print("Google Speech Recognition could not understand audio")
                     continue
                 except sr.RequestError as e:
                     # Could not request results from Google Speech Recognition service
-                    print("Could not request results from Google Speech Recognition service; {0}".format(e))
-                    return False
+                    if self.settings['debug']:
+                        print("Could not request results from Google Speech Recognition service; {0}".format(e))
+                    continue
+                except Exception as e:
+                    if self.settings['debug']:
+                        print(f"Unknown exception: {e}")
+                    continue
 
             except IOError:
                 pass
 
-            if self.debug:
+            if self.settings['debug']:
                 if len(text) > 0:
                     print("Recognized: ", text)
 
@@ -92,7 +99,7 @@ class SymSpeech():
                     # Stop the stream
                     stream.stop_stream()
 
-                    if self.debug:
+                    if self.settings['debug']:
                         print("Keyword detected!")
 
                     ready = "Yes?"
@@ -110,6 +117,8 @@ class SymSpeech():
                         return recorded
 
             text = '' 
+
+            return text
 
     def say(self, say_message):
         try:
@@ -137,12 +146,12 @@ class SymSpeech():
     def listen(self, duration):
         request_text = str()
         with sr.Microphone() as source:
-            if self.debug:
+            if self.settings['debug']:
                 print("Speak:")
 
             # read the audio data from the default microphone
             audio_data = self.r.record(source, duration=5)
-            if self.debug:
+            if self.settings['debug']:
                 print("Recognizing...")
 
             # convert speech to text
@@ -152,7 +161,7 @@ class SymSpeech():
                 # Google Speech Recognition could not understand audio
                 requested_text = None 
 
-            if self.debug:
+            if self.settings['debug']:
                 print(request_text)
 
             if len(request_text) < 2:
@@ -171,7 +180,7 @@ class SymSpeech():
         while process.poll() is None:
             time.sleep(1)
 
-        if self.debug:
+        if self.settings['debug']:
             print("Terminal closed.")
 
         return

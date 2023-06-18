@@ -279,6 +279,25 @@ class utilities():
 
         return result
 
+    def extractDirText(self, dir_path):
+        dir_path = os.path.expanduser(dir_path)
+        dir_path = os.path.abspath(dir_path)
+
+        if not os.path.isdir(dir_path):
+            return None
+
+        header = str()
+        content = str()
+        for root, _, files in os.walk(dir_path):
+            for file in files:
+                file_path = os.path.join(root, file)
+                absolute_path = os.path.abspath(file_path)
+                file_contents = self.extractText(absolute_path)
+                content += f"File name: {absolute_path}\n"
+                content += '\n```\n{}\n```\n'.format(file_contents)
+
+        return content
+
     def extractText(self, file_path):
         mime_type = magic.from_file(file_path, mime=True)
 
@@ -533,6 +552,8 @@ class utilities():
             print("Google Speech Recognition could not understand audio")
         except sr.RequestError as e:
             print(f"Could not request results from Google Speech Recognition service; {e}")
+        except Exception as e:
+            print(f"Unknown exception: {e}")
 
         return text
 
