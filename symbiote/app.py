@@ -10,6 +10,7 @@ import time
 import select
 import subprocess
 import platform
+import symbiote.logo as logo
 
 
 openai.api_key = os.getenv("OPENAI_API_KEY")
@@ -108,6 +109,9 @@ def main():
     elif args.query:
         schat.chat(user_input=args.query, run=args.run, enable=args.enable)
     else:
+        os.system('clear')
+        logo.symLogo()
+        time.sleep(3)
         os.system('reset')
         schat.chat(user_input="")
 

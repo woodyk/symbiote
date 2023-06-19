@@ -24,14 +24,17 @@ from InquirerPy import inquirer
 from InquirerPy.base.control import Choice
 from InquirerPy.validator import PathValidator
 
-from prompt_toolkit.history import InMemoryHistory
-from prompt_toolkit.history import FileHistory
-from prompt_toolkit.shortcuts import PromptSession
+from prompt_toolkit import Application
+from prompt_toolkit.history import InMemoryHistory, FileHistory
+from prompt_toolkit.shortcuts import PromptSession, prompt
 from prompt_toolkit.key_binding import KeyBindings
 from prompt_toolkit.keys import Keys
-from prompt_toolkit.shortcuts import prompt
 from prompt_toolkit.completion import WordCompleter
 from prompt_toolkit.styles import Style
+from prompt_toolkit.layout import Layout, HSplit
+from prompt_toolkit.widgets import TextArea, Frame, Box
+from prompt_toolkit.layout.dimension import Dimension
+from prompt_toolkit.layout.containers import HSplit, VSplit
 
 import symbiote.core as core
 import symbiote.shell as shell
@@ -806,6 +809,48 @@ class symchat():
                 return None
 
             return user_input
+
+        # Trigger for history::. Show the history of the messages.
+        history_pattern = r'^history::|^history:(.*):'
+        match = re.search(history_pattern, user_input)
+        if match:
+            if match.group(1):
+                history_length = int(match.group(1)) + 1
+            else:
+                history_length = 10
+
+            lines = str()
+            for message in self.current_conversation[-history_length:]:
+                if message['role'] == 'assistant':
+                    lines += f"ROLE: {message['role']}:\n{message['content']}\n\n"
+
+
+            size = os.get_terminal_size()
+
+            text_area = TextArea(text=lines,
+                                 scrollbar=True,
+                                 width=(size.columns - 10),
+                                 height=30,
+                                 focus_on_click=True)
+
+
+            frame = Frame(text_area, title='History')
+
+            box = Box(frame)
+
+            layout = Layout(HSplit([box]))
+
+            app = Application(layout=layout)
+            kb = KeyBindings()
+
+            @kb.add('c-q')
+            def _(event):
+                event.app.exit()
+
+            app = Application(layout=layout, full_screen=False, key_bindings=kb).run()
+
+            return None
+
 
         # Trigger for file:filename processing. Load file content into user_input for openai consumption.
         file_pattern = r'file::|file:(.*):'
