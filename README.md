@@ -18,6 +18,7 @@ pip3 install .
 For linux support on ubuntu be sure to add your user to the 'input' group.
 
 # ToDo
+- Add scheduled checking ability. Look for change in file or on api result and provide a response.
 - Create switch for processing audio during indexing.
 - Make listen mode possible at the same time as interactive mode.
 - Repair monitor mode window launch

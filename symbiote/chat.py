@@ -23,6 +23,7 @@ from bs4 import BeautifulSoup
 from InquirerPy import inquirer
 from InquirerPy.base.control import Choice
 from InquirerPy.validator import PathValidator
+from pynput.keyboard import Controller, Key
 
 from prompt_toolkit import Application
 from prompt_toolkit.history import InMemoryHistory, FileHistory
@@ -41,6 +42,7 @@ import symbiote.shell as shell
 import symbiote.roles as roles
 import symbiote.utils as utils
 import symbiote.speech as speech
+import symbiote.logo as logo
 
 command_list = {
         "help::": "This help output.",
@@ -62,7 +64,8 @@ command_list = {
         "shell::": "Load the symbiote bash shell.",
         "clipboard::": "Load clipboard contents into symbiote.",
         "ls::": "Load ls output for submission.",
-        "search::": "Search index for specific data."
+        "search::": "Search index for specific data.",
+        "history::": "Show discussion history."
         }
 
 
@@ -85,6 +88,7 @@ audio_triggers = {
         'summary': [r'keyword summarize file', 'summary::'],
         'search': [r'keyword search query', 'search::'],
         'keyword': [r'keyword (get|show) keyword', 'keywords::'],
+        'history': [r'keyword (get|show) history', 'history::'],
         'perifious': [r'(i cast|icast) periph', 'perifious::']
         }
 
@@ -126,6 +130,7 @@ symbiote_settings = {
         "debug": False,
         "elasticsearch": "http://dockera.vm.sr:9200",
         "elasticsearch_index": "symbiote",
+        "symbiote_path": os.path.join(homedir, ".symbiote"),
         "perifious": False
     }
 
@@ -153,11 +158,11 @@ class symchat():
        
         # Set symbiote home path parameters
         home_dir = os.path.expanduser("~")
-        symbiote_dir = os.path.join(home_dir, ".symbiote")
+        symbiote_dir = self.symbiote_settings['symbiote_path']
         if not os.path.exists(symbiote_dir):
             os.mkdir(symbiote_dir)
 
-         # Set symbiote conf file
+        # Set symbiote conf file
         self.config_file = os.path.join(symbiote_dir, "config")
         if not os.path.exists(self.config_file):
             self.save_settings(settings=self.symbiote_settings)
@@ -221,6 +226,18 @@ class symchat():
 
         self.role = "user"
 
+    def keyboardContinue(self):
+        keyboard = Controller()
+
+        keyboard.press(Key.esc)
+        keyboard.press(Key.enter)
+
+        # Small delay for certain applications that might need it
+        time.sleep(0.1)
+
+        keyboard.release(Key.esc)
+        keyboard.release(Key.enter)
+
     def symhelp(self):
         print("Symbiote Help Menu")
         print("------------------")
@@ -280,7 +297,7 @@ class symchat():
             print()
 
     def symconvo(self, convo=False):
-        conversation_files = self.sym.list_conversations(self.conversations_dir)
+        conversation_files = sorted(self.sym.list_conversations(self.conversations_dir))
 
         if convo:
             selected_file = convo
@@ -414,6 +431,10 @@ class symchat():
             os.chdir(self.working_directory)
 
         bindings = KeyBindings()
+
+        @bindings.add('c-q')
+        def _(event):
+            self.user_input = "" 
        
         chat_session = PromptSession(key_bindings=bindings, vi_mode=self.symbiote_settings['vi_mode'], history=self.history, style=prompt_style)
 
@@ -426,7 +447,6 @@ class symchat():
                     self.symspeech = speech.SymSpeech(settings=self.symbiote_settings)
                     self.speechQueue = self.symspeech.start_keyword_listen()
 
-                print("Symbiote listening> ", end="")
                 self.launch_animation(True)
                 self.user_input = self.symspeech.keyword_listen()
                 self.launch_animation(False)
@@ -600,7 +620,7 @@ class symchat():
 
                 selected_role = inquirer.select(
                     message="Select a role:",
-                    choices=role_list,
+                    choices=sorted(role_list),
                     mandatory=False
                 ).execute()
 
@@ -634,8 +654,8 @@ class symchat():
                     self.save_settings(settings=self.symbiote_settings)
             else:
                 print("Current OpenAI Settings:")
-
-                for setting in self.symbiote_settings:
+                sorted_settings = sorted(self.symbiote_settings) 
+                for setting in sorted_settings:
                     if self.symbiote_settings['perifious'] is False and setting == 'perifious':
                         continue
                     print(f"\t{setting}: {self.symbiote_settings[setting]}")
@@ -684,7 +704,6 @@ class symchat():
         if match:
             if match.group(1):
                 requested_directory = match.group(1).strip()
-
             else:
                 requested_directory = '~'
 

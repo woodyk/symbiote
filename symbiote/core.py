@@ -283,6 +283,7 @@ class symbiotes:
     def save_conversation(self, conversation_data, conversations_file):
         ''' Save conversation output to loaded conversation file '''
         json_conv = {
+                "conversation": self.settings['conversation'],
                 "epoch": conversation_data['epoch'],
                 "role": conversation_data['role'],
                 "content": conversation_data['content']
@@ -317,7 +318,11 @@ class symbiotes:
 
         while truncated_tokens < max_length and len(conversation) > 0:
             last_message = conversation.pop()
-            del last_message['epoch']
+            if 'epoch' in last_message:
+                del last_message['epoch']
+            if 'conversation' in last_message:
+                del last_message['conversation']
+
             truncated_conversation.insert(0, last_message)
             t_tokens, _ = self.tokenize(last_message['content'])
             char_count += len(last_message['content'])
