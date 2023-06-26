@@ -500,7 +500,6 @@ class symchat():
         self.current_conversation = self.sym.load_conversation(self.conversations_file)
 
         returned = self.sym.send_request(user_input, self.current_conversation, completion=self.symbiote_settings['completion'], suppress=self.suppress, role=self.role)
-
         #if self.suppress and not self.run:
         #    self.launch_animation(False)
         #    pass

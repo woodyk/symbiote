@@ -13,6 +13,7 @@ import subprocess
 import magic
 import textract
 import hashlib
+import requests 
 
 from mss import mss
 from PIL import Image
@@ -32,6 +33,9 @@ from postal.parser import parse_address
 from dateutil.parser import parse
 from collections import defaultdict
 from elasticsearch import Elasticsearch, exceptions
+from elasticsearch import Elasticsearch
+from transformers import GPT2Tokenizer, GPT2LMHeadModel, TextDataset, DataCollatorForLanguageModeling, Trainer, TrainingArguments
+import torch
 
 import warnings
 warnings.filterwarnings("ignore", category=UserWarning, module="sumy")
@@ -126,7 +130,6 @@ class utilities():
         return clean
 
     def removeSpecial(self, values):
-
         if type(values) == str:
             values = re.sub('[^\-\.,\#A-Za-z0-9 ]+', '', values)
         elif type(values) == (str or list or tuple):
@@ -334,6 +337,93 @@ class utilities():
             return None
 
         return es
+
+    def learnFiles(self, path):
+        learning_dir = self.settings['symbiote_path'] + "learning/index_model"
+        if not os.path.exists(learing_dir):
+            os.mkdir(symbiote_dir)
+
+        # Download the tokenizer files
+        tokenizer_files = {
+            "vocab.json": "https://huggingface.co/gpt2/resolve/main/vocab.json",
+            "merges.txt": "https://huggingface.co/gpt2/resolve/main/merges.txt",
+            "tokenizer_config.json": "https://huggingface.co/gpt2/resolve/main/tokenizer_config.json",
+        }
+
+        for filename, url in tokenizer_files.items():
+            response = requests.get(url)
+            with open(os.path.join(tokenizer_dir, filename), "wb") as f:
+                f.write(response.content)
+
+        # Load the tokenizer files and create a GPT2Tokenizer instance
+        vocab_file = os.path.join(tokenizer_dir, "vocab.json")
+        merges_file = os.path.join(tokenizer_dir, "merges.txt")
+
+        model = GPT2LMHeadModel.from_pretrained('gpt2')
+        tokenizer = GPT2Tokenizer(vocab_file=vocab_file, merges_file=merges_file)
+        model.save_pretrained("./gpt2_finetuned")
+
+        file_list = []
+        if os.path.isdir(path):
+            for root, _, files in os.walk(path):
+                for file in files:
+                    full_path = os.path.join(root, file)
+                    if not os.path.isdir(full_path):
+                        file_list.append(full_path)
+        elif os.path.isfile(path):
+            file_list.append(path)
+        
+        text_data = []
+        for file in file_list:
+            content = extractText(file):
+            text_data.append(content)
+
+        train_data = '/tmp/train_data.txt'
+        with open("/tmp/train_data.txt", "w") as f:
+            f.write(text_data)
+
+        dataset = TextDataset(
+            tokenizer=tokenizer,
+            file_path="train_data.txt",
+            block_size=128,
+        )
+
+        data_collator = DataCollatorForLanguageModeling(
+            tokenizer=tokenizer, mlm=False,
+        )
+
+        training_args = TrainingArguments(
+            output_dir="./gpt2_finetuned",
+            overwrite_output_dir=True,
+            num_train_epochs=1,
+            per_device_train_batch_size=4,
+            save_steps=10_000,
+            save_total_limit=2,
+            learning_rate=5e-5,
+            weight_decay=0.01,
+            gradient_accumulation_steps=4,
+            max_grad_norm=1.0,
+            report_to=[]
+        )
+
+        trainer = Trainer(
+            model=model,
+            args=training_args,
+            data_collator=data_collator,
+            train_dataset=dataset,
+        )
+
+        trainer.train()
+
+        with open("gpt2_finetuned/tokenizer_config.json"), as f:
+            data = {
+              "model_max_length": 1024,
+              "model_type": "gpt2",
+              "padding_side": "right"
+            }
+
+            f.write(json.dumps(data))
+ 
 
     def createIndex(self, path, reindex=False):
         es = self.esConnect()
@@ -592,3 +682,8 @@ class utilities():
         except re.error:
             print(f"Invalid search term: {query}")
             return False
+
+
+    def (self):
+        es = esConnect()
+
