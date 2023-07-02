@@ -2,7 +2,6 @@
 
 ##### Author: Wadih Khairallah
 
-
 ## Running symbiote
 ```
 brew install libmagic tesseract
@@ -36,3 +35,7 @@ For linux support on ubuntu be sure to add your user to the 'input' group.
 - Add decay time to the conversation_percent.  Set the conversation_percent high for data consumption and decay over time until the consumption keywords are used again.
 - Add self destruct and encryption options.
 - Add hooks for alternate AI eg: ai21.com, 
+- Begin comprehensive documentation on the use of symbiote.
+- Create diy ai model builder for personal AI model creation.
+- Intent capability.  Build in functionality that understands the intent of the data being used based on the user.
+- Come up with proper adoption process for a users A.N.N.G.L.  Ensure that the users intent is good based off truth.

@@ -245,7 +245,10 @@ class symbiotes:
         else:
             truncated_conversation, total_user_tokens, char_count = self.truncate_messages(conversation)
         # Push queries to openai
-        response = self.process_requestOpenAI(truncated_conversation)
+        if self.settings['model'] == 'symbiote':
+            response = self.interactWithModel(truncated_conversation)
+        else:
+            response = self.process_requestOpenAI(truncated_conversation)
 
         total_assist_tokens, _ = self.tokenize(response)
 
@@ -371,3 +374,19 @@ class symbiotes:
 
         return
 
+    def interactWithModel(self, prompt):
+        # Load the trained model and tokenizer
+        model_dir = self.settings['symbiote_path'] + "learning/index_model"
+        model = GPT2LMHeadModel.from_pretrained(model_dir)
+        tokenizer = GPT2Tokenizer.from_pretrained(model_dir)
+
+        # Tokenize the prompt
+        inputs = tokenizer.encode(prompt, return_tensors='pt')
+
+        # Generate a response
+        outputs = model.generate(inputs, max_length=150, num_return_sequences=1, no_repeat_ngram_size=2, temperature=0.7)
+
+        # Decode the response
+        response = tokenizer.decode(outputs[0], skip_special_tokens=True)
+
+        return response 

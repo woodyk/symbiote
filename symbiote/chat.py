@@ -800,6 +800,8 @@ class symchat():
 
             return None 
 
+
+
         # Trigger to search es index
         search_pattern = r'^search::|^search:(.*):'
         match = re.search(search_pattern, user_input)
@@ -870,7 +872,8 @@ class symchat():
             return None
 
 
-        # Trigger for file:filename processing. Load file content into user_input for openai consumption.
+        # Trigger for file:filename processing. Load file content into user_input for ai consumption.
+        # file:: - opens file or directory to be pulled into the conversation
         file_pattern = r'file::|file:(.*):'
         match = re.search(file_pattern, user_input)
         file_path = None

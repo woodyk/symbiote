@@ -46,6 +46,7 @@ class utilities():
         return
 
     def getScreenShot(self):
+        ''' Take screenshot and return text object for all text found in the image '''
         # Screenshot storage path
         path = r'/tmp/symScreenShot.png'
 
@@ -71,6 +72,7 @@ class utilities():
         return path
 
     def getSHA256(self, file_path):
+        ''' Take in a file path and return SHA256 value for the file '''
         file_path = os.path.expanduser(file_path)
         file_path = os.path.abspath(file_path)
 
@@ -97,6 +99,7 @@ class utilities():
         return metadata
 
     def is_valid_date(self, date_str):
+        ''' Check if an object fits the pattern of a potential date '''
         try:
             dt = parse(date_str, fuzzy=True)
             if dt.hour > 0 or dt.minute > 0:
@@ -108,6 +111,7 @@ class utilities():
             return False
 
     def extractEmail(self, text):
+        ''' Check text for the pattern of an e-mail address '''
         email_pattern = r"[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+"
         matches = re.findall(email_pattern, text)
         
@@ -339,6 +343,7 @@ class utilities():
         return es
 
     def learnFiles(self, path):
+        ''' Model builder off personal data '''
         learning_dir = self.settings['symbiote_path'] + "learning/index_model"
         if not os.path.exists(learing_dir):
             os.mkdir(symbiote_dir)
@@ -423,7 +428,6 @@ class utilities():
             }
 
             f.write(json.dumps(data))
- 
 
     def createIndex(self, path, reindex=False):
         es = self.esConnect()
