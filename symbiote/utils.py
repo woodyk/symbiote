@@ -380,7 +380,7 @@ class utilities():
         
         text_data = []
         for file in file_list:
-            content = extractText(file):
+            content = extractText(file)
             text_data.append(content)
 
         train_data = '/tmp/train_data.txt'
@@ -420,7 +420,7 @@ class utilities():
 
         trainer.train()
 
-        with open("gpt2_finetuned/tokenizer_config.json"), as f:
+        with open("gpt2_finetuned/tokenizer_config.json") as f:
             data = {
               "model_max_length": 1024,
               "model_type": "gpt2",
@@ -687,7 +687,4 @@ class utilities():
             print(f"Invalid search term: {query}")
             return False
 
-
-    def (self):
-        es = esConnect()
 

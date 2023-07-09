@@ -109,7 +109,10 @@ def main():
         schat.chat(user_input=args.query, run=args.run, enable=args.enable)
     else:
         os.system('clear')
-        logo.symLogo()
+        try:
+            logo.symLogo()
+        except:
+            pass
         time.sleep(3)
         os.system('reset')
         schat.chat(user_input="")

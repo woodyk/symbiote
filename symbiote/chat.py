@@ -107,6 +107,7 @@ pricing = {"gpt-4": { "prompt": .03, "completion": .06 },
            }
 
 # Default settings for openai and symbiot module.
+homedir = os.getenv('HOME')
 symbiote_settings = {
         "model": "gpt-3.5-turbo",
         "max_tokens": 512,
@@ -600,6 +601,11 @@ class symchat():
 
             return user_input
 
+        # Trigger learning of a directories data.
+        learn_pattern = r'learn::|learn:(.*):'
+        match = re.search(learn_pattern, user_input)
+            
+
         # Trigger to choose role
         role_pattern = r'^role::|role:(.*):'
         match = re.search(role_pattern, user_input)
@@ -652,7 +658,7 @@ class symchat():
                     self.symutils = utils.utilities(settings=self.symbiote_settings)
                     self.save_settings(settings=self.symbiote_settings)
             else:
-                print("Current OpenAI Settings:")
+                print("Current Symbiote Settings:")
                 sorted_settings = sorted(self.symbiote_settings) 
                 for setting in sorted_settings:
                     if self.symbiote_settings['perifious'] is False and setting == 'perifious':
