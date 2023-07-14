@@ -744,7 +744,7 @@ class symchat():
             return None
 
         # Trigger for summary:: processing. Load file content and generate a json object about the file.
-        summary_pattern = r'summary::|summary:(.*):(\d):|summary:(.*):'
+        summary_pattern = r'summary::|summary:(.*):(.*):|summary:(.*):'
         match = re.search(summary_pattern, user_input)
         file_path = None
         
