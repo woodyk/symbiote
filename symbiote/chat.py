@@ -65,7 +65,9 @@ command_list = {
         "clipboard::": "Load clipboard contents into symbiote.",
         "ls::": "Load ls output for submission.",
         "search::": "Search index for specific data.",
-        "history::": "Show discussion history."
+        "history::": "Show discussion history.",
+        "learn::": "Train AI model on given data in directory. *",
+        "structure::": "Define a data scructure. *",
         }
 
 
@@ -604,7 +606,6 @@ class symchat():
         # Trigger learning of a directories data.
         learn_pattern = r'learn::|learn:(.*):'
         match = re.search(learn_pattern, user_input)
-            
 
         # Trigger to choose role
         role_pattern = r'^role::|role:(.*):'
