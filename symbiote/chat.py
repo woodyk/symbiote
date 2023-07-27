@@ -532,7 +532,8 @@ class symchat():
 
         if self.symbiote_settings['speech'] and self.suppress is False:
             if not hasattr(self, 'symspeech'):
-                self.symspeech = speech.SymSpeech(debug=self.symbiote_settings['debug'])
+                #self.symspeech = speech.SymSpeech(debug=self.symbiote_settings['debug'])
+                self.symspeech = speech.SymSpeech()
 
             last_message = self.current_conversation[-1]
             self.symspeech.say(last_message['content'])
@@ -602,10 +603,6 @@ class symchat():
                 user_input = user_input[:match.start()] + contents + user_input[match.end():]
 
             return user_input
-
-        # Trigger learning of a directories data.
-        learn_pattern = r'learn::|learn:(.*):'
-        match = re.search(learn_pattern, user_input)
 
         # Trigger to choose role
         role_pattern = r'^role::|role:(.*):'
@@ -881,14 +878,17 @@ class symchat():
 
         # Trigger for file:filename processing. Load file content into user_input for ai consumption.
         # file:: - opens file or directory to be pulled into the conversation
-        file_pattern = r'file::|file:(.*):'
+        file_pattern = r'file::|file:(.*):|learn:(.*):'
         match = re.search(file_pattern, user_input)
         file_path = None
         sub_command = None
+        learn = False
 
         if match: 
             if re.search(r'^file', user_input):
                 self.suppress = True
+            elif re.search(r'^learn', user_input):
+                learn = True
             else:
                 self.suppress = False
 
@@ -920,6 +920,10 @@ class symchat():
             
             file_path = os.path.expanduser(file_path)
             absolute_path = os.path.abspath(file_path)
+
+            if learn:
+                self.symutils.learnFiles(absolute_path)
+                return None
 
             if sub_command is not None:
                 # Process file sub commands

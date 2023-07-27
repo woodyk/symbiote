@@ -3,11 +3,16 @@
 # speech.py
 
 import os
+import re
 import time
 import subprocess
 import tempfile
 import threading
 import pyaudio
+import pyttsx3
+import numpy as np
+import sounddevice as sd
+import random
 import speech_recognition as sr
 from gtts import gTTS
 from queue import Queue
@@ -120,11 +125,60 @@ class SymSpeech():
 
             return text
 
-    def say(self, say_message):
+    def generate_tick(self, duration, freq, sample_rate):
+        t = np.linspace(0, duration, int(sample_rate * duration), False)
+        tick = np.sin(freq * t * 2 * np.pi)
+        return tick
+
+    def play_random_ticks(self, duration, min_interval, max_interval):
+        sample_rate = 192000
+        tick = self.generate_tick(0.01, 1000, sample_rate)
+
+        start_time = time.time()
+        while time.time() - start_time < duration:
+            sd.play(tick, sample_rate)
+            time.sleep(random.uniform(min_interval, max_interval))
+
+    def say(self, say_message, rate=1000, volume=1.0):
+        self.play_random_ticks(30, 0.0, 0.1)
+        return
+
+        # Initialize the speech engine
+        engine = pyttsx3.init()
+
+        # Set the rate and volume
+        engine.setProperty('rate', rate)
+        engine.setProperty('volume', volume)
+
+        # Reverse the content
+        reversed_content = " ".join(say_message.split()[::-1])[::-1]
+
+        # Split the reversed content into sentences
+        sentences = re.split(r'(?<=[.!?]) +', reversed_content)
+
+        # Say each sentence with a pause and change in volume (to simulate inflection)
+        for i, sentence in enumerate(sentences):
+            # Change the volume for every other sentence to simulate inflection
+            #volume = 1.0 if i % 2 == 0 else 0.8
+            #engine.setProperty('volume', volume)
+
+            # Say the sentence and then pause
+            #engine.say(sentence)
+            #engine.runAndWait()
+
+            # Calculate the duration for the ticks based on the number of words in the sentence
+            words = len(sentence.split())
+            duration = words / 200 * 60  # 200 words per minute
+
+            # Play the ticks
+            self.play_random_ticks(30, 0.0, 0.1)
+
+    '''
+    def say(self, say_message, speed=1.0):
         try:
             text_to_speech = gTTS(text=say_message)
-        except:
-            print("Unable to get text to speech.")
+        except Exception as e:
+            print(f"Unable to get text to speech. {e}")
             return
 
         # save the speech audio into a file
@@ -142,6 +196,7 @@ class SymSpeech():
             continue
 
         os.remove(tempfile_path)
+    '''
 
     def listen(self, duration):
         request_text = str()
