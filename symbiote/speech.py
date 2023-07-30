@@ -126,8 +126,24 @@ class SymSpeech():
 
             return text
 
-    def text_to_morse(text):
+    def text_to_morse(self, text):
         morse_code = ''
+        MORSE_CODE_DICT = {'A':'.-', 'B':'-...',
+                    'C':'-.-.', 'D':'-..', 'E':'.',
+                    'F':'..-.', 'G':'--.', 'H':'....',
+                    'I':'..', 'J':'.---', 'K':'-.-',
+                    'L':'.-..', 'M':'--', 'N':'-.',
+                    'O':'---', 'P':'.--.', 'Q':'--.-',
+                    'R':'.-.', 'S':'...', 'T':'-',
+                    'U':'..-', 'V':'...-', 'W':'.--',
+                    'X':'-..-', 'Y':'-.--', 'Z':'--..',
+                    '1':'.----', '2':'..---', '3':'...--',
+                    '4':'....-', '5':'.....', '6':'-....',
+                    '7':'--...', '8':'---..', '9':'----.',
+                    '0':'-----', ', ':'--..--', '.':'.-.-.-',
+                    '?':'..--..', '/':'-..-.', '-':'-....-',
+                    '(':'-.--.', ')':'-.--.-'}
+
         for char in text:
             if char != ' ':
                 # Converts the character to uppercase
@@ -138,12 +154,13 @@ class SymSpeech():
                     morse_char = MORSE_CODE_DICT[char]
                     morse_code += morse_char + ' '
                     for symbol in morse_char:
+                        time.sleep(0.7)
                         if symbol == '.':
                             # Play a short tick for dot
-                            play_random_ticks(0.1, 0.1, 0.1)
+                            self.play_random_ticks(0.1, 0.1, 0.1)
                         elif symbol == '-':
                             # Play a longer tick for dash
-                            play_random_ticks(0.3, 0.3, 0.3)
+                            self.play_random_ticks(0.3, 0.3, 0.3)
                 else:
                     morse_code += ' '
             else:
@@ -151,9 +168,9 @@ class SymSpeech():
                 # 2 spaces indicates different words
                 morse_code += ' '
                 # Add a pause between words
-                time.sleep(0.7)
+                time.sleep(0.9)
 
-    return morse_code
+        return morse_code
 
     def play_random_ticks(self, duration, min_interval, max_interval):
         # Generate a 1kHz sine wave, 1 second long
@@ -180,6 +197,7 @@ class SymSpeech():
 
     def say(self, say_message, rate=1000, volume=1.0):
         threading.Thread(target=self.play_random_ticks, args=(30, 0.2, 0.6)).start()
+        #self.text_to_morse(say_message)
         return
 
         # Initialize the speech engine

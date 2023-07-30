@@ -262,8 +262,9 @@ class symbiotes:
         conversation.append(assistant_content)
         self.save_conversation(assistant_content, self.conversations_file)
         conversation = self.load_conversation(self.conversations_file)
+        tokens_limit = 8000 
 
-        return conversation, (total_user_tokens + total_assist_tokens), total_user_tokens, total_assist_tokens, char_count
+        return conversation, (total_user_tokens + total_assist_tokens), total_user_tokens, total_assist_tokens, char_count, tokens_limit
 
     def load_conversation(self, conversations_file):
         ''' Load openai conversation json file '''

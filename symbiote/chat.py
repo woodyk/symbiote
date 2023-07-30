@@ -134,7 +134,8 @@ symbiote_settings = {
         "elasticsearch": "http://dockera.vm.sr:9200",
         "elasticsearch_index": "symbiote",
         "symbiote_path": os.path.join(homedir, ".symbiote"),
-        "perifious": False
+        "perifious": False,
+        "role": "DEFAULT"
     }
 
 keybindings = {}
@@ -212,7 +213,9 @@ class symchat():
             'total_completion_tokens': 0,
             'rolling_tokens': 0,
             'last_char_count': 0,
-            'cost': 0
+            'cost': 0,
+            'model_tokens': 0,
+            'system_count': 0
         }
 
         self.command_list = command_list
@@ -355,9 +358,14 @@ class symchat():
 
     def symrole(self, role=False):
         # Handle role functionality
+        self.suppress = True
         available_roles = roles.get_roles()
 
         if not available_roles:
+            return
+
+        if role in available_roles:
+            self.send_message(available_roles[role])
             return
 
         role_list = []
@@ -373,7 +381,6 @@ class symchat():
         if selected_role == None:
             return
 
-        self.suppress = True
         self.send_message(available_roles[selected_role])
 
         return
@@ -381,7 +388,6 @@ class symchat():
     def symmodel(self, *args):
         # Handle model functionality
         model_list = self.sym.get_models()
-
         try:
             model_name = args[0]
             if model_name in model_list:
@@ -444,6 +450,10 @@ class symchat():
         while True:
             # Chack for a change in settings and write them
             check_settings = hash(json.dumps(self.symbiote_settings, sort_keys=True)) 
+
+            if self.token_track['system_count'] >= self.token_track['model_tokens']:
+                self.symrole(self.symbiote_settings['role'])
+                self.token_track['system_count'] = 0
 
             if self.symbiote_settings['listen'] and self.run is False:
                 if not hasattr(self, 'symspeech'):
@@ -516,6 +526,9 @@ class symchat():
         self.token_track['total_completion_tokens'] += returned[3]
         self.token_track['rolling_tokens'] += self.token_track['truncated_tokens']
         self.token_track['last_char_count'] = returned[4]
+        self.token_track['model_tokens'] = returned[5]
+
+        self.token_track['system_count'] = returned[2] + returned[3]
 
         if pricing[self.symbiote_settings['model']] is not None:
             prompt_cost = 0
@@ -631,6 +644,7 @@ class symchat():
                     return
 
             self.role = "system"
+            self.symbiote_settings['role'] = self.role
 
             return available_roles[selected_role] 
 
@@ -803,8 +817,6 @@ class symchat():
             #user_input = user_input[:match.start()] + json.dumps(summary) + user_input[match.end():]
 
             return None 
-
-
 
         # Trigger to search es index
         search_pattern = r'^search::|^search:(.*):'
@@ -1074,8 +1086,12 @@ class symchat():
     def load_settings(self):
         try:
             with open(self.config_file, "r") as file:
-                symbiote_settings = json.load(file)
+                settings = json.load(file)
         except Exception as e:
             print(f"Error Reading: {e}")
 
-        return symbiote_settings
+        for setting in self.symbiote_settings:
+            if setting not in settings:
+                settings[setting] = self.symbiote_settings[setting]
+
+        return settings
