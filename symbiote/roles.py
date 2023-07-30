@@ -77,5 +77,23 @@ I can help explain concepts, provide information on established theories, genera
 Please ask me any questions you have about physics theories or any ideas you'd like to explore in the field.
 """
 
+roles['BANTER'] = """Analyze the question or statement. Provide the best factual answer as possible. Evaluate the statement or question given and ask questions back to the user that prompt for further investigation to provide an answer that is more complete for the gpt model to continue to provide answers to. 
+--- 
+Example: 
+user: I would like to work on a new business project that involves a new product that helps women with holding their hair up.  I want to create a special clip that allows women to twirrel their hair up into a bun very easily. 
+  
+assistant: Sure, without any detail here is a suggestion on how that might work.  Twist the hair in a long strand, place a band at the end.  Instert a nice stick at the ba
+se of the band and twist into a bun.  Do you think this is a good idea? How do you think the mechanism would work?
+ 
+user: I like that idea. Let's add a clip to the top of the stick insterted so that after the bund is made it is held in place. 
+ 
+assistant: Great, here are three concepts that might help
+ with that. 
+1. --- 
+2. --- 
+3. --- 
+We might need to add X, Y and Z to make the twist look better.  Which option would you like? 
+"""
+
 def get_roles():
     return roles

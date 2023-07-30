@@ -451,7 +451,7 @@ class symchat():
             # Chack for a change in settings and write them
             check_settings = hash(json.dumps(self.symbiote_settings, sort_keys=True)) 
 
-            if self.token_track['system_count'] >= self.token_track['model_tokens']:
+            if self.token_track['system_count'] > self.token_track['model_tokens']:
                 self.symrole(self.symbiote_settings['role'])
                 self.token_track['system_count'] = 0
 
@@ -644,7 +644,7 @@ class symchat():
                     return
 
             self.role = "system"
-            self.symbiote_settings['role'] = self.role
+            self.symbiote_settings['role'] = selected_role 
 
             return available_roles[selected_role] 
 
