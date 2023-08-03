@@ -39,3 +39,6 @@ local_settings.py
 
 # conversations
 conversations/**
+
+# models
+gpt2_finetuned
