@@ -14,6 +14,7 @@ import magic
 import textract
 import hashlib
 import requests 
+import pathspec
 
 from mss import mss
 from PIL import Image
@@ -293,12 +294,20 @@ class utilities():
         if not os.path.isdir(dir_path):
             return None
 
+        if os.path.isfile(".gitignore"):
+            with open(os.path.join(dir_path, '.gitignore'), 'r') as f:
+                gitignore = f.read()
+
+            spec = pathspec.PathSpec.from_lines(pathspec.patterns.GitWildMatchPattern, gitignore.splitlines())
+
         header = str()
         content = str()
         for root, _, files in os.walk(dir_path):
             for file in files:
                 file_path = os.path.join(root, file)
                 absolute_path = os.path.abspath(file_path)
+                if spec.match_file(file_path):
+                    continue
                 file_contents = self.extractText(absolute_path)
                 content += f"File name: {absolute_path}\n"
                 content += '\n```\n{}\n```\n'.format(file_contents)

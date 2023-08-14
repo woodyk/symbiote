@@ -5,6 +5,7 @@ import serial
 import sys
 import numpy as np
 import threading
+import random
 
 # Initialize Pygame
 pygame.init()
@@ -15,7 +16,7 @@ WIDTH, HEIGHT = 640, 480
 DISPLAYSURF = pygame.display.set_mode((WIDTH, HEIGHT), pygame.RESIZABLE)
 
 # Set up serial port
-ser = serial.Serial('/dev/ttyACM0', 115200)
+#ser = serial.Serial('/dev/ttyACM0', 115200)
 
 # Initialize clock and set up frames per second
 clock = pygame.time.Clock()
@@ -39,10 +40,11 @@ def read_serial():
     while True:
         if ser.in_waiting:
             try:
-                value = ser.readline().strip().decode('utf-8', 'ignore') # decode bytes to string, ignoring errors
+                #value = ser.readline().strip().decode('utf-8', 'ignore') # decode bytes to string, ignoring errors
                 value = int(value) # convert string to int
                 value = max(0, min(1023, value))
-                tensor[:, -1] = sigmoid(value / 1023.0)
+                #tensor[:, -1] = sigmoid(value / 1023.0)
+                tensor[:, -1] = random.uniform(0.0, 1.0) 
                 tensor = np.roll(tensor, -1, axis=1)
             except ValueError:
                 continue

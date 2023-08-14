@@ -15,6 +15,7 @@ build/
 
 # Virtual environments
 venv/
+.venv/
 ENV/
 
 # Local development settings

@@ -2,9 +2,12 @@
 
 ##### Author: Wadih Khairallah
 
+## Donate:
+BitCoin: 36Mg8UnAhVU5ZqSikQmbVXGG3rpYZRGNjC
+
 ## Running symbiote
 ```
-brew install libmagic tesseract
+brew install protobuf libmagic tesseract
 python -m spacy download en_core_web_sm
 python -m nltk.downloader vader_lexicon
 

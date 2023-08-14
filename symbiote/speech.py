@@ -195,6 +195,7 @@ class SymSpeech():
             # Wait for a random interval
             time.sleep(random.uniform(min_interval, max_interval))
 
+    '''
     def say(self, say_message, rate=1000, volume=1.0):
         threading.Thread(target=self.play_random_ticks, args=(30, 0.2, 0.6)).start()
         #self.text_to_morse(say_message)
@@ -253,7 +254,6 @@ class SymSpeech():
             continue
 
         os.remove(tempfile_path)
-    '''
 
     def listen(self, duration):
         request_text = str()
