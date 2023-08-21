@@ -56,3 +56,8 @@ For linux support on ubuntu be sure to add your user to the 'input' group.
 - Create diy ai model builder for personal AI model creation.
 - Intent capability.  Build in functionality that understands the intent of the data being used based on the user.
 - Come up with proper adoption process for a users A.N.N.G.L.  Ensure that the users intent is good based off truth.
+- Create visual concept rendering capability for interacting with your ANNGL.  Visualize concepts in near real time.
+- Model creation kit. Create and use personal AI models for specific functions.
+- Tie in pathfinder concepts.
+- Real time user monitoring that allows your symbiote to key off of actions you are performing.  Remember paper clip ;)
+
