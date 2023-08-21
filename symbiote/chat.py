@@ -662,6 +662,16 @@ class symchat():
 
             return available_roles[selected_role] 
 
+        # Trigger to apply a system role
+        system_pattern = r'^system::(.*)'
+        match = re.search(system_pattern, user_input)
+        if match:
+            self.suppress = True
+            system_prompt = match.group(1).strip()
+            self.role = "system"
+
+            return system_prompt
+
         # Trigger to display openai settings  
         setting_pattern = r'^setting::|setting:(.*):(.*):'
         match = re.search(setting_pattern, user_input)

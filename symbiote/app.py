@@ -10,7 +10,7 @@ import time
 import select
 import subprocess
 import platform
-#import symbiote.logo as logo
+import symbiote.logo as logo
 
 openai.api_key = os.getenv("OPENAI_API_KEY")
 # Pull a list of available models to use.
@@ -110,7 +110,7 @@ def main():
     else:
         os.system('clear')
         try:
-            #logo.symLogo()
+            logo.symLogo()
             pass
         except:
             pass

@@ -9,6 +9,9 @@ import queue
 import threading
 import time
 import asyncio
+import spacy
+
+nlp = spacy.load('en_core_web_sm')
 
 class SymbiosRenderer:
     def __init__(self, width=640, height=480):
@@ -68,9 +71,47 @@ class SymbiosRenderer:
 
         cv2.destroyAllWindows()
 
+    def chat_interface(self):
+        while True:
+            command = input("Enter a command: ")
+            if command == 'quit':
+                self.queue.put(('quit',))
+                break
+            elif command.startswith('create'):
+                shape = self.create_shape_from_description(command[7:])
+                if shape is not None:
+                    self.queue.put(('add', shape.SerializeToString()))
+            elif command.startswith('move'):
+                parts = command.split()
+                if len(parts) == 3:
+                    self.queue.put(('move', parts[1], int(parts[2]), int(parts[3])))
+
+    def create_shape_from_description(self, description):
+        doc = nlp(description)
+        shape = shapes_pb2.Shape()
+        shape.id = description
+        shape.visible = True
+        for token in doc:
+            if token.text.isdigit():
+                shape.size.width = int(token.text)
+                shape.size.height = int(token.text)
+                break
+        if 'square' in description:
+            shape.type = shapes_pb2.Shape.SQUARE
+        elif 'circle' in description:
+            shape.type = shapes_pb2.Shape.CIRCLE
+        return shape
+
 # Create an instance of the SymbiosRenderer class
 renderer = SymbiosRenderer()
 
+# Start the renderer's main loop in a separate thread
+threading.Thread(target=asyncio.run, args=(renderer.main_loop(),)).start()
+
+# Start the chat interface in the main thread
+renderer.chat_interface()
+
+'''
 # Create a new square shape
 square = shapes_pb2.Shape()
 square.id = "square1"
@@ -111,4 +152,4 @@ time.sleep(2)
 
 # Stop the renderer's main loop
 renderer.queue.put(('quit',))
-
+'''
