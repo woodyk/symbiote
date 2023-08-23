@@ -32,9 +32,10 @@ color_scale = np.array([
 ])
 
 # Generate a 1024-color gradient
-gradient = np.zeros((1024, 1, 3), dtype=np.uint8)
-for i in range(1024):
-    t = i / 1023.0
+gradient = np.zeros((64, 1, 3), dtype=np.uint8)
+for i in range(64):
+    #t = i / 1023.0
+    t = i / 64.0
     gradient[i, 0, :] = (1.0 - t) * color_scale[0] + t * color_scale[1]
 
 # Main loop
