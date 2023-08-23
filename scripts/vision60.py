@@ -2,13 +2,17 @@
 #
 # vision30.py
 
+#!/usr/bin/env python3
+#
+# vision30.py
+
 import pygame
 import numpy as np
 import cv2
 
 # Define the size of the image and frames per second
-width, height = 800, 600 
-fps = 20 
+width, height = 800, 600
+fps = 20
 
 # Initialize Pygame
 pygame.init()
@@ -19,7 +23,7 @@ clock = pygame.time.Clock()
 
 # Initialize the channel number and noise level
 channel = 0
-noise_level = 256 
+noise_level = 256
 
 # Initialize the font
 font = pygame.font.SysFont('courier', 20)
@@ -43,7 +47,7 @@ while running:
             if event.key == pygame.K_UP:
                 noise_level = min(256, noise_level + 10)
             elif event.key == pygame.K_DOWN:
-                noise_level = max(1, noise_level - 10)  # Set the lower limit to 1
+                noise_level = max(1, noise_level - 10) # Set the lower limit to 1
             elif event.key == pygame.K_LEFT:
                 channel = max(0, channel - 1)
             elif event.key == pygame.K_RIGHT:
@@ -56,18 +60,14 @@ while running:
     fgMask = backSub.apply(gray_data)
 
     # Find contours in the foreground mask
-    contours, _ = cv2.findContours(fgMask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    contours, _ = cv2.findContours(fgMask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
 
     # Filter the contours based on their size
     contours = [cnt for cnt in contours if cv2.contourArea(cnt) > 100]
 
-    # Check if the contours are similar to the ones in the previous frame
+    # Darken the objects as a whole
     for cnt in contours:
-        for old_cnt in contour_history:
-            if cv2.matchShapes(cnt, old_cnt, cv2.CONTOURS_MATCH_I1, 0) < 0.1:
-                # The contour is similar to one in the previous frame, so draw a convex hull around it
-                hull = cv2.convexHull(cnt)
-                cv2.drawContours(gray_data, [hull], 0, (0, 255, 0), 2)
+        cv2.drawContours(gray_data, [cnt], 0, (0, 0, 0), -1)  # -1 fills the contour
 
     # Update the contour history
     contour_history = contours
@@ -89,3 +89,4 @@ while running:
     clock.tick(fps)
 
 pygame.quit()
+
