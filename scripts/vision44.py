@@ -19,12 +19,12 @@ clock = pygame.time.Clock()
 
 # Initialize the threshold, contour thickness, noise level, dilation/erosion size, contour persistence, frame persistence, and decay factor
 threshold = 127
-thickness = 2
+thickness = 1
 noise_level = 256
 morph_size = 0
-contour_persistence = 10
+contour_persistence = 120 
 frame_persistence = 120
-decay_factor = 0.9  # Adjust this value to change the rate of decay
+decay_factor = 0.1  # Adjust this value to change the rate of decay
 
 # Initialize the font
 font = pygame.font.SysFont('courier', 30)
@@ -82,18 +82,18 @@ while running:
         gray_data = 255 - np.random.randint(0, noise_level, (height, width), dtype=np.uint8)
 
         # Apply a Sobel operator to the image to highlight edges
-        sobelx = cv2.Sobel(gray_data, cv2.CV_64F, 1, 0, ksize=5)
-        sobely = cv2.Sobel(gray_data, cv2.CV_64F, 0, 1, ksize=5)
-        gray_data = cv2.sqrt(cv2.addWeighted(cv2.pow(sobelx, 2.0), 0.5, cv2.pow(sobely, 2.0), 0.5, 0)).astype(np.uint8)
+        #sobelx = cv2.Sobel(gray_data, cv2.CV_64F, 1, 0, ksize=5)
+        #sobely = cv2.Sobel(gray_data, cv2.CV_64F, 0, 1, ksize=5)
+        #gray_data = cv2.sqrt(cv2.addWeighted(cv2.pow(sobelx, 2.0), 0.5, cv2.pow(sobely, 2.0), 0.5, 0)).astype(np.uint8)
 
         # Apply a threshold to the grayscale data to create a binary image
-        _, binary_data = cv2.threshold(gray_data, threshold, 255, cv2.THRESH_BINARY)
+        #_, binary_data = cv2.threshold(gray_data, threshold, 255, cv2.THRESH_BINARY)
 
         # Erode the binary image to increase the negative space
-        eroded_data = cv2.erode(binary_data, None, iterations=morph_size)
+        #eroded_data = cv2.erode(binary_data, None, iterations=morph_size)
 
         # Find contours in the eroded image
-        contours, _ = cv2.findContours(eroded_data, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+        contours, _ = cv2.findContours(gray_data, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
 
         # Add the new contours to the list
         contours_list.append(contours)
@@ -117,8 +117,8 @@ while running:
             overlay = cv2.applyColorMap(overlay, cv2.COLORMAP_JET)
 
         # Create a surface from the overlay
-        overlay_surface = pygame.surfarray.make_surface(overlay)
-        screen.blit(pygame.transform.scale(overlay_surface, (width, height)), (0, 0))
+        #overlay_surface = pygame.surfarray.make_surface(overlay)
+        #screen.blit(pygame.transform.scale(overlay_surface, (width, height)), (0, 0))
 
     # Draw a solid white dot in the center of the screen
     pygame.draw.circle(screen, (0, 0, 0), (width // 2, height // 2), 3)

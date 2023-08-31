@@ -70,6 +70,7 @@ command_list = {
         "history::": "Show discussion history.",
         "learn::": "Train AI model on given data in directory. *",
         "structure::": "Define a data scructure. *",
+        "reinforce::": "Reinforce the chat log."
         }
 
 
@@ -106,6 +107,8 @@ prompt_style = Style.from_dict({
 
 pricing = {"gpt-4": { "prompt": .03, "completion": .06 },
            "gpt-4-32k": { "prompt": .06, "completion": .12},
+           "gpt-4-0314": { "prompt": .06, "completion": .12},
+           "gpt-4-0613": { "prompt": .06, "completion": .12},
            "gpt-3.5-turbo": { "prompt": .002, "completion": .002},
            "gpt-3.5-turbo-16k": { "prompt": .003, "completion": .004}
            }
@@ -544,13 +547,12 @@ class symchat():
         self.token_track['system_count'] = returned[2] + returned[3]
 
         if pricing[self.symbiote_settings['model']] is not None:
-            prompt_cost = 0
-            completion_cost = 0
-
             prompt_cost = (self.token_track['user_tokens'] / 1000 * pricing[self.symbiote_settings['model']]['prompt'])
             completion_cost = (self.token_track['completion_tokens'] / 1000 * pricing[self.symbiote_settings['model']]['completion'])
             self.token_track['cost'] += (prompt_cost + completion_cost) 
         else:
+            prompt_cost = 0
+            completion_cost = 0
             self.token_track['cost'] = "unknown"
 
         self.sym.change_max_tokens(self.symbiote_settings['default_max_tokens'])
@@ -988,6 +990,13 @@ class symchat():
                 user_input = user_input[:match.start()] + dir_content + user_input[match.end():]
 
             return user_input
+
+        # Trigger to replay prior log data.
+        replay_pattern = r'replay:(.*):'
+        match = re.search(replay_pattern, user_input)
+        if match:
+            return user_input
+
 
         # Trigger for get:URL processing. Load website content into user_input for openai consumption.
         get_pattern = r'get::|get:(https?://\S+):'

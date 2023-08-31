@@ -7,6 +7,7 @@ import openai
 import tiktoken
 import re
 import os
+import requests
 
 class symbiotes:
     def __init__(self, settings):
@@ -16,8 +17,11 @@ class symbiotes:
             "gpt-3.5-turbo-16k": 16000,
             "gpt-4-32k": 32768,
             "gpt-3.5-turbo": 4096,
+            "gpt-4-0613": 8192,
+            "gpt-4-0314": 8192,
             "text-davinci-002": 4097,
-            "text-davinci-003": 4097
+            "text-davinci-003": 4097,
+            "someone": 16384
           }
 
         self.settings = settings
@@ -38,6 +42,27 @@ class symbiotes:
             model_list.append(model)
 
         return model_list
+
+    def process_someone(self, message):
+        # Define the url of the API
+        url = "http://ai.sr:5000/predict"
+
+        # Define the data to be sent to the API
+        data = {
+            "input_text": message,
+            "max_length": self.settings['max_tokens'],
+            "temperature": self.settings['temperature'],
+            "num_return_sequences": self.settings['top_p'] 
+        }
+
+        # Send a POST request to the API and get the response
+        response = requests.post(url, json=data)
+
+        # If the request was successful, return the generated text
+        if response.status_code == 200:
+            return response.text
+        else:
+            return f"Request failed with status code {response.status_code}"
 
     def process_requestJ2(self, message):
         url = "https://api.ai21.com/studio/v1/j2-mid/complete"
@@ -244,9 +269,12 @@ class symbiotes:
             truncated_conversation, total_user_tokens, char_count = self.truncate_messages(completion_content)
         else:
             truncated_conversation, total_user_tokens, char_count = self.truncate_messages(conversation)
-        # Push queries to openai
+
+        # Push queries to model
         if self.settings['model'] == 'symbiote':
             response = self.interactWithModel(truncated_conversation)
+        elif self.settings['model'] == 'someone':
+            response = self.process_someone(truncated_conversation)
         else:
             response = self.process_requestOpenAI(truncated_conversation)
 
@@ -282,6 +310,7 @@ class symbiotes:
                 sys.exit(10)
 
         return data
+
 
     def save_conversation(self, conversation_data, conversations_file):
         ''' Save conversation output to loaded conversation file '''

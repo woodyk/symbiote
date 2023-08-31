@@ -8,7 +8,7 @@ import cv2
 
 # Define the size of the image and frames per second
 width, height = 1024, 768
-fps = 60
+fps = 30
 
 # Initialize Pygame
 pygame.init()
@@ -19,7 +19,7 @@ clock = pygame.time.Clock()
 
 # Initialize the channel number and noise level
 channel = 0
-noise_level = 256
+noise_level = 10 
 
 # Initialize the font
 font = pygame.font.SysFont('courier', 30)
@@ -31,10 +31,10 @@ controls = ['UP: Increase noise', 'DOWN: Decrease noise', 'LEFT: Previous channe
 show_help = False
 
 # Initialize the contour color
-contour_color = (255, 255, 255)
+contour_color = (225, 255, 255)
 
 # Initialize the bubble size
-bubble_size = 1
+bubble_size = .25 
 
 # Main loop
 running = True

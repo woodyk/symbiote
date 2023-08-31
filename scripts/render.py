@@ -16,7 +16,7 @@ WIDTH, HEIGHT = 640, 480
 DISPLAYSURF = pygame.display.set_mode((WIDTH, HEIGHT), pygame.RESIZABLE)
 
 # Set up serial port
-#ser = serial.Serial('/dev/ttyACM0', 115200)
+ser = serial.Serial('/dev/ttyACM0', 115200)
 
 # Initialize clock and set up frames per second
 clock = pygame.time.Clock()

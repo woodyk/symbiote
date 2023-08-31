@@ -34,7 +34,7 @@ show_help = False
 contour_color = (255, 255, 255)
 
 # Initialize the bubble size
-bubble_size = 1
+bubble_size = .5 
 
 # Main loop
 running = True

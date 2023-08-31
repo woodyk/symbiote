@@ -3,6 +3,7 @@
 # chat.py
 import os
 from transformers import GPT2LMHeadModel, GPT2Tokenizer
+from transformers import GPT2Tokenizer, GPT2Model
 
 def chat():
     # Load the fine-tuned model and tokenizer
@@ -22,7 +23,7 @@ def chat():
         input_ids = tokenizer.encode(user_input + tokenizer.eos_token, return_tensors='pt')
 
         # Generate a response
-        output = model.generate(input_ids, max_length=1000, pad_token_id=tokenizer.eos_token_id)
+        output = model.generate(input_ids, max_length=1024, pad_token_id=tokenizer.eos_token_id)
 
         # Decode the response
         response = tokenizer.decode(output[:, input_ids.shape[-1]:][0], skip_special_tokens=True)
