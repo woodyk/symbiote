@@ -8,21 +8,18 @@ import cv2
 import pytesseract
 
 # Define the size of the image
-width, height = 100, 60 
-fps = 20
+width, height = 1024, 768
 
 # Ratio of white to black pixels (0.1 means 10% white, 90% black)
-ratio = 0.01
+ratio = 0.1
 
 # Configuration
-min_blob_size = 10 
-decay_rate = .01 
+min_blob_size = 256
+decay_rate = 0.5
 blob_radius = 5
-blob_detection = True
-connect_blobs = False
-text_detect = False
+connect_blobs = True
 static_alpha = 75  # initial alpha value for static
-static_on = True
+
 
 # Other global variables
 old_blobs = []
@@ -64,7 +61,7 @@ def blob_detection(binary_data, min_size=256):
         }
         blobs.append(blob)
 
-    return blobs, labels
+    return blobs
 
 def decay_blobs(old_blobs, new_blobs, decay_rate=.5):
     # Create a list to hold the updated blobs
@@ -92,24 +89,20 @@ def decay_blobs(old_blobs, new_blobs, decay_rate=.5):
 
     return updated_blobs
 
-def draw_blobs(blobs, labels, width, height):
+def draw_blobs(blobs, width, height, connect_blobs):
     # Create a new surface with an alpha channel
     surface = pygame.Surface((width, height), pygame.SRCALPHA)
 
     # Draw each blob onto the surface
     for blob in blobs:
         # Determine the color and size of the blob
-        intensity = int(blob["size"])  # Use blob size to determine green intensity
-        intensity = min(255, max(0, intensity))  # Clamp intensity between 0 and 255
-        intensity = min(255, max(0, intensity))  # Clamp intensity between 0 and 255
-        color = (255, 255, 255, 255)  # Green color, with intensity based on blob size and alpha set to maximum
-
-        # Get the pixels for this blob
-        blob_pixels = np.where(labels == blob["label"])
+        green_intensity = int(blob["size"])  # Use blob size to determine green intensity
+        green_intensity = min(255, max(0, green_intensity))  # Clamp intensity between 0 and 255
+        color = (0, green_intensity, 0)  # Green color, with intensity based on blob size
+        color = (0, 0, 0)
 
         # Draw the blob
-        for i in range(len(blob_pixels[0])):
-            pygame.draw.circle(surface, color, (blob_pixels[1][i], blob_pixels[0][i]), 1)
+        pygame.draw.circle(surface, color, (int(blob["centroid"][0]), int(blob["centroid"][1])), blob_radius)
 
     if connect_blobs:
         # Draw lines to the two closest blobs for each blob
@@ -127,6 +120,7 @@ def draw_blobs(blobs, labels, width, height):
                 end_pos = (int(close_blob["centroid"][0]), int(close_blob["centroid"][1]))
                 pygame.draw.line(surface, (0, 255, 0), start_pos, end_pos, 1)
 
+    return surface
     return surface
 
 def detect_text(img):
@@ -184,20 +178,12 @@ def display_help_menu():
         "R: Increase blob radius",
         "E: Decrease blob radius",
         "L: Toggle blob connections",
-        "1: Toggle static background",
-        "2: Toggle text detection",
-        "3: Toggle blob detection",
+        "Plus: Increase static transparency",
+        "Minus: Decrease static transparency"
     ]
     for i, line in enumerate(help_text):
         text_surface = font.render(line, True, (255, 255, 255)) # White text
         screen.blit(text_surface, (10, 10 + 40*i)) # 40 pixels line height
-
-
-coverground = pygame.Surface((width, height))
-coverground.fill((0, 0, 0))
-
-# Create a list to hold the dirty rectangles
-dirty_rects = []
 
 # Main loop
 while running:
@@ -206,9 +192,9 @@ while running:
             running = False
         elif event.type == pygame.KEYDOWN:
             if event.key == pygame.K_UP:
-                ratio = min(1.0, ratio + 0.001)
+                ratio = min(1.0, ratio + 0.005)
             elif event.key == pygame.K_DOWN:
-                ratio = max(0.0, ratio - 0.001)
+                ratio = max(0.0, ratio - 0.005)
             elif event.key == pygame.K_h:
                 help_menu = not help_menu # Toggle help menu
             elif event.key == pygame.K_SPACE:
@@ -227,12 +213,6 @@ while running:
                 blob_radius = max(1, blob_radius - 1)
             elif event.key == pygame.K_l:
                 connect_blobs = not connect_blobs # Toggle blob connections
-            elif event.key == pygame.K_1:
-                static_on = not static_on
-            elif event.key == pygame.K_2:
-                text_detect = not text_detect
-            elif event.key == pygame.K_3:
-                blob_detection = not blob_detection
 
     if not paused:
         frame_count += 1
@@ -245,45 +225,30 @@ while running:
         static_surface = pygame.transform.scale(static_surface, (width, height))
 
         # Blit the static surface onto the screen
-        if static_on:
-            screen.blit(static_surface, (0, 0))
-        else:
-            screen.blit(coverground, (0, 0))
+        screen.blit(static_surface, (0, 0))
 
         # Threshold static data to binary
         _, binary_data = cv2.threshold(static_data, 127, 255, cv2.THRESH_BINARY)
 
-        if blob_detection:
-            # Detect blobs in binary data
-            blobs, labels = blob_detection(binary_data, min_blob_size)
+        # Detect blobs in binary data
+        blobs, labels = blob_detection(binary_data, min_blob_size)
 
-            # Compare old blobs to new blobs and decay if not persisting
-            old_blobs = decay_blobs(old_blobs, blobs, decay_rate)
+        # Compare old blobs to new blobs and decay if not persisting
+        old_blobs = decay_blobs(old_blobs, blobs, decay_rate)
 
-            if blobs:
-                # Draw blobs
-                blob_surface = draw_blobs(old_blobs, labels, width, height)
-                rect = pygame.Rect(0, 0, width, height)
-                screen.blit(blob_surface, rect)
-                dirty_rects.append(rect)
-                #screen.blit(blob_surface, (0, 0)) 
-
-            # Only update the dirty rectangles
-            pygame.display.update(dirty_rects)
-
-            # Clear the list of dirty rectangles for the next frame
-            dirty_rects = []
-
+        if blobs:
+            # Draw blobs
+            blob_surface = draw_blobs(old_blobs, width, height, connect_blobs)
+            screen.blit(blob_surface, (0, 0))
+        
         # Convert the current frame to a NumPy array
-        if text_detect:
-            img = pygame.surfarray.array3d(screen)
-            detect_text(img)
+        img = pygame.surfarray.array3d(screen)
 
     if help_menu:
         display_help_menu()
 
     pygame.display.flip()
-    clock.tick(fps)
+    clock.tick(30)
 
 pygame.quit()
 
