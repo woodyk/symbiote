@@ -19,7 +19,7 @@ clock = pygame.time.Clock()
 
 # Initialize the threshold and contour thickness
 threshold = 127
-thickness = 20 
+thickness = 200 
 
 # Main loop
 running = True

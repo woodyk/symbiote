@@ -61,3 +61,8 @@ For linux support on ubuntu be sure to add your user to the 'input' group.
 - Tie in pathfinder concepts.
 - Real time user monitoring that allows your symbiote to key off of actions you are performing.  Remember paper clip ;)
 
+
+# Potential AI plugins
+alpaca
+jurassicAI
+meta llama

@@ -329,6 +329,8 @@ class utilities():
         elif re.search(r'^audio\/', mime_type):
             #content = self.transcribe_audio_file(file_path)
             content = ""
+        elif re.search(r'^image\/', mime_type):
+            content = textract.process(file_path)
         else:
             try:
                 content = textract.process(file_path, method='tesseract', language='eng')

@@ -8,7 +8,7 @@ import cv2
 import pytesseract
 
 # Define the size of the image
-width, height = 100, 60 
+width, height = 1024, 768 
 fps = 20
 
 # Ratio of white to black pixels (0.1 means 10% white, 90% black)
