@@ -177,6 +177,37 @@ class utilities():
 
         return addresses
 
+    def is_source_code(text):
+        score = 0
+
+        # Look for common programming constructs
+        patterns = [
+            (r'\bfor\b', 1),      # for loop
+            (r'\bwhile\b', 1),    # while loop
+            (r'\bif\b', 1),       # if statement
+            (r'\belse\b', 1),     # else statement
+            (r'\bdef\b', 1),      # function definition (Python)
+            (r'\bfunction\b', 1), # function definition (JavaScript)
+            # Add more patterns as needed, with associated scores
+        ]
+
+        # Check for indentation
+        if re.search(r'^\s', text, re.MULTILINE):
+            score += 2  # Adjust score value as needed
+
+        # Check for shebang line
+        if re.search(r'^#!', text, re.MULTILINE):
+            score += 3  # Adjust score value as needed
+
+        for pattern, pattern_score in patterns:
+            if re.search(pattern, text):
+                score += pattern_score
+
+        # Determine if text is likely source code based on total score
+        # Adjust threshold as needed
+        return score >= 5
+
+
     def extractCreditCard(self, text):
         card_pattern = r'\b(?:\d[ -]*?){13,16}\b'
         matches = re.findall(card_pattern, text)
@@ -320,6 +351,8 @@ class utilities():
     def extractText(self, file_path):
         mime_type = magic.from_file(file_path, mime=True)
 
+        supported_extensions = ['.csv', '.doc', '.docx', '.eml', '.epub', '.gif', '.htm', '.html', '.jpeg', '.jpg', '.json', '.log', '.mp3', '.msg', '.odt', '.ogg', '.pdf', '.png', '.pptx', '.ps', '.psv', '.rtf', '.tab', '.tff', '.tif', '.tiff', '.tsv', '.txt', '.wav', '.xls', '.xlsx']
+
         if re.search(r'^text\/', mime_type):
             with open(file_path, 'r') as f:
                 try:
@@ -330,7 +363,10 @@ class utilities():
             #content = self.transcribe_audio_file(file_path)
             content = ""
         elif re.search(r'^image\/', mime_type):
-            content = textract.process(file_path)
+            try: 
+                content = textract.process(file_path)
+            except Exception as e:
+                content = ""
         else:
             try:
                 content = textract.process(file_path, method='tesseract', language='eng')

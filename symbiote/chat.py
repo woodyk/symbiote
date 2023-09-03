@@ -61,6 +61,7 @@ command_list = {
         "pwd::": "Show current working directory.",
         "file::": "Load a file for submission.",
         "summary::": "Pull nouns, summary, and metadata for a file.",
+        "extract::": "Extract data features for a given file or directory.",
         "get::": "Load a webpage for submission.",
         "tree::": "Load a directory tree for submission.",
         "shell::": "Load the symbiote bash shell.",
@@ -90,7 +91,8 @@ audio_triggers = {
         'exit': [r'keyword exit now', 'exit::'],
         'help': [r'keyword (get|show) help', 'help::'],
         'tokens': [r'keyword (get|show) tokens', 'tokens::'],
-        'summary': [r'keyword summarize file', 'summary::'],
+        'extract': [r'keyword extract data', 'extract::'],
+        'summary': [r'keyword summarize data', 'summary::'],
         'search': [r'keyword search query', 'search::'],
         'keyword': [r'keyword (get|show) keyword', 'keywords::'],
         'history': [r'keyword (get|show) history', 'history::'],
@@ -318,6 +320,7 @@ class symchat():
 
             conversation_files.append(Choice("new", name="Create new conversation."))
             conversation_files.append(Choice("clear", name="Clear conversation."))
+            conversation_files.append(Choice("export", name="Export conversation."))
 
             selected_file = inquirer.select(
                 message="Select a conversation:",
@@ -349,6 +352,17 @@ class symchat():
                 self.current_conversation = self.sym.load_conversation(clear_file)
 
             print(f"Conversation cleared: {clear_file}")
+
+            return
+        elif selected_file == "export":
+            export_file = inquirer.select(
+                message="Select a conversation:",
+                choices=conversation_files,
+                mandatory=False
+            ).execute()
+
+            file_name = os.path.join(self.conversations_dir, export_file)
+            self.sym.export_conversation(file_name)
 
             return
 
@@ -781,14 +795,13 @@ class symchat():
             print(self.working_directory)
             return None
 
-        # Trigger for summary:: processing. Load file content and generate a json object about the file.
-        summary_pattern = r'summary::|summary:(.*):(.*):|summary:(.*):'
+        # Trigger for extract:: processing. Load file content and generate a json object about the file.
+        summary_pattern = r'extract::|extract:(.*):(.*):|extract:(.*):'
         match = re.search(summary_pattern, user_input)
         file_path = None
         
         if match:
             self.suppress = True
-            index = False
 
             if match.group(1):
                 file_path = match.group(1)
@@ -807,7 +820,7 @@ class symchat():
             if file_path is None:
                 start_path = "./"
                 file_path = inquirer.filepath(
-                        message="Summarize file:",
+                        message="Extract file features:",
                         default=start_path,
                         #validate=PathValidator(is_file=True, message="Input is not a file"),
                         wrap_lines=True,
@@ -822,18 +835,17 @@ class symchat():
 
             if os.path.isdir(file_path):
                 # prompt to confirm path indexing
-                if index is False:
-                    index = inquirer.confirm(message=f'Index {file_path}?').execute()
+                index = inquirer.confirm(message=f'Index {file_path}?').execute()
 
                 if index is True:
-                    self.symutils.createIndex(file_path, reindex=reindex)
+                    self.symutils.createIndex(file_path, reindex=False)
 
                 return None
             elif not os.path.isfile(file_path):
                 print(f"File not found: {file_path}")
                 return None
 
-            self.symutils.createIndex(file_path, reindex=reindex)
+            self.symutils.createIndex(file_path, reindex=False)
 
             #summary = self.symutils.summarizeFile(file_path)
 

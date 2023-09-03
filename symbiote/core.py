@@ -419,3 +419,40 @@ class symbiotes:
         response = tokenizer.decode(outputs[0], skip_special_tokens=True)
 
         return response 
+
+    def export_conversation(self, input_file: str):
+        """
+        Extracts data from a .jsonl file and saves it to a .txt file.
+
+        Args:
+            input_file (str): Path to the .jsonl file.
+        """
+        # Strip the .jsonl extension and append .txt
+        output_filename = os.path.splitext(input_file)[0] + ".txt"
+        print(input_file, output_filename)
+
+        with open(input_file, 'r') as infile, open(output_filename, 'w') as outfile:
+            for line in infile:
+                # Parse each line as a JSON object
+                data = json.loads(line)
+
+                # Extract the desired fields
+                conversation = data.get("conversation", "N/A")
+                epoch = data.get("epoch", "N/A")
+                role = data.get("role", "N/A")
+                content = data.get("content", "N/A")
+
+                # Decode possible escape sequences in content
+                content = bytes(content, "utf-8").decode("unicode_escape")
+
+                # Format the data
+                formatted_data = f"Conversation: {conversation}\n"
+                formatted_data += f"Epoch: {epoch}\n"
+                formatted_data += f"Role: {role}\n"
+                formatted_data += f"Content:\n{content}\n"
+                formatted_data += '-'*50 + '\n'  # separator
+
+                # Write the formatted data to the output file
+                outfile.write(formatted_data)
+
+        print(f"Data saved to {output_filename}")
