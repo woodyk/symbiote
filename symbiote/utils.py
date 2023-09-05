@@ -15,6 +15,7 @@ import textract
 import hashlib
 import requests 
 import pathspec
+import piexif
 
 from mss import mss
 from PIL import Image
@@ -740,4 +741,50 @@ class utilities():
             print(f"Invalid search term: {query}")
             return False
 
+    def exec_command(self, command):
+        result = False
+        command_list = []
+        command_list = command.split()
+        result = subprocess.run(command_list, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        if result:
+            return result.stdout.decode()
+
+        return None
+
+    def get_extension(self, file_path):
+        mime = magic.Magic(mime=True)
+        mime_type = mime.from_file(file_path)
+
+        if mime_type == "image/jpeg":
+            return ".jpg"
+        elif mime_type == "image/png":
+            return ".png"
+        elif mime_type == "image/gif":
+            return ".gif"
+        elif mime_type == "image/tiff":
+            return ".tiff"
+        elif mime_type == "image/bmp":
+            return ".bmp"
+        elif mime_type == "image/webp":
+            return ".webp"
+        elif mime_type == "image/svg+xml":
+            return ".svg"
+        else:
+            return ".unknown"
+
+    def exif_comment(self, image, comment):
+        # Open the image
+        img = Image.open(image)
+
+        # Load the existing EXIF data
+        exif_dict = piexif.load(img.info['exif'])
+
+        # Add a comment to the EXIF data
+        exif_dict['Exif'][piexif.ExifIFD.UserComment] = comment 
+
+        # Convert the EXIF data to bytes
+        exif_bytes = piexif.dump(exif_dict)
+
+        # Save the image with the new EXIF data
+        img.save(image, exif=exif_bytes)
 

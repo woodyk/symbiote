@@ -19,6 +19,8 @@ import json
 import queue
 import pygame
 import pygame.freetype
+import webbrowser
+import pprint
 
 from bs4 import BeautifulSoup
 
@@ -51,6 +53,7 @@ command_list = {
         "convo::": "Load, create conversation.",
         "role::": "Load built in system roles.",
         "clear::": "Clear the screen.",
+        "flush::": "Flush the current conversation from memory.",
         "tokens::": "Token usage summary.",
         "save::": "Save setting:: changes.",
         "exit::": "Exit symbiote.",
@@ -61,7 +64,7 @@ command_list = {
         "pwd::": "Show current working directory.",
         "file::": "Load a file for submission.",
         "summary::": "Pull nouns, summary, and metadata for a file.",
-        "extract::": "Extract data features for a given file or directory.",
+        "extract::": "Extract data features for a given file or directory and summarize.",
         "get::": "Load a webpage for submission.",
         "tree::": "Load a directory tree for submission.",
         "shell::": "Load the symbiote bash shell.",
@@ -71,6 +74,8 @@ command_list = {
         "history::": "Show discussion history.",
         "learn::": "Train AI model on given data in directory. *",
         "structure::": "Define a data scructure. *",
+        "exec::": "Execute a command.",
+        "render::": "Render an image from the provided text.",
         "reinforce::": "Reinforce the chat log."
         }
 
@@ -112,7 +117,8 @@ pricing = {"gpt-4": { "prompt": .03, "completion": .06 },
            "gpt-4-0314": { "prompt": .06, "completion": .12},
            "gpt-4-0613": { "prompt": .06, "completion": .12},
            "gpt-3.5-turbo": { "prompt": .002, "completion": .002},
-           "gpt-3.5-turbo-16k": { "prompt": .003, "completion": .004}
+           "gpt-3.5-turbo-16k": { "prompt": .003, "completion": .004},
+           "dummy": { "prompt": 0, "completion": 0}
            }
 
 # Default settings for openai and symbiot module.
@@ -142,10 +148,14 @@ symbiote_settings = {
         "elasticsearch_index": "symbiote",
         "symbiote_path": os.path.join(homedir, ".symbiote"),
         "perifious": False,
-        "role": "DEFAULT"
+        "role": "DEFAULT",
+        "image_dir": os.path.join(homedir, ".symbiote") + "/images"
     }
 
 keybindings = {}
+
+# Create a pretty printer
+pp = pprint.PrettyPrinter(indent=4)
 
 class symchat():
     ''' Chat class '''
@@ -158,6 +168,7 @@ class symchat():
 
         self.symbiote_settings = symbiote_settings 
         self.audio_triggers = audio_triggers
+        self.flush = False
 
         if 'debug' in kwargs:
             self.symbiote_settings['debug'] = kwargs['debug']
@@ -172,6 +183,10 @@ class symchat():
         symbiote_dir = self.symbiote_settings['symbiote_path']
         if not os.path.exists(symbiote_dir):
             os.mkdir(symbiote_dir)
+
+        # Set image save path for AI renderings
+        if not os.path.exists(self.symbiote_settings['image_dir']):
+            os.mkdir(self.symbiote_settings['image_dir'])
 
         # Set symbiote conf file
         self.config_file = os.path.join(symbiote_dir, "config")
@@ -485,7 +500,6 @@ class symchat():
                 self.enable = True
                 self.run = True
 
-
             # Get the current path
             current_path = os.getcwd()
 
@@ -540,9 +554,13 @@ class symchat():
     def send_message(self, user_input):
         #if self.suppress and not self.run:
         #    self.launch_animation(True)
-        self.current_conversation = self.sym.load_conversation(self.conversations_file)
+        #self.current_conversation = self.sym.load_conversation(self.conversations_file)
 
-        returned = self.sym.send_request(user_input, self.current_conversation, completion=self.symbiote_settings['completion'], suppress=self.suppress, role=self.role)
+        if self.symbiote_settings['debug']:
+            pp.pprint(self.current_conversation)
+
+        returned = self.sym.send_request(user_input, self.current_conversation, completion=self.symbiote_settings['completion'], suppress=self.suppress, role=self.role, flush=self.flush)
+
         #if self.suppress and not self.run:
         #    self.launch_animation(False)
         #    pass
@@ -652,6 +670,7 @@ class symchat():
         match = re.search(role_pattern, user_input)
         if match:
             self.suppress = True
+            import symbiote.roles as roles
             available_roles = roles.get_roles()
 
             if match.group(1):
@@ -856,6 +875,15 @@ class symchat():
 
             return None 
 
+        # Trigger to flush current running conversation from memory.
+        flush_pattern = r'^flush::'
+        match = re.search(flush_pattern, user_input)
+        if match:
+            self.suppress = True
+            self.current_conversation = []
+
+            return user_input
+
         # Trigger to search es index
         search_pattern = r'^search::|^search:(.*):'
         match = re.search(search_pattern, user_input)
@@ -888,6 +916,17 @@ class symchat():
         history_pattern = r'^history::|^history:(.*):'
         match = re.search(history_pattern, user_input)
         if match:
+            self.suppress = True
+            if match.group(1):
+                history_length = int(match.group(1))
+                print(history_length)
+                time.sleep(4)
+            else:
+                history_length = False 
+
+            self.sym.export_conversation(self.symbiote_settings['conversation'], history=True, lines=history_length)
+
+            '''
             if match.group(1):
                 history_length = int(match.group(1)) + 1
             else:
@@ -921,7 +960,22 @@ class symchat():
             def _(event):
                 event.app.exit()
 
-            app = Application(layout=layout, full_screen=False, key_bindings=kb).run()
+            app = Application(layout=layout, full_screen=True, key_bindings=kb).run()
+            '''
+
+            return None
+
+        # Trigger for rendering images from text input
+        render_pattern = r'^render:(.*):'
+        match = re.search(render_pattern, user_input)
+
+        if match:
+            if match.group(1):
+                query = match.group(1)
+                result = self.sym.process_openai_image(query)
+                if result is not None:
+                    command = f"open {self.symbiote_settings['image_dir']}"
+                    self.symutils.exec_command(command)
 
             return None
 
@@ -1003,12 +1057,27 @@ class symchat():
 
             return user_input
 
+        # Trigger system execution of a command
+        exec_pattern = r'exec:(.*):'
+        match = re.search(exec_pattern, user_input)
+        if match:
+            self.suppress = True
+            result = False
+            if match.group(1):
+                command = match.group(1)
+                result = self.symutils.exec_command(command)
+                if result:
+                    print(result)
+            else:
+                print(f"No command specified")
+
+            return None
+
         # Trigger to replay prior log data.
         replay_pattern = r'replay:(.*):'
         match = re.search(replay_pattern, user_input)
         if match:
             return user_input
-
 
         # Trigger for get:URL processing. Load website content into user_input for openai consumption.
         get_pattern = r'get::|get:(https?://\S+):'
@@ -1197,12 +1266,8 @@ class ChatInterface:
                 self.handle_event(event)
             self.draw()
 
-    def send_message(self, message):
-        # Replace this with your chatbot's response method
-        return "I received your message: " + message
-
-    
     # Call if needed
     #if __name__ == "__main__":
     #    chat = ChatInterface(800, 600)
     #    chat.run()
+

@@ -11,7 +11,7 @@ class SymbioteAPI:
         self.app = Flask(__name__)
         self.debug = debug
 
-        @self.app.route('/input', methods=['POST'])
+        @self.app.route('/chat', methods=['POST'])
         def receive_input():
             user_input = request.json.get('user_input')
             # Call the chat method from your existing codebase with user_input

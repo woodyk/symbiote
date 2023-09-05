@@ -8,6 +8,10 @@ import tiktoken
 import re
 import os
 import requests
+import uuid
+import magic
+
+import symbiote.utils as utils
 
 class symbiotes:
     def __init__(self, settings):
@@ -21,7 +25,8 @@ class symbiotes:
             "gpt-4-0314": 8192,
             "text-davinci-002": 4097,
             "text-davinci-003": 4097,
-            "someone": 16384
+            "someone": 16384,
+            "dummy": 8192,
           }
 
         self.settings = settings
@@ -42,6 +47,114 @@ class symbiotes:
             model_list.append(model)
 
         return model_list
+
+    def process_openai_image(self, message=None, func='create', n=1, size='1024x1024', image=None):
+        if message is None:
+            print(f"No message provided.")
+            return None
+
+        if len(message) > 1000:
+            print("Prompt is too long, must be lest than 1000 chars.")
+            return None
+        
+        if func == "create":
+            try:
+                response = openai.Image.create(
+                  prompt=message,
+                  n=n,
+                  size=size,
+                  response_format='url',
+                  user=self.settings['user']
+                )
+            except openai.error.OpenAIError as e:
+                # Handle openai error responses
+                if e is not None:
+                    print()
+                    print(e.http_status)
+                    print(e.error)
+                    print()
+                else:
+                    message = "Unknown Error"
+        elif func == "edit":
+            try:
+                response = openai.Image.create_edit(
+                  image=open("otter.png", "rb"),
+                  mask=open("mask.png", "rb"),
+                  prompt=message,
+                  n=n,
+                  size=size,
+                  response_format='url',
+                  user=self.settings['user']
+                )
+            except openai.error.OpenAIError as e:
+                # Handle openai error responses
+                if e is not None:
+                    print()
+                    print(e.http_status)
+                    print(e.error)
+                    print()
+                else:
+                    message = "Unknown Error"
+        elif func == "variation":
+            try:
+                response = openai.Image.create_variation(
+                  image=open("otter.png", "rb"),
+                  n=n,
+                  size=size,
+                  response_format='url',
+                  user=self.settings['user']
+                )
+            except openai.error.OpenAIError as e:
+                # Handle openai error responses
+                if e is not None:
+                    print()
+                    print(e.http_status)
+                    print(e.error)
+                    print()
+                else:
+                    message = "Unknown Error"
+
+        # Get the current time
+        current_time = str(time.time())
+        current_time = current_time.replace('.', '')
+
+        directory_name = self.settings['image_dir']
+
+        image_urls = []
+        for count, value in enumerate(response['data']):
+            image_urls.append(response['data'][count]['url'])
+
+        extension = None
+        # Download each image
+        symutils = utils.utilities(settings=self.settings)
+        for url in image_urls:
+            # Send a GET request to the image URL
+            response = requests.get(url)
+
+            # Check if the request succeeded
+            if response.status_code == 200:
+                # Generate a unique identifier for the image
+                image_name = str(uuid.uuid4()) + current_time
+
+                # Get the file extension from the URL
+                extension = os.path.splitext(url)[1]
+
+                # Create the full file path
+                file_path = os.path.join(directory_name, image_name + extension)
+
+                # Write the image data to a file
+                with open(file_path, 'wb') as file:
+                    file.write(response.content)
+
+                if not extension:
+                    extension = symutils.get_extension(file_path)
+                    new_file = file_path + extension
+                    os.rename(file_path, new_file) 
+                    #symutils.exif_comment(new_file, message)
+            else:
+                print(f"Error getting image: {url}")
+
+        return image_urls
 
     def process_someone(self, message):
         # Define the url of the API
@@ -193,12 +306,16 @@ class symbiotes:
         return message.strip()
 
     def split_user_input_into_chunks(self, user_input):
+        chunks = []
+        if self.settings['model'] == 'dummy':
+            chunks.append(user_input)
+            return chunks
+
         encoding = tiktoken.encoding_for_model(self.settings['model'])
         #tokens = encoding.encode(user_input)
         #token_count = len(tokens)
         token_count, tokens = self.tokenize(user_input)
 
-        chunks = []
         current_chunk = []
         current_token_count = 0
 
@@ -230,7 +347,8 @@ class symbiotes:
 
         return conversation
 
-    def send_request(self, user_input, conversation, completion=False, suppress=False, role="user"):
+    def send_request(self, user_input, conversation, completion=False, suppress=False, role="user", flush=False):
+        self.conversation = conversation
         self.suppress = suppress
         total_trunc_tokens = 0
         total_user_tokens = 0
@@ -263,18 +381,20 @@ class symbiotes:
 
         # Handle suppressed messaging
         if suppress:
-            return conversation, 0, 0, 0, char_count, self.remember
+            return self.conversation, 0, 0, 0, char_count, self.remember
 
         if completion:
-            truncated_conversation, total_user_tokens, char_count = self.truncate_messages(completion_content)
+            truncated_conversation, total_user_tokens, char_count = self.truncate_messages(completion_content, flush=flush)
         else:
-            truncated_conversation, total_user_tokens, char_count = self.truncate_messages(conversation)
+            truncated_conversation, total_user_tokens, char_count = self.truncate_messages(conversation, flush=flush)
 
         # Push queries to model
         if self.settings['model'] == 'symbiote':
             response = self.interactWithModel(truncated_conversation)
         elif self.settings['model'] == 'someone':
             response = self.process_someone(truncated_conversation)
+        elif self.settings['model'] == 'dummy':
+            response = "Dummy response for testing."
         else:
             response = self.process_requestOpenAI(truncated_conversation)
 
@@ -287,13 +407,14 @@ class symbiotes:
             "content": response
         }
 
-        conversation.append(assistant_content)
+        #conversation.append(assistant_content)
+        truncated_conversation.append(assistant_content)
         self.save_conversation(assistant_content, self.conversations_file)
-        conversation = self.load_conversation(self.conversations_file)
+        #conversation = self.load_conversation(self.conversations_file)
 
-        return conversation, (total_user_tokens + total_assist_tokens), total_user_tokens, total_assist_tokens, char_count, self.remember
+        return truncated_conversation, (total_user_tokens + total_assist_tokens), total_user_tokens, total_assist_tokens, char_count, self.remember
 
-    def load_conversation(self, conversations_file):
+    def load_conversation(self, conversations_file, flush=False):
         ''' Load openai conversation json file '''
         self.conversations_file = conversations_file
         data = []
@@ -310,7 +431,6 @@ class symbiotes:
                 sys.exit(10)
 
         return data
-
 
     def save_conversation(self, conversation_data, conversations_file):
         ''' Save conversation output to loaded conversation file '''
@@ -332,13 +452,16 @@ class symbiotes:
         if not isinstance(text, str):
             text = json.dumps(text)
 
+        if self.settings['model'] == 'dummy':
+            return 1000, 0 
+
         encoding = tiktoken.encoding_for_model(self.settings['model'])
         encoding.encode(text)
         encoded_tokens = encoding.encode(text)
         tokens = len(encoded_tokens)
         return tokens, encoded_tokens 
 
-    def truncate_messages(self, conversation):
+    def truncate_messages(self, conversation, flush=False):
         ''' Truncate data to stay within token thresholds for openai '''
         max_length = int(self.remember * self.settings['conversation_percent'] - self.settings['max_tokens'])
         total_tokens = 0
@@ -420,19 +543,32 @@ class symbiotes:
 
         return response 
 
-    def export_conversation(self, input_file: str):
+    def export_conversation(self, input_file: str, history=False, lines=False):
         """
         Extracts data from a .jsonl file and saves it to a .txt file.
 
         Args:
-            input_file (str): Path to the .jsonl file.
+        input_file (str): Path to the .jsonl file.
         """
+
+        # Make sure the conversation exists in the conversations directory.
+        if not os.path.exists(input_file):
+            conversation_path = self.settings['symbiote_path'] + "/conversations"
+            check_file = os.path.join(conversation_path, input_file)
+            if os.path.exists(check_file):
+                input_file = check_file
+            else:
+                print(f"Failed to find conversation {input_file}")
+                return None
+
         # Strip the .jsonl extension and append .txt
         output_filename = os.path.splitext(input_file)[0] + ".txt"
-        print(input_file, output_filename)
 
-        with open(input_file, 'r') as infile, open(output_filename, 'w') as outfile:
-            for line in infile:
+        with open(input_file, 'r') as infile:
+            lines_to_read = infile.readlines()[-lines:] if lines else infile.readlines()
+
+        with open(output_filename, 'w') as outfile:
+            for line in lines_to_read:
                 # Parse each line as a JSON object
                 data = json.loads(line)
 
@@ -450,9 +586,11 @@ class symbiotes:
                 formatted_data += f"Epoch: {epoch}\n"
                 formatted_data += f"Role: {role}\n"
                 formatted_data += f"Content:\n{content}\n"
-                formatted_data += '-'*50 + '\n'  # separator
+                formatted_data += '-'*50 + '\n' # separator
 
-                # Write the formatted data to the output file
-                outfile.write(formatted_data)
-
-        print(f"Data saved to {output_filename}")
+                if history:
+                    print(formatted_data)
+                else:
+                    # Write the formatted data to the output file
+                    outfile.write(formatted_data)
+                    print(f"Data saved to {output_filename}")
