@@ -82,6 +82,7 @@ command_list = {
         "prompter::": "Create prompts matched to datasets.",
         "reinforce::": "Reinforce the chat log.",
         "purge::": "Purge the last response given. eg. thumbs down",
+        "note::": "Create a note that is tracked in a separate conversation",
         }
 
 
@@ -155,7 +156,8 @@ symbiote_settings = {
         "symbiote_path": os.path.join(homedir, ".symbiote"),
         "perifious": False,
         "role": "DEFAULT",
-        "image_dir": os.path.join(homedir, ".symbiote") + "/images"
+        "image_dir": os.path.join(homedir, ".symbiote") + "/images",
+        "notes": os.path.join(homedir, ".symbiote") + "notes.jsonl",
     }
 
 keybindings = {}
@@ -341,6 +343,7 @@ class symchat():
             if not conversation_files:
                 return
 
+            conversation_files.insert(0, Choice("notes", name="Open notes conversation."))
             conversation_files.append(Choice("new", name="Create new conversation."))
             conversation_files.append(Choice("clear", name="Clear conversation."))
             conversation_files.append(Choice("export", name="Export conversation."))
@@ -356,6 +359,8 @@ class symchat():
 
         if selected_file == "new":
             selected_file = inquirer.text(message="File name:").execute()
+        elif selected_file == "notes":
+            selected_file = self.symbiote_settings['notes']
         elif selected_file == "clear":
             clear_file = inquirer.select(
                 message="Select a conversation:",
@@ -1050,6 +1055,20 @@ class symchat():
             user_input = prompt + user_input
 
             return user_input
+
+        # Trigger for note:: taking.  Take the note provided and query the current model but place the note and results
+        # in a special file for future tracking.
+        note_pattern = r'note::|note:(.*):'
+        match = re.search(note_pattern, user_input)
+        if match:
+            if match.group(1):
+                pass
+            else:
+                pass
+
+            self.sym.save_conversation(user_input, self.symbiote_settings['notes'])
+
+            return None
 
         # Trigger for file:filename processing. Load file content into user_input for ai consumption.
         # file:: - opens file or directory to be pulled into the conversation
