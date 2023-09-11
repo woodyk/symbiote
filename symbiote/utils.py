@@ -16,6 +16,7 @@ import hashlib
 import requests 
 import pathspec
 import piexif
+import hashlib
 
 from mss import mss
 from PIL import Image
@@ -26,6 +27,10 @@ from pydub import AudioSegment
 from thefuzz import fuzz
 from thefuzz import process
 
+from selenium import webdriver
+from selenium.webdriver.chrome.options import Options as ChromeOptions
+from selenium.webdriver.firefox.options import Options as FirefoxOptions
+from bs4 import BeautifulSoup
 from nltk.sentiment import SentimentIntensityAnalyzer
 from spacy.lang.en.stop_words import STOP_WORDS
 from sumy.parsers.plaintext import PlaintextParser
@@ -296,7 +301,8 @@ class utilities():
         #content.update(meta)
         content['METADATA'] = meta
         content['SENTIMENT'] = sentiment
-        content['SUMMARY'] = main_idea
+        content['CONTENTS'] = text
+        #content['SUMMARY'] = main_idea
 
         if self.settings['perifious']:
             content['EMAILS'] = self.extractEmail(text)
@@ -787,4 +793,47 @@ class utilities():
 
         # Save the image with the new EXIF data
         img.save(image, exif=exif_bytes)
+
+    def pull_website_content(self, url, browser="chrome"):
+        # Set up the WebDriver and make it run headlessly
+        if browser.lower() == "chrome":
+            options = ChromeOptions()
+            options.headless = True
+            driver = webdriver.Chrome(options=options)
+        elif browser.lower() == "firefox":
+            options = FirefoxOptions()
+            options.headless = True
+            driver = webdriver.Firefox(options=options)
+        else:
+            print(f"Unsupported browser: {browser}")
+            return ""
+
+        try:
+            driver.get(url)
+        except Exception as e:
+            print(f"Error fetching the website content: {e}")
+            return ""
+
+        soup = BeautifulSoup(driver.page_source, 'html.parser')
+
+        # Close the WebDriver
+        driver.quit()
+
+        # Remove all script and style elements
+        for script in soup(["script", "style"]):
+            script.decompose()
+
+        # Get the text content
+        text = soup.get_text()
+
+        # Remove extra whitespace and newlines
+        lines = (line.strip() for line in text.splitlines())
+        chunks = (phrase.strip() for line in lines for phrase in line.split(" "))
+        text = '\n'.join(chunk for chunk in chunks if chunk)
+
+        # Encapsulate the extracted text within triple backticks
+        text = f"URL / Website: {url}.\n\n```{text}```\n\n"
+        text = str(text)
+
+        return text
 

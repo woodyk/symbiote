@@ -7,7 +7,7 @@ import numpy as np
 import cv2
 
 # Define the size of the image and frames per second
-width, height = 1024, 768 
+width, height = 2048, 768 
 fps = 60
 
 # Initialize Pygame

@@ -12,6 +12,7 @@ import uuid
 import magic
 
 import symbiote.utils as utils
+from transformers import GPT2Tokenizer
 
 class symbiotes:
     def __init__(self, settings):
@@ -25,7 +26,7 @@ class symbiotes:
             "gpt-4-0314": 8192,
             "text-davinci-002": 4097,
             "text-davinci-003": 4097,
-            "someone": 16384,
+            "someone": 1024,
             "dummy": 8192,
           }
 
@@ -156,26 +157,45 @@ class symbiotes:
 
         return image_urls
 
-    def process_someone(self, message):
+    def process_someone(self, message, timeout=30):
         # Define the url of the API
         url = "http://ai.sr:5000/predict"
 
+        print("---")
         # Define the data to be sent to the API
         data = {
             "input_text": message,
             "max_length": self.settings['max_tokens'],
             "temperature": self.settings['temperature'],
-            "num_return_sequences": self.settings['top_p'] 
+            "num_return_sequences": 1 
         }
 
         # Send a POST request to the API and get the response
-        response = requests.post(url, json=data)
+        try:
+            response = requests.post(url, json=data, timeout=timeout)
+        except requests.exceptions.Timeout:
+            pass
+            return None
+        except Exception as e:
+            print(f'Request failed: {e}')
+            return None
+
+        if timeout < 1:
+            return None
+
+        if self.settings['debug']:
+            for item in dir(response):
+                value = getattr(response, item)
+                print(item, value)
 
         # If the request was successful, return the generated text
         if response.status_code == 200:
+            print(response.text)
+            print("---")
             return response.text
         else:
             return f"Request failed with status code {response.status_code}"
+            print("---")
 
     def process_requestJ2(self, message):
         url = "https://api.ai21.com/studio/v1/j2-mid/complete"
@@ -311,10 +331,10 @@ class symbiotes:
             chunks.append(user_input)
             return chunks
 
-        encoding = tiktoken.encoding_for_model(self.settings['model'])
+        #encoding = tiktoken.encoding_for_model(self.settings['model'])
         #tokens = encoding.encode(user_input)
         #token_count = len(tokens)
-        token_count, tokens = self.tokenize(user_input)
+        token_count, tokens, encoding  = self.tokenize(user_input)
 
         current_chunk = []
         current_token_count = 0
@@ -347,7 +367,7 @@ class symbiotes:
 
         return conversation
 
-    def send_request(self, user_input, conversation, completion=False, suppress=False, role="user", flush=False):
+    def send_request(self, user_input, conversation, completion=False, suppress=False, role="user", flush=False, logging=True, timeout=30):
         self.conversation = conversation
         self.suppress = suppress
         total_trunc_tokens = 0
@@ -364,7 +384,7 @@ class symbiotes:
         user_input = re.sub('[ ]+', ' ', user_input)
 
         # Split user input into chunks
-        query_tokens, _ = self.tokenize(user_input)
+        query_tokens, _, _ = self.tokenize(user_input)
         user_input_chunks = self.split_user_input_into_chunks(user_input)
 
         for index, user_input_chunk in enumerate(user_input_chunks):
@@ -377,7 +397,8 @@ class symbiotes:
 
             conversation.append(user_content)
             completion_content.append(user_content)
-            self.save_conversation(user_content, self.conversations_file)
+            if logging:
+                self.save_conversation(user_content, self.conversations_file)
 
         # Handle suppressed messaging
         if suppress:
@@ -392,13 +413,18 @@ class symbiotes:
         if self.settings['model'] == 'symbiote':
             response = self.interactWithModel(truncated_conversation)
         elif self.settings['model'] == 'someone':
-            response = self.process_someone(truncated_conversation)
+            try:
+                send_message = truncated_conversation.pop()
+            except Exception as e:
+                return self.conversation, 0, 0, 0, char_count, self.remember
+            prompt = send_message['content']
+            response = self.process_someone(prompt, timeout=timeout)
         elif self.settings['model'] == 'dummy':
             response = "Dummy response for testing."
         else:
             response = self.process_requestOpenAI(truncated_conversation)
 
-        total_assist_tokens, _ = self.tokenize(response)
+        total_assist_tokens, _, _ = self.tokenize(response)
 
         # update our conversation with the assistant response
         assistant_content = {
@@ -409,7 +435,8 @@ class symbiotes:
 
         #conversation.append(assistant_content)
         truncated_conversation.append(assistant_content)
-        self.save_conversation(assistant_content, self.conversations_file)
+        if logging:
+            self.save_conversation(assistant_content, self.conversations_file)
         #conversation = self.load_conversation(self.conversations_file)
 
         return truncated_conversation, (total_user_tokens + total_assist_tokens), total_user_tokens, total_assist_tokens, char_count, self.remember
@@ -453,13 +480,18 @@ class symbiotes:
             text = json.dumps(text)
 
         if self.settings['model'] == 'dummy':
-            return 1000, 0 
+            return 1000, 0, 0 
+        elif self.settings['model'] == 'someone':
+            # Initialize the tokenizer
+            tokenizer = GPT2Tokenizer.from_pretrained('gpt2')
+            encoded_tokens = tokenizer.encode(text)
+        else:
+            tokenizer = tiktoken.encoding_for_model(self.settings['model'])
+            encoded_tokens = tokenizer.encode(text)
 
-        encoding = tiktoken.encoding_for_model(self.settings['model'])
-        encoding.encode(text)
-        encoded_tokens = encoding.encode(text)
         tokens = len(encoded_tokens)
-        return tokens, encoded_tokens 
+
+        return tokens, encoded_tokens, tokenizer 
 
     def truncate_messages(self, conversation, flush=False):
         ''' Truncate data to stay within token thresholds for openai '''
@@ -468,8 +500,9 @@ class symbiotes:
         truncated_tokens = 0
         char_count = 0
         truncated_conversation = []
+        single_message = True
         
-        total_tokens, encoded_tokens = self.tokenize(conversation)
+        total_tokens, encoded_tokens, _ = self.tokenize(conversation)
 
         while truncated_tokens < max_length and len(conversation) > 0:
             last_message = conversation.pop()
@@ -479,15 +512,27 @@ class symbiotes:
                 del last_message['conversation']
 
             truncated_conversation.insert(0, last_message)
-            t_tokens, _ = self.tokenize(last_message['content'])
+            t_tokens, _, _ = self.tokenize(last_message['content'])
             char_count += len(last_message['content'])
             truncated_tokens += t_tokens
+            single_message = False
 
-        while truncated_tokens > max_length:
+        while truncated_tokens > max_length and len(truncated_conversation) > 0:
             removed_message = truncated_conversation.pop(0)
-            t_tokens, _ = self.tokenize(removed_message['content'])
+            t_tokens, _, _ = self.tokenize(removed_message['content'])
             char_count += len(last_message['content'])
             truncated_tokens -= t_tokens
+
+        if total_tokens < self.settings['max_tokens'] and single_message:
+            message = conversation.pop()
+            if 'epoch' in message:
+                del message['epoch']
+            if 'conversation' in message:
+                del message['conversation']
+
+            truncated_conversation.insert(0, message)
+            truncated_tokens, _, _ = self.tokenize(message['content'])
+            char_count = len(message['content'])
 
         return truncated_conversation, truncated_tokens, char_count
 
@@ -579,7 +624,10 @@ class symbiotes:
                 content = data.get("content", "N/A")
 
                 # Decode possible escape sequences in content
-                content = bytes(content, "utf-8").decode("unicode_escape")
+                try:
+                    content = bytes(content, "utf-8").decode("unicode_escape")
+                except Exception as e:
+                    pass
 
                 # Format the data
                 formatted_data = f"Conversation: {conversation}\n"

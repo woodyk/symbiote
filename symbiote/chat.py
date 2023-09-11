@@ -46,6 +46,7 @@ import symbiote.shell as shell
 import symbiote.roles as roles
 import symbiote.utils as utils
 import symbiote.speech as speech
+import symbiote.codeextract as codeextract
 import symbiote.logo as logo
 
 command_list = {
@@ -65,6 +66,7 @@ command_list = {
         "file::": "Load a file for submission.",
         "summary::": "Pull nouns, summary, and metadata for a file.",
         "extract::": "Extract data features for a given file or directory and summarize.",
+        "code::": "Extract code and write files.",
         "get::": "Load a webpage for submission.",
         "tree::": "Load a directory tree for submission.",
         "shell::": "Load the symbiote bash shell.",
@@ -76,7 +78,10 @@ command_list = {
         "structure::": "Define a data scructure. *",
         "exec::": "Execute a command.",
         "render::": "Render an image from the provided text.",
-        "reinforce::": "Reinforce the chat log."
+        "replay::": "Replay the current conversation to the current model.",
+        "prompter::": "Create prompts matched to datasets.",
+        "reinforce::": "Reinforce the chat log.",
+        "purge::": "Purge the last response given. eg. thumbs down",
         }
 
 
@@ -118,7 +123,8 @@ pricing = {"gpt-4": { "prompt": .03, "completion": .06 },
            "gpt-4-0613": { "prompt": .06, "completion": .12},
            "gpt-3.5-turbo": { "prompt": .002, "completion": .002},
            "gpt-3.5-turbo-16k": { "prompt": .003, "completion": .004},
-           "dummy": { "prompt": 0, "completion": 0}
+           "dummy": { "prompt": 0, "completion": 0},
+           "someone": { "prompt": 0, "completion": 0}
            }
 
 # Default settings for openai and symbiot module.
@@ -169,6 +175,8 @@ class symchat():
         self.symbiote_settings = symbiote_settings 
         self.audio_triggers = audio_triggers
         self.flush = False
+        self.logging = True
+        self.timeout = 30
 
         if 'debug' in kwargs:
             self.symbiote_settings['debug'] = kwargs['debug']
@@ -559,7 +567,7 @@ class symchat():
         if self.symbiote_settings['debug']:
             pp.pprint(self.current_conversation)
 
-        returned = self.sym.send_request(user_input, self.current_conversation, completion=self.symbiote_settings['completion'], suppress=self.suppress, role=self.role, flush=self.flush)
+        returned = self.sym.send_request(user_input, self.current_conversation, completion=self.symbiote_settings['completion'], suppress=self.suppress, role=self.role, flush=self.flush, logging=self.logging, timeout=self.timeout)
 
         #if self.suppress and not self.run:
         #    self.launch_animation(False)
@@ -647,6 +655,32 @@ class symchat():
             os.system('reset')
             sys.exit(0)
 
+        # Trigger prompter:: on a directory of files to have prompts created that explain the file
+        prompter_pattern = r'prompter::|prompter:(.*):'
+        match = re.search(prompter_pattern, user_input)
+        if match:
+            if match.group(1):
+                file_path = match.group(1)
+
+            if file_path is None:
+                start_path = "./"
+                file_path = inquirer.filepath(
+                        message="Insert file contents:",
+                        default=start_path,
+                        #validate=PathValidator(is_file=True, message="Input is not a file"),
+                        wrap_lines=True,
+                        mandatory=False,
+                        keybindings=keybindings
+                    ).execute()
+
+            if file_path is None:
+                return None
+
+            file_path = os.path.expanduser(file_path)
+            absolute_path = os.path.abspath(file_path)
+
+            return None
+
         # Trigger to read clipboard contents
         clipboard_pattern = r'clipboard::|clipboard:(.*):'
         match = re.search(clipboard_pattern, user_input)
@@ -658,7 +692,7 @@ class symchat():
                 if sub_command == 'get':
                     if re.search(r'^https?://\S+', contents):
                         print(f"Fetching content from: {contents}")
-                        website_content = self.pull_website_content(contents)
+                        website_content = self.symutils.pull_website_content(contents, browser='firefox')
                         user_input = user_input[:match.start()] + website_content + user_input[match.end():]
             else:
                 user_input = user_input[:match.start()] + contents + user_input[match.end():]
@@ -979,6 +1013,43 @@ class symchat():
 
             return None
 
+        # Trigger for code:: extraction from provided text
+        code_pattern = r'code::|code:(.*):'
+        match = re.search(code_pattern, user_input)
+        if match:
+            if match.group(1):
+                text = match.group(1)
+                if re.search(r'^https?://\S+', text):
+                    print(f"Fetching content from: {url}")
+                    website_content = self.symutils.pull_website_content(url, browser="firefox")
+                    codeidentify = codeextract.CodeBlockIdentifier(website_content)
+                else:
+                    # process any text placed in code:<text>: for extraction
+                    codeidentify = codeextract.CodeBlockIdentifier(text)
+            else:
+                # process the last conversation message for code to extract
+                last_message = self.current_conversation[-1]
+                codeidentify = codeextract.CodeBlockIdentifier(last_message['content'])
+
+            files = codeidentify.process_text()
+            for file in files:
+                print(file)
+
+            return None
+
+        # Trigger for purge:: removing the last message received
+        purge_pattern = r'purge::|purge:(.*):'
+        match = re.search(purge_pattern, user_input)
+        if match:
+            if match.group(1):
+                last_messages = match.group(1)
+            else:
+                last_message = 1
+
+            prompt = "IMPORTANT: The response provided was not correct."
+            user_input = prompt + user_input
+
+            return user_input
 
         # Trigger for file:filename processing. Load file content into user_input for ai consumption.
         # file:: - opens file or directory to be pulled into the conversation
@@ -1074,10 +1145,31 @@ class symchat():
             return None
 
         # Trigger to replay prior log data.
-        replay_pattern = r'replay:(.*):'
+        replay_pattern = r'replay::|replay:(.*):'
         match = re.search(replay_pattern, user_input)
         if match:
-            return user_input
+            self.logging = False
+            old_timeout = self.timeout
+            self.timeout = 1
+            user_content = ''
+            for message in self.current_conversation:
+                if message['role'] == 'user':
+                    user_content = message['content']
+                elif message['role'] == 'assistant' or message['role'] == 'system':
+                    returned_content = message['content']
+                    trole = message['role']
+                    if user_content:
+                        input_data = f'role: user\n\n{user_content}\n\nrole: {trole}\n\n{returned_content}\n'
+                        print(input_data)
+                        print("--------")
+                        response = self.send_message(input_data)
+                    else:
+                        continue
+
+            self.logging = True
+            self.timeout = old_timeout
+
+            return None
 
         # Trigger for get:URL processing. Load website content into user_input for openai consumption.
         get_pattern = r'get::|get:(https?://\S+):'
@@ -1097,7 +1189,7 @@ class symchat():
                 return None 
 
             print(f"Fetching content from: {url}")
-            website_content = self.pull_website_content(url)
+            website_content = self.symutils.pull_website_content(url, browser="firefox")
             user_input = user_input[:match.start()] + website_content + user_input[match.end():]
 
             return user_input 
@@ -1154,6 +1246,7 @@ class symchat():
 
         return user_input
 
+    '''
     def pull_website_content(self, url):
         # Headers with User-Agent
         headers = {
@@ -1186,6 +1279,7 @@ class symchat():
         text = str(text)
 
         return text
+    '''
 
     def clear_screen(self):
         os.system('cls' if os.name == 'nt' else 'clear')
