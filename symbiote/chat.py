@@ -83,6 +83,7 @@ command_list = {
         "reinforce::": "Reinforce the chat log.",
         "purge::": "Purge the last response given. eg. thumbs down",
         "note::": "Create a note that is tracked in a separate conversation",
+        "order::": "Issue an order",
         }
 
 
