@@ -10,6 +10,8 @@ import random
 import pygame
 import pygame.freetype
 import pytesseract
+import numpy as np
+import cv2
 
 # Color Codes
 colors = {
@@ -24,6 +26,8 @@ colors = {
     "black": [0, 0, 0, 255],
 }
 
+# Add a new variable for toggling contour detection
+contour_detection = False
 
 # Matrix parameters
 matrix = 0
@@ -116,6 +120,31 @@ def create_streams(matrix):
 
     return streams
 
+def detect_and_draw_contours(surface):
+    # Convert the Pygame surface to an OpenCV image
+    cv_image = pygame.surfarray.array3d(surface)
+    cv_image = cv2.cvtColor(cv_image, cv2.COLOR_RGB2BGR)
+
+    # Convert the image to grayscale
+    gray = cv2.cvtColor(cv_image, cv2.COLOR_BGR2GRAY)
+
+    # Apply a threshold to highlight the contours
+    _, threshold = cv2.threshold(gray, 100, 255, cv2.THRESH_BINARY)
+
+    # Find the contours
+    contours, _ = cv2.findContours(threshold, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+
+    # Create a new surface with the same size as the original
+    contour_surface = pygame.Surface(surface.get_size(), pygame.SRCALPHA)
+
+    # Draw the contours on the new surface
+    for contour in contours:
+        if len(contour) > 2:  # Only draw the contour if it has more than 2 points
+            points = [tuple(point[0]) for point in contour]  # Convert arrays to tuples
+            pygame.draw.polygon(contour_surface, (0, 255, 0, 128), points)
+
+    return contour_surface
+
 # Help menu
 help_menu = False
 
@@ -140,9 +169,12 @@ def display_help_menu():
         "F: Toggle fullscreen",
         "K: Increase number of streams",
         "L: Decrease number of streams",
+        "N: Cycle matrix vissual",
+        "C: Toggle contour detection",
         "3: Toggle persistent dot", 
         "4: Cycle font color",
         "5: Cycle decay color",
+        "6: Cycle background color",
         "S: Save settings",
         "Q: Quit / Exit",
     ]
@@ -230,7 +262,7 @@ while running:
             elif event.key == pygame.K_5:
                 # cycle font_decay_color
                 font_decay_color, font_decay_rgb = cycle_color(font_decay_color)
-                setting_message = f"Font color: {font_decay_color}"
+                setting_message = f"Font decay color: {font_decay_color}"
             elif event.key == pygame.K_f:
                 # Toggle fullscreen
                 if screen.get_flags() & pygame.FULLSCREEN:
@@ -256,6 +288,9 @@ while running:
             elif event.key == pygame.K_t:
                 ocr_enabled = not ocr_enabled
                 setting_message = f"OCR: {'On' if ocr_enabled else 'Off'}"
+            elif event.key == pygame.K_c:
+                contour_detection = not contour_detection
+                setting_message = f"Contour detection: {'On' if contour_detection else 'Off'}"
             elif event.key == pygame.K_q:
                 save_settings()
                 sys.exit(0)
@@ -263,7 +298,7 @@ while running:
     if setting_message:
         print(setting_message)
         setting_message = False
-        new_stream = True
+    #    new_stream = True
 
     if new_stream:
         streams = create_streams(matrix)
@@ -369,6 +404,10 @@ while running:
     if help_menu:
         help_surface = display_help_menu()
         screen.blit(help_surface, (0, 0))
+
+    if contour_detection:
+        contour_surface = detect_and_draw_contours(screen)
+        screen.blit(contour_surface, (0, 0))
 
     pygame.display.flip()
     clock.tick(FPS)
