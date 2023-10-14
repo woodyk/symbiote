@@ -18,7 +18,7 @@ class WebCrawler:
         self.match_count = 0  # Count of matched pages
         self.crawl_count = 0  # Count of crawled pages
 
-    def pull_website_content(self, url, search_term=None, browser="firefox", crawl=False):
+    def pull_website_content(self, url, search_term=None, browser="chrome", crawl=False):
         # Set up the WebDriver and make it run headlessly
         if browser.lower() == "chrome":
             options = ChromeOptions()

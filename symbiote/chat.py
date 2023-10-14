@@ -158,7 +158,7 @@ symbiote_settings = {
         "perifious": False,
         "role": "DEFAULT",
         "image_dir": os.path.join(homedir, ".symbiote") + "/images",
-        "notes": os.path.join(homedir, ".symbiote") + "notes.jsonl",
+        "notes": os.path.join(homedir, ".symbiote") + "/notes.jsonl",
     }
 
 keybindings = {}

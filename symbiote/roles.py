@@ -24,6 +24,7 @@ roles['CODE_ROLE'] = '''As an AI model I aim to develop a complex software appli
 6. IMPORTANT: All code examples will be provided encompased in markdown code tags. example. ```{language}\n{code}\n```
 7. Ensure that code examples end with the '```' also to enclose the code block.
 8. IMORTANT: Always include the 'shebang' line at the beginning of the code sample. example. ```{language}\n#!/usr/bin/env python3\n{code}```
+9. All code output will be indented by 4 spaces.
 
 example code block:
 ```python
