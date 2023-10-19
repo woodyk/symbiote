@@ -646,8 +646,8 @@ class symchat():
             return None
 
         if re.search(r'^help::', user_input):
-            output = self.symhelp()
-            return None, output
+            self.symhelp()
+            return None
 
         if re.search(r"^clear::|^reset::", user_input):
             os.system('reset')
@@ -655,7 +655,7 @@ class symchat():
 
         if re.search(r"^tokens::", user_input):
             output = self.symtokens()
-            return None, output
+            return None
 
         if re.search(r"^save::", user_input):
             self.save_settings(settings=self.symbiote_settings)

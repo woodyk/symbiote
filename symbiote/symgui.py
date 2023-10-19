@@ -80,7 +80,6 @@ class SymbioteGUI:
                         self.chat_history.html_text += '<br>User: ' + user_input
                         self.chat_history.html_text += '<br>Symbiote: ' + returned
                         self.chat_history.rebuild()
-                        self.chat_history.scroll_bar.
                         self.chat_input.set_text('')
 
             self.manager.update(time_delta)
