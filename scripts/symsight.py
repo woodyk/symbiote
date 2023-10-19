@@ -51,13 +51,9 @@ setting_message_expiration = 0
 
 ocr_enabled = False
 
-# Add a new variable for toggling edge detection
-edge_detection = False
-
 # Initialize Pygame
 pygame.init()
 width, height = 1024, 768 
-#screen = pygame.display.set_mode((width, height))
 # Create a resizable window
 screen = pygame.display.set_mode((width, height), pygame.RESIZABLE)
 clock = pygame.time.Clock()
@@ -65,6 +61,14 @@ font = pygame.freetype.SysFont('Courier', font_size)
 
 # Frames per second
 FPS = 30
+
+# Add a new variable for toggling edge detection
+edge_detection = False
+edge_fps = 30 # number of frames to detect edges on 1 out of 30 for example
+edge_decay = 60 
+edge_detection_min = 50
+edge_detection_max = 150
+edge_surface = pygame.Surface((width, height), pygame.SRCALPHA)
 
 # Create streams
 new_streams = []
@@ -106,6 +110,26 @@ def load_settings():
 
 #load_settings()
 
+def detect_edges(surface):
+    # Convert the Pygame surface to an OpenCV image
+    cv_image = pygame.surfarray.array3d(surface)
+    cv_image = cv2.cvtColor(cv_image, cv2.COLOR_RGB2BGR)
+
+    # Convert the image to grayscale
+    gray = cv2.cvtColor(cv_image, cv2.COLOR_BGR2GRAY)
+
+    # Apply the Canny edge detection algorithm
+    edges = cv2.Canny(gray, 50, 150)
+
+    # Create a color mask for the edges
+    color_mask = np.zeros((edges.shape[0], edges.shape[1], 3), dtype=np.uint8)
+    color_mask[edges != 0] = [0, 0, 255]  # Red color
+
+    # Convert the color mask to a Pygame surface
+    edges_surface = pygame.surfarray.make_surface(color_mask)
+
+    return edges_surface
+
 def draw_edges(surface):
     # Convert the Pygame surface to an OpenCV image
     cv_image = pygame.surfarray.array3d(surface)
@@ -121,13 +145,20 @@ def draw_edges(surface):
     contours, _ = cv2.findContours(edges, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
 
     # Draw the contours on the original image
-    cv2.drawContours(cv_image, contours, -1, (0, 255, 0), 1)
+    #cv2.drawContours(cv_image, contours, -1, (0, 255, 0), 1)
+
+    # Color the edges red
+    edges_color = cv2.cvtColor(edges, cv2.COLOR_GRAY2BGR)
+    edges_color[:,:,2] = edges  # Red channel
+
+    # Convert the colored edges image to a Pygame surface
+    edges_surface = pygame.surfarray.make_surface(edges_color)
 
     # Convert the OpenCV image back to a Pygame surface
-    cv_image = cv2.cvtColor(cv_image, cv2.COLOR_BGR2RGB)
-    edge_surface = pygame.surfarray.make_surface(cv_image)
+    #cv_image = cv2.cvtColor(cv_image, cv2.COLOR_BGR2RGB)
+    #edge_surface = pygame.surfarray.make_surface(cv_image)
 
-    return edge_surface
+    return edges_surface
 
 # Modify the create_streams function to use the num_streams variable
 def create_streams(matrix):
@@ -205,6 +236,7 @@ def display_help_menu():
         "L: Decrease number of streams",
         "N: Cycle matrix vissual",
         "C: Toggle contour detection",
+        "T: Toggle OCR detection",
         "1: Toggle random fade intensity",
         "3: Toggle persistent dot", 
         "4: Cycle font color",
@@ -255,7 +287,10 @@ running = True
 setting_message = False
 count = 0
 recog = 0
+frame_counter = 0
 while running:
+    frame_counter += 1
+
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             running = False
@@ -338,6 +373,7 @@ while running:
                 height = int(height * 0.90)
                 screen = pygame.display.set_mode((width, height), pygame.RESIZABLE)
                 setting_message = f"Resolution: {width}x{height}"
+                new_stream = True
             elif event.key == pygame.K_s:
                 save_settings()
             elif event.key == pygame.K_t:
@@ -356,6 +392,8 @@ while running:
                 random_fade = not random_fade
                 setting_message = f"Random fade: {random_fade} {fade_intensity}"
 
+    current_frame = screen.copy()
+
     if random_fade:
         fade_intensity = random.uniform(0.1, 5.0)
     
@@ -369,15 +407,22 @@ while running:
         info = pygame.display.Info()
         display_width = info.current_w
         display_height = info.current_h
+        print(f"Screen resolution: {display_width} x {display_height}")
 
         streams = create_streams(matrix)
         new_stream = False
+
+    if display_width != width or display_height != height:
+        display_width = width
+        display_height = height
+        print(f"Screen resolution: {width} x {height}")
 
     # Clear screen
     screen.fill((0, 0, 0))
 
     # Clear screen with a semi-transparent black rectangle
     fade_surface = pygame.Surface((width, height), pygame.SRCALPHA)
+    fade_surface.fill((0, 0, 0, edge_decay))
     fade_surface.fill((0, 0, 0, fade_intensity))
     screen.blit(fade_surface, (0, 0))
 
@@ -473,8 +518,8 @@ while running:
     if ocr_enabled:
         recog += 1
         if recog >= 100:
-            pygame.image.save(screen, 'temp.png')
-            text = pytesseract.image_to_string('temp.png')
+            pygame.image.save(screen, '/tmp/temp.png')
+            text = pytesseract.image_to_string('/tmp/temp.png')
             if text:
                 print(f"Recognized text: {text}")
             recog = 0
@@ -494,7 +539,9 @@ while running:
 
     # Draw edges on the screen if edge detection is enabled
     if edge_detection:
-        edge_surface = draw_edges(screen)
+        new_edge_surface = detect_edges(screen)
+        edge_surface.blit(new_edge_surface, (0, 0))
+        edge_surface.set_alpha(100)
         screen.blit(edge_surface, (0, 0))
 
     pygame.display.flip()

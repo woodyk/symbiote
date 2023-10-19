@@ -794,6 +794,7 @@ class utilities():
         # Save the image with the new EXIF data
         img.save(image, exif=exif_bytes)
 
+    ''' Depricated
     def pull_website_content(self, url, browser="chrome"):
         # Set up the WebDriver and make it run headlessly
         if browser.lower() == "chrome":
@@ -836,4 +837,5 @@ class utilities():
         text = str(text)
 
         return text
+    '''
 

@@ -48,6 +48,7 @@ import symbiote.utils as utils
 import symbiote.speech as speech
 import symbiote.codeextract as codeextract
 import symbiote.logo as logo
+import symbiote.webcrawler as webcrawler
 
 command_list = {
         "help::": "This help output.",
@@ -68,6 +69,7 @@ command_list = {
         "extract::": "Extract data features for a given file or directory and summarize.",
         "code::": "Extract code and write files.",
         "get::": "Load a webpage for submission.",
+        "crawl::": "Crawl a website for submission.",
         "tree::": "Load a directory tree for submission.",
         "shell::": "Load the symbiote bash shell.",
         "clipboard::": "Load clipboard contents into symbiote.",
@@ -98,6 +100,7 @@ audio_triggers = {
         'conversation': [r'keyword change conversation', 'convo::'],
         'model': [r'keyword change model', 'model::'],
         'get': [r'keyword get website', 'get::'],
+        'crawl': [r'keyword crawl website', 'crawl::'],
         'clipboard_url': [r'keyword get clipboard [url|\S+site]', 'clipboard:get:'],
         'clipboard': [r'keyword get clipboard', 'clipboard::'],
         'exit': [r'keyword exit now', 'exit::'],
@@ -278,9 +281,7 @@ class symchat():
         keyboard.release(Key.enter)
 
     def symhelp(self):
-        print("Symbiote Help Menu")
-        print("------------------")
-        print("Available keywords:")
+        help_output = "Symbiote Help Menu\n------------------\nAvailable keywords:\n"
         # Sort the command list by keys
         sorted_commands = sorted(command_list.items())
 
@@ -289,7 +290,11 @@ class symchat():
 
         # Print the table with aligned columns
         for cmd, desc in sorted_commands:
-            print("\t{:<{width}}{}".format(cmd, desc, width=cmd_col_width))
+            #print("\t{:<{width}}{}".format(cmd, desc, width=cmd_col_width))
+            help_output += "\t{:<{width}}{}\n".format(cmd, desc, width=cmd_col_width)
+
+        print(help_output)
+        return help_output
 
     def launch_animation(self, state):
         def hide_cursor():
@@ -563,7 +568,7 @@ class symchat():
 
             continue
 
-        return 
+        return returned 
 
     def send_message(self, user_input):
         #if self.suppress and not self.run:
@@ -641,16 +646,16 @@ class symchat():
             return None
 
         if re.search(r'^help::', user_input):
-            self.symhelp()
-            return None
+            output = self.symhelp()
+            return None, output
 
         if re.search(r"^clear::|^reset::", user_input):
             os.system('reset')
             return None
 
         if re.search(r"^tokens::", user_input):
-            self.symtokens()
-            return None
+            output = self.symtokens()
+            return None, output
 
         if re.search(r"^save::", user_input):
             self.save_settings(settings=self.symbiote_settings)
@@ -1191,11 +1196,13 @@ class symchat():
 
             return None
 
-        # Trigger for get:URL processing. Load website content into user_input for openai consumption.
+        # Trigger for get:URL processing. Load website content into user_input for model consumption.
         get_pattern = r'get::|get:(https?://\S+):'
         match = re.search(get_pattern, user_input)
         if match:
+            crawl = False
             self.suppress = True
+            website_content = ''
             if match.group(1):
                 url = match.group(1)
             else:
@@ -1208,10 +1215,41 @@ class symchat():
             if url == None:
                 return None 
 
-            print(f"Fetching content from: {url}")
-            website_content = self.symutils.pull_website_content(url, browser="firefox")
-            user_input = user_input[:match.start()] + website_content + user_input[match.end():]
+            print(f"Fetching web page content from: {url}")
 
+            crawler = webcrawler.WebCrawler(browser='firefox')
+            pages = crawler.pull_website_content(url, search_term=None, crawl=crawl, depth=None)
+            for md5, pages in pages.items():
+                website_content += page['content']
+            user_input = user_input[:match.start()] + website_content + user_input[match.end():]
+            return user_input 
+
+        # Trigger for crawl:URL processing. Load website content into user_input for model consumption.
+        get_pattern = r'crawl::|crawl:(https?://\S+):'
+        match = re.search(get_pattern, user_input)
+        if match:
+            crawl = True
+            self.suppress = True
+            website_content = ''
+            if match.group(1):
+                url = match.group(1)
+            else:
+                url = inquirer.text(
+                        message="URL to load:",
+                        mandatory=False,
+                        keybindings=keybindings
+                    ).execute()
+            
+            if url == None:
+                return None 
+
+            print(f"Crawling content from: {url}")
+
+            crawler = webcrawler.WebCrawler(browser='firefox')
+            pages = crawler.pull_website_content(url, search_term=None, crawl=crawl, depth=None)
+            for md5, pages in pages.items():
+                website_content += page['content']
+            user_input = user_input[:match.start()] + website_content + user_input[match.end():]
             return user_input 
 
         # Trigger for ls:path processing. List the content of the specified directory.
