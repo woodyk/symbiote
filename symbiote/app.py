@@ -70,6 +70,10 @@ def main():
                         action='store_true',
                         help='Launch the symbiote API')
 
+    parser.add_argument('-p', '--prompt_only',
+                        action='store_true',
+                        help='Launch symbiote straight to prompt.')
+
     args = parser.parse_args()
 
     if args.install:
@@ -110,13 +114,15 @@ def main():
     else:
         os.system('clear')
         try:
-            logo.symLogo()
-            pass
+            if args.prompt_only:
+                pass
+            else:
+                logo.symLogo()
         except:
             pass
         time.sleep(3)
         os.system('reset')
-        schat.chat(user_input="")
+        schat.chat(user_input="", prompt_only=args.prompt_only)
 
 def check_libmagic():
     ret_code = 0

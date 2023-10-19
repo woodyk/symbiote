@@ -17,8 +17,6 @@ import platform
 import clipboard
 import json
 import queue
-import pygame
-import pygame.freetype
 import webbrowser
 import pprint
 
@@ -49,6 +47,10 @@ import symbiote.speech as speech
 import symbiote.codeextract as codeextract
 import symbiote.logo as logo
 import symbiote.webcrawler as webcrawler
+
+os.environ['PYGAME_HIDE_SUPPORT_PROMPT'] = '1'
+import pygame
+import pygame.freetype
 
 command_list = {
         "help::": "This help output.",
@@ -468,6 +470,11 @@ class symchat():
         else:
             self.run = False
 
+        if 'prompt_only' in kwargs:
+            self.prompt_only = kwargs['prompt_only']
+        else:
+            self.prompt_only = False
+
         if 'completion' in kwargs:
             self.completion = kwargs['completion']
         else:
@@ -529,13 +536,17 @@ class symchat():
             if current_path.startswith(home_dir):
                 current_path = '~' + current_path[len(home_dir):]
 
-            self.toolbar_data = f"Model: {self.symbiote_settings['model']} Current Conversation: {self.convo_file}\nLast Char Count: {self.token_track['last_char_count']}\nUser: {self.token_track['user_tokens']} Assistant: {self.token_track['completion_tokens']} Conversation: {self.token_track['truncated_tokens']} Total Used: {self.token_track['rolling_tokens']} Cost: ${self.token_track['cost']:.2f}\ncwd: {current_path}"
+            if self.prompt_only:
+                chat_session.bottom_toolbar = None
+            else:
+                #self.toolbar_data = f"Model: {self.symbiote_settings['model']} Current Conversation: {self.convo_file}\nLast Char Count: {self.token_track['last_char_count']}\nUser: {self.token_track['user_tokens']} Assistant: {self.token_track['completion_tokens']} Conversation: {self.token_track['truncated_tokens']} Total Used: {self.token_track['rolling_tokens']} Cost: ${self.token_track['cost']:.2f}\ncwd: {current_path}"
+                chat_session.bottom_toolbar = f"Model: {self.symbiote_settings['model']} Current Conversation: {self.convo_file}\nLast Char Count: {self.token_track['last_char_count']}\nUser: {self.token_track['user_tokens']} Assistant: {self.token_track['completion_tokens']} Conversation: {self.token_track['truncated_tokens']} Total Used: {self.token_track['rolling_tokens']} Cost: ${self.token_track['cost']:.2f}\ncwd: {current_path}"
 
             if self.run is False:
                 self.user_input = chat_session.prompt(message="symchat> ",
                                                    multiline=True,
                                                    default=self.user_input,
-                                                   bottom_toolbar=self.toolbar_data,
+                                                   #bottom_toolbar=self.toolbar_data,
                                                    vi_mode=self.symbiote_settings['vi_mode']
                                                 )
 
