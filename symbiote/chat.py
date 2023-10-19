@@ -971,49 +971,11 @@ class symchat():
 
             self.sym.export_conversation(self.symbiote_settings['conversation'], history=True, lines=history_length)
 
-            '''
-            if match.group(1):
-                history_length = int(match.group(1)) + 1
-            else:
-                history_length = 10
-
-            lines = str()
-            for message in self.current_conversation[-history_length:]:
-                if message['role'] == 'assistant':
-                    lines += f"ROLE: {message['role']}:\n{message['content']}\n\n"
-
-
-            size = os.get_terminal_size()
-
-            text_area = TextArea(text=lines,
-                                 scrollbar=True,
-                                 width=(size.columns - 10),
-                                 height=30,
-                                 focus_on_click=True)
-
-
-            frame = Frame(text_area, title='History')
-
-            box = Box(frame)
-
-            layout = Layout(HSplit([box]))
-
-            app = Application(layout=layout)
-            kb = KeyBindings()
-
-            @kb.add('c-q')
-            def _(event):
-                event.app.exit()
-
-            app = Application(layout=layout, full_screen=True, key_bindings=kb).run()
-            '''
-
             return None
 
         # Trigger for rendering images from text input
         render_pattern = r'^render:(.*):'
         match = re.search(render_pattern, user_input)
-
         if match:
             if match.group(1):
                 query = match.group(1)
@@ -1219,7 +1181,7 @@ class symchat():
 
             crawler = webcrawler.WebCrawler(browser='firefox')
             pages = crawler.pull_website_content(url, search_term=None, crawl=crawl, depth=None)
-            for md5, pages in pages.items():
+            for md5, page in pages.items():
                 website_content += page['content']
             user_input = user_input[:match.start()] + website_content + user_input[match.end():]
             return user_input 
@@ -1247,7 +1209,7 @@ class symchat():
 
             crawler = webcrawler.WebCrawler(browser='firefox')
             pages = crawler.pull_website_content(url, search_term=None, crawl=crawl, depth=None)
-            for md5, pages in pages.items():
+            for md5, page in pages.items():
                 website_content += page['content']
             user_input = user_input[:match.start()] + website_content + user_input[match.end():]
             return user_input 
