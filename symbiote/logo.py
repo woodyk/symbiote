@@ -24,7 +24,7 @@ class symLogo():
 
     def image_to_ascii(self, url):
         """Convert an image to ASCII art."""
-        response = requests.get(url)
+        response = requests.get(url, timeout=20)
         image = Image.open(BytesIO(response.content)).convert("L")  # convert image to grayscale
 
         # Resize the image to fit within the terminal width
