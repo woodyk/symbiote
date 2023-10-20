@@ -74,6 +74,10 @@ def main():
                         action='store_true',
                         help='Launch symbiote straight to prompt.')
 
+    parser.add_argument('-n', '--no_logo',
+                        action='store_true',
+                        help='Do not display the logo splash figlet.')
+
     args = parser.parse_args()
 
     if args.install:
@@ -114,7 +118,7 @@ def main():
     else:
         os.system('clear')
         try:
-            if args.prompt_only:
+            if args.prompt_only or args.nologo:
                 pass
             else:
                 logo.symLogo()
