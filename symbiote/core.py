@@ -63,7 +63,7 @@ class symbiotes:
     # Custom print function for auto-syntax highlighted output
     def syntax_highlighter(self, text, process=False):
         # Create a Terminal256Formatter instance for formatting the highlighted output
-        formatter = Terminal256Formatter(style='fruity')
+        formatter = Terminal256Formatter(style='monoaki')
         lexer = Python3Lexer()
 
         # Strip and save \n from original content
@@ -373,10 +373,8 @@ class symbiotes:
                 message += chunk.choices[0].delta.content
 
             if not self.suppress:
-                if get_block:
-                    self.syntax_highlighter(chunk_block)
-                else:
-                    print(chunk_block)
+                self.syntax_highlighter(chunk_block)
+                #print(chunk_block)
         else:
             message = response.choices[0].message.content
             if not self.suppress:
@@ -384,7 +382,7 @@ class symbiotes:
                 print(message)
 
         if not self.suppress:
-            print("---")
+            print("\n---")
 
         if self.settings['max_tokens'] < self.settings['default_max_tokens']:
             message = "Data consumed."
