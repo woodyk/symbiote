@@ -89,7 +89,7 @@ command_list = {
         "note::": "Create a note that is tracked in a separate conversation",
         "whisper::": "Process audio file to text using whipser.",
         "order::": "Issue an order",
-        }
+    }
 
 
 audio_triggers = {
@@ -116,25 +116,40 @@ audio_triggers = {
         'keyword': [r'keyword (get|show) keyword', 'keywords::'],
         'history': [r'keyword (get|show) history', 'history::'],
         'perifious': [r'(i cast|icast) periph', 'perifious::']
-        }
+    }
+
+prompt_colors = {
+        'matrix_green': '#00FF41',
+        'soft_green': '#06AC6C',
+        'salmon_red': '#f95393',
+        'dark_gray': '#2C2827',
+        'light_blue': '#02788E',
+        'burnt_yellow': '#E67000',
+        'off_white': '#e5e5e5',
+        'rich_yellow': '#DED300',
+        'light_gray': '#9A9A9A',
+        'white': '#FFFFFF',
+        'black': '#000000'
+    }
 
 # Configure prompt settings.
 prompt_style = Style.from_dict({
-        '': '#f95393',  # Matrix green text color
-        'prompt': '#06AC6C',  # text color for the prompt
-        'bottom-toolbar': 'bg:#e5e5e5 #4B4B4B',  # Bottom toolbar style
-        'bottom-toolbar.off': 'bg:#e5e5e5 #9A9A9A',  # Bottom toolbar off style
+        '': prompt_colors['rich_yellow'], # typed text color
+        'prompt': prompt_colors['light_blue'], # prompt color
+        'bottom-toolbar': f'bg:{prompt_colors["off_white"]} {prompt_colors["dark_gray"]}', # Bottom toolbar style
+        'bottom-toolbar.off': f'bg:{prompt_colors["off_white"]} {prompt_colors["light_gray"]}',  # Bottom toolbar off style
     })
 
-pricing = {"gpt-4": { "prompt": .03, "completion": .06 },
-           "gpt-4-32k": { "prompt": .06, "completion": .12},
-           "gpt-4-0314": { "prompt": .06, "completion": .12},
-           "gpt-4-0613": { "prompt": .06, "completion": .12},
-           "gpt-3.5-turbo": { "prompt": .002, "completion": .002},
-           "gpt-3.5-turbo-16k": { "prompt": .003, "completion": .004},
-           "dummy": { "prompt": 0, "completion": 0},
-           "someone": { "prompt": 0, "completion": 0}
-           }
+pricing = {
+       "gpt-4": { "prompt": .03, "completion": .06 },
+       "gpt-4-32k": { "prompt": .06, "completion": .12},
+       "gpt-4-0314": { "prompt": .06, "completion": .12},
+       "gpt-4-0613": { "prompt": .06, "completion": .12},
+       "gpt-3.5-turbo": { "prompt": .002, "completion": .002},
+       "gpt-3.5-turbo-16k": { "prompt": .003, "completion": .004},
+       "dummy": { "prompt": 0, "completion": 0},
+       "someone": { "prompt": 0, "completion": 0}
+   }
 
 # Default settings for openai and symbiot module.
 homedir = os.getenv('HOME')
@@ -541,14 +556,12 @@ class symchat():
             if self.prompt_only:
                 chat_session.bottom_toolbar = None
             else:
-                #self.toolbar_data = f"Model: {self.symbiote_settings['model']} Current Conversation: {self.convo_file}\nLast Char Count: {self.token_track['last_char_count']}\nUser: {self.token_track['user_tokens']} Assistant: {self.token_track['completion_tokens']} Conversation: {self.token_track['truncated_tokens']} Total Used: {self.token_track['rolling_tokens']} Cost: ${self.token_track['cost']:.2f}\ncwd: {current_path}"
-                chat_session.bottom_toolbar = f"Model: {self.symbiote_settings['model']} Current Conversation: {self.convo_file}\nLast Char Count: {self.token_track['last_char_count']}\nUser: {self.token_track['user_tokens']} Assistant: {self.token_track['completion_tokens']} Conversation: {self.token_track['truncated_tokens']} Total Used: {self.token_track['rolling_tokens']} Cost: ${self.token_track['cost']:.2f}\ncwd: {current_path}"
+                chat_session.bottom_toolbar = f"Model: {self.symbiote_settings['model']}\nCurrent Conversation: {self.convo_file}\nLast Char Count: {self.token_track['last_char_count']}\nToken Usage:\nUser: {self.token_track['user_tokens']} Assistant: {self.token_track['completion_tokens']} Conversation: {self.token_track['truncated_tokens']} Total Used: {self.token_track['rolling_tokens']}\nCost: ${self.token_track['cost']:.2f}\ncwd: {current_path}"
 
             if self.run is False:
                 self.user_input = chat_session.prompt(message="symchat> ",
                                                    multiline=True,
                                                    default=self.user_input,
-                                                   #bottom_toolbar=self.toolbar_data,
                                                    vi_mode=self.symbiote_settings['vi_mode']
                                                 )
 
