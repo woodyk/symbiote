@@ -107,7 +107,7 @@ trainer = Trainer(
 
 trainer.train()
 
-with open("gpt2_finetuned/tokenizer_config.json", as f:
+with open("gpt2_finetuned/tokenizer_config.json") as f:
     data = {
       "model_max_length": 1024,
       "model_type": "gpt2",
