@@ -87,6 +87,7 @@ command_list = {
         "reinforce::": "Reinforce the chat log.",
         "purge::": "Purge the last response given. eg. thumbs down",
         "note::": "Create a note that is tracked in a separate conversation",
+        "whisper::": "Process audio file to text using whipser.",
         "order::": "Issue an order",
         }
 
@@ -102,6 +103,7 @@ audio_triggers = {
         'conversation': [r'keyword change conversation', 'convo::'],
         'model': [r'keyword change model', 'model::'],
         'get': [r'keyword get website', 'get::'],
+        'whisper': [r'keyword whisper', 'whisper::'],
         'crawl': [r'keyword crawl website', 'crawl::'],
         'clipboard_url': [r'keyword get clipboard [url|\S+site]', 'clipboard:get:'],
         'clipboard': [r'keyword get clipboard', 'clipboard::'],
@@ -1168,6 +1170,50 @@ class symchat():
             self.timeout = old_timeout
 
             return None
+
+        # Trigger for whisper:audiofile: processing.  Load audio file and convert to text using whipser.
+        whisper_pattern = r'whisper::|whisper:(.*):'
+        match = re.search(whisper_pattern, user_input)
+        if match:
+            self.suppress = True
+            if match.group(1):
+                file_path = match.group(1)
+            elif file_path is None:
+                start_path = "./"
+                file_path = inquirer.filepath(
+                        message="Transcribe audio file:",
+                        default=start_path,
+                        #validate=PathValidator(is_file=True, message="Input is not a file"),
+                        wrap_lines=True,
+                        mandatory=False,
+                        keybindings=keybindings
+                    ).execute()
+
+            if file_path is None:
+                return None 
+            
+            file_path = os.path.expanduser(file_path)
+            absolute_path = os.path.abspath(file_path)
+
+            if os.path.isfile(file_path):
+                root, ext = os.path.splitext(file_path)
+
+                if ext != ".mp3":
+                    print(f"Filetype must be .mp3")
+                    return None
+
+                content = self.sym.process_openaiTranscribe(file_path)
+                print(f"Audio Transcription:\n{content}\n")
+
+                audio_content = f"File name: {absolute_path}\n"
+                audio_content += '\n```\n{}\n```\n'.format(content)
+                user_input = user_input[:match.start()] + audio_content + user_input[match.end():]
+            else:
+                print(f"Error: {file_path} is not a file.")
+                return None
+
+            return user_input
+
 
         # Trigger for get:URL processing. Load website content into user_input for model consumption.
         get_pattern = r'get::|get:(https?://\S+):'

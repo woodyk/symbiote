@@ -49,6 +49,18 @@ class symbiotes:
 
         return model_list
 
+    def process_openaiTranscribe(self, file_path):
+        audio_file = open(file_path, "rb")
+        transcript = openai.Audio.transcribe("whisper-1", audio_file)
+
+        return transcript['text']
+
+    def process_openaiTranlate(self, file_path):
+        audio_file = open(file_path, "rb")
+        transcript = openai.Audio.translate("whisper-1", audio_file)
+
+        return tranlation
+
     def process_openai_image(self, message=None, func='create', n=1, size='1024x1024', image=None):
         if message is None:
             print(f"No message provided.")
@@ -157,7 +169,7 @@ class symbiotes:
 
         return image_urls
 
-    def process_someone(self, message, timeout=30):
+    def process_someone(self, message, timeout=120):
         # Define the url of the API
         url = "http://ai.sr:5000/predict"
 
