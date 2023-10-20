@@ -164,12 +164,12 @@ def check_libmagic():
 
 def check_nl_packages():
     try:
-        subprocess.call(['python', '-m', 'spacy', 'download', 'en_core_web_sm'])
+        subprocess.call(['python3', '-m', 'spacy', 'download', 'en_core_web_sm'])
     except Exception as e:
         print(f"Error installing spacy en_core_web_sm: {e}")
 
     try:
-        subprocess.call(['python', '-m', 'nltk.downloader', 'vader_lexicon'])
+        subprocess.call(['python3', '-m', 'nltk.downloader', 'vader_lexicon'])
     except Exception as e:
         print(f"Error installing nltk vader_lexicon: {e}")
 
