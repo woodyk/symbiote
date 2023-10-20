@@ -63,7 +63,7 @@ class symbiotes:
     # Custom print function for auto-syntax highlighted output
     def syntax_highlighter(self, text, process=False):
         # Create a Terminal256Formatter instance for formatting the highlighted output
-        formatter = Terminal256Formatter(style='monoaki')
+        formatter = Terminal256Formatter(style='monokai')
         lexer = Python3Lexer()
 
         # Strip and save \n from original content
