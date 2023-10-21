@@ -126,19 +126,18 @@ class CodeBlockIdentifier:
 
         return code_files
 
-    def syntax_highlighter(self, text, process=False):
+    def syntax_highlighter(self, text):
         # Create a Terminal256Formatter instance for formatting the highlighted output
         formatter = Terminal256Formatter(style=self.syntax_style)
         lexer = Python3Lexer()
 
         # Strip and save \n from original content
-        '''
         slash_ns = ''
-        slash_n_pattern = r'(\n{1,5})$'
+        slash_n_pattern = r'(\n|\n+)$'
         match = re.search(slash_n_pattern, text)
         if match:
             slash_ns = match.group(1)
-        '''
+
         highlighted_text = highlight(text, lexer, formatter)
         #highlighted_text = re.sub(slash_n_pattern, slash_ns, highlighted_text)
 

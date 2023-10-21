@@ -182,6 +182,7 @@ symbiote_settings = {
         "role": "DEFAULT",
         "image_dir": os.path.join(homedir, ".symbiote") + "/images",
         "notes": os.path.join(homedir, ".symbiote") + "/notes.jsonl",
+        "syntax_highlight": False,
     }
 
 keybindings = {}
@@ -783,6 +784,7 @@ class symchat():
         setting_pattern = r'^setting::|setting:(.*):(.*):'
         match = re.search(setting_pattern, user_input)
         if match:
+            self.suppress = True
             if match.group(1):
                 setting = match.group(1)
                 set_value = match.group(2)
