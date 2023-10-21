@@ -13,32 +13,7 @@ import magic
 from pygments.formatters import Terminal256Formatter
 from transformers import GPT2Tokenizer
 
-import pygments
-from pygments.lexers import guess_lexer, Python3Lexer
-from pygments.styles import get_all_styles
-from pygments import highlight
-from pygments.style import Style
-from pygments.token import Token
-from pygments.formatters import Terminal256Formatter
-
 import symbiote.utils as utils
-
-pygment_styles = [
-        'murphy',
-        'monokai',
-        'native',
-        'fruity',
-        'rrt',
-        'rainbow_dash',
-        'stata-dark',
-        'inkpot',
-        'zenburn',
-        'gruvbox-dark',
-        'dracula',
-        'one-dark',
-        'nord',
-        'github-dark'
-    ]
 
 class symbiotes:
     def __init__(self, settings):
@@ -58,27 +33,6 @@ class symbiotes:
 
         self.settings = settings
         self.remember = self.models[self.settings['model']]
-
-
-    # Custom print function for auto-syntax highlighted output
-    def syntax_highlighter(self, text, process=False):
-        # Create a Terminal256Formatter instance for formatting the highlighted output
-        formatter = Terminal256Formatter(style='monokai')
-        lexer = Python3Lexer()
-
-        # Strip and save \n from original content
-        slash_ns = ''
-        slash_n_pattern = r'(\n{1,5})$'
-        match = re.search(slash_n_pattern, text)
-        if match:
-            slash_ns = match.group(1)
-
-        highlighted_text = highlight(text, lexer, formatter)
-        highlighted_text = re.sub(slash_n_pattern, slash_ns, highlighted_text)
-        if process:
-            return hhighlighted_text
-        else:
-            print(highlighted_text, end='')
 
     def update_symbiote_settings(self, settings, *args, **kwargs):
         self.settings = settings 
@@ -108,7 +62,7 @@ class symbiotes:
 
         return tranlation
 
-    def process_openai_image(self, message=None, func='create', n=1, size='1024x1024', image=None):
+    def process_openaiImage(self, message=None, func='create', n=1, size='1024x1024', image=None):
         if message is None:
             print(f"No message provided.")
             return None
@@ -249,77 +203,14 @@ class symbiotes:
 
         # If the request was successful, return the generated text
         if response.status_code == 200:
-            self.syntax_highligher(response.text)
-            #print(response.text)
+            print(response.text)
             print("---")
             return response.text
         else:
             return f"Request failed with status code {response.status_code}"
             print("---")
 
-    def process_requestJ2(self, message):
-        url = "https://api.ai21.com/studio/v1/j2-mid/complete"
-        payload = {
-            "numResults": 1,
-            "maxTokens": self.settings['max_tokens'],
-            "minTokens": 10,
-            "temperature": self.settings['temperature'],
-            "topP": self.settings['top_p'],
-            "topKReturn": 0,
-            "stopSequences": [self.settings['stop']],
-            "frequencyPenalty": {
-                "scale": self.settings['frequency_penalty'],
-                "applyToWhitespaces": True,
-                "applyToPunctuations": True,
-                "applyToNumbers": True,
-                "applyToStopwords": True,
-                "applyToEmojis": True
-            },
-            "presencePenalty": {
-                "scale": self.settings['presence_penalty'],
-                "applyToWhitespaces": True,
-                "applyToPunctuations": True,
-                "applyToNumbers": True,
-                "applyToStopwords": True,
-                "applyToEmojis": True
-            },
-            "countPenalty": {
-                "scale": 1,
-                "applyToWhitespaces": True,
-                "applyToPunctuations": True,
-                "applyToNumbers": True,
-                "applyToStopwords": True,
-                "applyToEmojis": True
-            }
-        }
-
-        headers = {
-            "accept": "application/json",
-            "content-type": "application/json",
-            "Authorization": "Bearer YOUR_API_KEY"
-        }
-
-        if self.settings['debug']:
-            print(json.dumps(messages, indent=4))
-
-        if not self.suppress:
-            print("---")
-
-        message = " "
-        chunk_block = ""
-        response = {} 
-
-        response = requests.post(url, json=payload, headers=headers)
-        message = response.choices[0].message.content
-
-        if not self.suppress:
-            message = self.highlight_code_block(message)
-            print(message)
-            print("---")
-
-        return message.strip()
-
-    def process_requestOpenAI(self, messages):
+    def process_openaiChat(self, messages):
         ''' Send user_input to openai for processing '''
         if self.settings['debug']:
             print(json.dumps(messages, indent=4))
@@ -357,15 +248,14 @@ class symbiotes:
                 message = "Unknown Error"
 
         # Handle real time stream output from openai response
-        chunk_size = 16 
+        chunk_size = 8 
         if self.settings['stream']:
             for chunk in response:
                 try:
                     chunk_block += chunk.choices[0].delta.content
                     if len(chunk_block) >= chunk_size:
                         if not self.suppress:
-                            self.syntax_highlighter(chunk_block)
-                            #print(chunk_block, end="")
+                            print(chunk_block, end="")
                         chunk_block = ""
                 except:
                     continue
@@ -373,12 +263,10 @@ class symbiotes:
                 message += chunk.choices[0].delta.content
 
             if not self.suppress:
-                self.syntax_highlighter(chunk_block)
-                #print(chunk_block)
+                print(chunk_block)
         else:
             message = response.choices[0].message.content
             if not self.suppress:
-                message = self.highlight_code_block(message)
                 print(message)
 
         if not self.suppress:
@@ -388,19 +276,6 @@ class symbiotes:
             message = "Data consumed."
        
         return message.strip()
-
-    def highlight_code_block(self, text):
-        pattern = r'(`{3}|\'{3})(.*?)\1'
-        matches = re.findall(pattern, text, re.DOTALL)
-        for match in matches:
-            ticks = match.group(1)
-            language = match.group(2).strip()
-            code_block = match.group(3).strip()
-            block_pattern = re.escape(code_block)
-            highlighted_code = self.syntax_highlighter(code_block, process=True)
-            text = re.sub(block_pattern, highlight_code, text)
-
-        return text
 
     def split_user_input_into_chunks(self, user_input):
         chunks = []
@@ -499,7 +374,7 @@ class symbiotes:
         elif self.settings['model'] == 'dummy':
             response = "Dummy response for testing."
         else:
-            response = self.process_requestOpenAI(truncated_conversation)
+            response = self.process_openaiChat(truncated_conversation)
 
         total_assist_tokens, _, _ = self.tokenize(response)
 

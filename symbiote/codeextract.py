@@ -9,19 +9,55 @@ from collections import Counter
 from pygments.lexers import get_lexer_by_name, guess_lexer, get_all_lexers
 from bs4 import BeautifulSoup
 
+import pygments
+from pygments.lexers import guess_lexer, Python3Lexer
+from pygments.styles import get_all_styles
+from pygments import highlight
+from pygments.style import Style
+from pygments.token import Token
+from pygments.formatters import Terminal256Formatter
+
+pygment_styles = [
+        'murphy',
+        'monokai',
+        'native',
+        'fruity',
+        'rrt',
+        'rainbow_dash',
+        'stata-dark',
+        'inkpot',
+        'zenburn',
+        'gruvbox-dark',
+        'dracula',
+        'one-dark',
+        'nord',
+        'github-dark'
+    ]
+
 class CodeBlockIdentifier:
     def __init__(self, text):
         self.text = text
         self.block_match = r'`{3}(\w+\n)(.*)`{3}|\'{3}(\w+\n)(.*)\'{3}'
+        self.syntax_style = 'monokai'
 
-    def extract_html_code_blocks(self):
+    def extract_html_code_blocks(self, *args, **kwargs):
+        if 'text' in kwargs:
+            self.text = kwargs['text']
+
         code_blocks = re.findall(self.block_match, self.text, re.DOTALL)
         soup = BeautifulSoup(self.text, 'html.parser')
         for tag in soup.find_all(['code', 'pre', 'script']):
             code_blocks.append(tag.get_text())
-        return code_blocks
 
-    def extract_markdown_code_blocks(self):
+        if len(code_blocks) > 0:
+            return code_blocks
+        else:
+            return None
+
+    def extract_markdown_code_blocks(self, *args, **kwargs):
+        if 'text' in kwargs:
+            self.text = kwargs['text']
+
         code_blocks = re.findall(self.block_match, self.text, re.DOTALL)
         new_blocks = []
         for code in code_blocks:
@@ -34,7 +70,10 @@ class CodeBlockIdentifier:
             filtered = [item for item in code if item]
             new_blocks.append(filtered)
 
-        return new_blocks
+        if len(new_blocks) > 0:
+            return new_blocks
+        else:
+            return None
 
     def write_tmp_code(self, code_block, file_extension, file_name='/tmp/testcode'):
         unique_filename = f"{file_name}_{str(uuid.uuid4())}.{file_extension}"
@@ -70,6 +109,9 @@ class CodeBlockIdentifier:
 
     def process_text(self):
         code_blocks = self.extract_markdown_code_blocks()
+        if code_blocks is None:
+            code_blocks = self.extract_html_code_blocks()
+
         code_files = []
         for code_block in code_blocks:
             if len(code_block) > 1:
@@ -83,6 +125,25 @@ class CodeBlockIdentifier:
             code_files.append(file_path)
 
         return code_files
+
+    def syntax_highlighter(self, text, process=False):
+        # Create a Terminal256Formatter instance for formatting the highlighted output
+        formatter = Terminal256Formatter(style=self.syntax_style)
+        lexer = Python3Lexer()
+
+        # Strip and save \n from original content
+        '''
+        slash_ns = ''
+        slash_n_pattern = r'(\n{1,5})$'
+        match = re.search(slash_n_pattern, text)
+        if match:
+            slash_ns = match.group(1)
+        '''
+        highlighted_text = highlight(text, lexer, formatter)
+        #highlighted_text = re.sub(slash_n_pattern, slash_ns, highlighted_text)
+
+        return highlighted_text
+
 '''
 Usage:
 identifier = CodeBlockIdentifier(text)

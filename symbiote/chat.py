@@ -128,6 +128,7 @@ prompt_colors = {
         'off_white': '#e5e5e5',
         'rich_yellow': '#DED300',
         'light_gray': '#9A9A9A',
+        'gray': '#6e757c',
         'white': '#FFFFFF',
         'black': '#000000'
     }
@@ -136,7 +137,7 @@ prompt_colors = {
 prompt_style = Style.from_dict({
         '': prompt_colors['rich_yellow'], # typed text color
         'prompt': prompt_colors['light_blue'], # prompt color
-        'bottom-toolbar': f'bg:{prompt_colors["off_white"]} {prompt_colors["dark_gray"]}', # Bottom toolbar style
+        'bottom-toolbar': f'bg:{prompt_colors["white"]} {prompt_colors["gray"]}', # Bottom toolbar style
         'bottom-toolbar.off': f'bg:{prompt_colors["off_white"]} {prompt_colors["light_gray"]}',  # Bottom toolbar off style
     })
 
@@ -1005,7 +1006,7 @@ class symchat():
         if match:
             if match.group(1):
                 query = match.group(1)
-                result = self.sym.process_openai_image(query)
+                result = self.sym.process_openaiImage(query)
                 if result is not None:
                     command = f"open {self.symbiote_settings['image_dir']}"
                     self.symutils.exec_command(command)

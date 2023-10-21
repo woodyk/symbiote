@@ -114,9 +114,8 @@ class WebCrawler:
                     self.pull_website_content(absolute_url, search_term=self.search_term, crawl=True, depth=None if depth is None else depth - 1)
 
         return self.pages
-
-# Usage
 '''
+# Usage
 # Initialize a WebCrawler object
 crawler = WebCrawler(browser='firefox')
 
