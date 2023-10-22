@@ -35,7 +35,7 @@ pygment_styles = [
     ]
 
 class CodeBlockIdentifier:
-    def __init__(self, text):
+    def __init__(self, text=None):
         self.text = text
         self.block_match = r'`{3}(\w+\n)(.*)`{3}|\'{3}(\w+\n)(.*)\'{3}'
         self.syntax_style = 'monokai'
@@ -126,7 +126,10 @@ class CodeBlockIdentifier:
 
         return code_files
 
-    def syntax_highlighter(self, text):
+    def syntax_highlighter(self, *args, **kwargs):
+        if 'text' in kwargs:
+            self.text = kwargs['text']
+
         # Create a Terminal256Formatter instance for formatting the highlighted output
         formatter = Terminal256Formatter(style=self.syntax_style)
         lexer = Python3Lexer()
@@ -134,12 +137,12 @@ class CodeBlockIdentifier:
         # Strip and save \n from original content
         slash_ns = ''
         slash_n_pattern = r'(\n|\n+)$'
-        match = re.search(slash_n_pattern, text)
+        match = re.search(slash_n_pattern, self.text)
         if match:
             slash_ns = match.group(1)
 
-        highlighted_text = highlight(text, lexer, formatter)
-        #highlighted_text = re.sub(slash_n_pattern, slash_ns, highlighted_text)
+        highlighted_text = highlight(self.text, lexer, formatter)
+        highlighted_text = re.sub(slash_n_pattern, slash_ns, highlighted_text)
 
         return highlighted_text
 

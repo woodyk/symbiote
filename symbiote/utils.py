@@ -332,7 +332,6 @@ class utilities():
         if not os.path.isdir(dir_path):
             return None
 
-
         '''
         if os.path.isfile(".gitignore"):
             with open(os.path.join(dir_path, '.gitignore'), 'r') as f:
@@ -343,8 +342,15 @@ class utilities():
 
         header = str()
         content = str()
-        for root, _, files in os.walk(dir_path):
+        for root, dirs, files in os.walk(dir_path):
+            # Remove hidden directories from dirs so os.walk doesn't process them
+            dirs[:] = [d for d in dirs if not d.startswith('.')]
+
             for file in files:
+                # Skip hidden files
+                if file.startswith('.'):
+                    continue
+
                 file_path = os.path.join(root, file)
                 absolute_path = os.path.abspath(file_path)
                 #if spec.match_file(file_path):

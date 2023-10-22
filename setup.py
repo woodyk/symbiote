@@ -48,7 +48,7 @@ if platform.system() == 'Linux':
 
 setup(
     name='symbiote',
-    version='0.0.1',
+    version='0.10.1',
     description='A command line harness to openai functions.',
     author='Wadih Khairallah',
     url='https://github.com/woodyk/symbiote',

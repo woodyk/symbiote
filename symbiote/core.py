@@ -14,6 +14,7 @@ from pygments.formatters import Terminal256Formatter
 from transformers import GPT2Tokenizer
 
 import symbiote.utils as utils
+import symbiote.codeextract as codeextract
 
 class symbiotes:
     def __init__(self, settings):
@@ -34,6 +35,8 @@ class symbiotes:
         self.settings = settings
         self.remember = self.models[self.settings['model']]
 
+        self.ce = codeextract.CodeBlockIdentifier()
+        
     def update_symbiote_settings(self, settings, *args, **kwargs):
         self.settings = settings 
         self.remember = self.models[self.settings['model']]
@@ -203,12 +206,17 @@ class symbiotes:
 
         # If the request was successful, return the generated text
         if response.status_code == 200:
-            print(response.text)
+            if self.settings['syntax_highlight']:
+                snip = self.ce.syntax_highlighter(text=response.text)
+                print(snip, end="")
+            else:
+                print(response.text)
             print("---")
             return response.text
         else:
-            return f"Request failed with status code {response.status_code}"
+            print(f"Request failed with status code {response.status_code}")
             print("---")
+            return
 
     def process_openaiChat(self, messages):
         ''' Send user_input to openai for processing '''
@@ -255,7 +263,11 @@ class symbiotes:
                     chunk_block += chunk.choices[0].delta.content
                     if len(chunk_block) >= chunk_size:
                         if not self.suppress:
-                            print(chunk_block, end="")
+                            if self.settings['syntax_highlight']:
+                                snip = self.ce.syntax_highlighter(text=chunk_block)
+                                print(snip, end="")
+                            else:
+                                print(chunk_block, end="")
                         chunk_block = ""
                 except:
                     continue
@@ -263,11 +275,19 @@ class symbiotes:
                 message += chunk.choices[0].delta.content
 
             if not self.suppress:
-                print(chunk_block)
+                if self.settings['syntax_highlight']:
+                    snip = self.ce.syntax_highlighter(text=chunk_block)
+                    print(snip, end="")
+                else:
+                    print(chunk_block)
         else:
             message = response.choices[0].message.content
             if not self.suppress:
-                print(message)
+                if self.settings['syntax_highlight']:
+                    snip = self.ce.syntax_highlighter(text=message)
+                    print(snip)
+                else:
+                    print(message)
 
         if not self.suppress:
             print("\n---")
