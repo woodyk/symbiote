@@ -148,7 +148,7 @@ class ColorConverter:
 
         rgb = self.convert(input_color, 'rgb')
         h, s, l = colorsys.rgb_to_hls(rgb[0]/255, rgb[1]/255, rgb[2]/255)
-        colors = [rgb]
+        colors = []
         for i in range(1, 4):
             h_new = (h + i/4) % 1
             r, g, b = [int(x*255) for x in colorsys.hls_to_rgb(h_new, s, l)]
@@ -173,6 +173,14 @@ class ColorConverter:
             formatted_color = self.convert((r, g, b), output_format)
             colors.append(formatted_color)
         return colors
+
+    def get_grayscale_colors(self, input_color, output_format=None, num_colors=5):
+        if output_format is None:
+            output_format = self.get_color_format(input_color)
+
+        r, g, b = self.convert(input_color, 'rgb')
+        gray = 0.2989 * r + 0.5870 * g + 0.1140 * b
+        print(gray)
 
     def rgb_to_hex(self, rgb):
         return '#{:02x}{:02x}{:02x}'.format(rgb[0], rgb[1], rgb[2])
@@ -200,11 +208,25 @@ class ColorConverter:
         except ValueError:
             return None
 
-    def get_color_names(self):
-        for color_name in webcolors.CSS3_NAMES_TO_HEX:
-            print(color_name)
-
-        return webcolors.CSS3_NAMES_TO_HEX
+    def get_color_names(self, format='hex'):
+        hex_name = webcolors.CSS3_NAMES_TO_HEX
+        rgb_name = {}
+        if format == 'hex':
+            return hex_name 
+        elif format == 'rgb':
+            for name, hex_color in hex_name.items():
+                rgb_color = self.convert(hex_color, 'rgb')
+                rgb_name[name] = rgb_color
+            return rgb_name
+        elif format == 'rgba':
+            for name, hex_color in hex_name.items():
+                rgb_color = self.convert(hex_color, 'rgb')
+                rgb_alpha = rgb_color + (255,)
+                print(name, rgb_alpha)
+                rgb_name[name] = rgb_alpha 
+            return rgb_name
+        else:
+            raise ValueError("Invalid format")
 
     def iterate_all_colors(self):
         for r in range(256):
@@ -337,6 +359,7 @@ class TestColorConverter(unittest.TestCase):
 # unittest.main()
 
 # Example usage
+'''
 color = ColorConverter()
 colors = []
 colors.append(color.co('red', 'hex'))  # Output: '#ff0000'
@@ -353,4 +376,4 @@ for i in colors:
 
 color = ColorConverter()
 color.display_color_chart('red')
-
+'''

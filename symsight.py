@@ -13,19 +13,15 @@ import pytesseract
 import numpy as np
 import cv2
 import webcolors
+import symbiote.colortools as ct
 
-# Color Codes
-colors = {
-    "red": [255, 0, 0, 255],
-    "orange": [255, 165, 0, 255],
-    "yellow": [255, 255, 0, 255],
-    "green": [0, 128, 0, 255],
-    "blue": [0, 0, 255, 255],
-    "indigo": [75, 0, 130, 255],
-    "violet": [127, 0, 255, 255],
-    "white": [255, 255, 255, 255],
-    "black": [0, 0, 0, 255],
-}
+
+color = ct.ColorConverter()
+colors = color.get_color_names(format='rgba') 
+colors['neon_green'] = (57, 255, 20, 255)
+colors['neon_yellow'] = (255, 255, 0, 255)
+colors['neon_red'] = (255, 0, 51, 255)
+colors['neon_blue'] = (77, 77, 255, 255)
 
 # Add a new variable for toggling contour detection
 contour_detection = False
@@ -39,9 +35,12 @@ speed = .01
 min_speed = 0.01
 max_speed = 5.0
 font_size = 12 
-font_color = 'white' # White
-font_decay_color = 'green' # Green
-background_color = 'black'
+default_font_color = 'white'
+font_color = default_font_color 
+default_decay_color = 'green'
+font_decay_color = default_decay_color 
+default_background_color = 'black'
+background_color = default_background_color
 fade_intensity = .1  # The higher this value, the faster the trails will fade
 random_fade = False
 new_stream = True
@@ -52,6 +51,7 @@ setting_message = None
 setting_message_expiration = 0
 
 ocr_enabled = False
+static_overlay = False
 
 # Initialize Pygame
 pygame.init()
@@ -75,206 +75,6 @@ edge_surface = pygame.Surface((width, height), pygame.SRCALPHA)
 # Create streams
 new_streams = []
 current_resolution = 0
-
-class ColorConverter:
-    def convert(self, input_color, output_format):
-        if isinstance(input_color, tuple) and len(input_color) == 3:
-            # Input is RGB
-            if output_format.lower() == 'hex':
-                return self.rgb_to_hex(input_color)
-            elif output_format.lower() == 'color':
-                return self.rgb_to_name(input_color)
-        elif isinstance(input_color, str):
-            if input_color.startswith('#'):
-                # Input is Hex
-                if output_format.lower() == 'rgb':
-                    return self.hex_to_rgb(input_color)
-                elif output_format.lower() == 'color':
-                    return self.hex_to_name(input_color)
-            else:
-                # Input is color name
-                if output_format.lower() == 'rgb':
-                    return self.name_to_rgb(input_color)
-                elif output_format.lower() == 'hex':
-                    return self.name_to_hex(input_color)
-        else:
-            raise ValueError("Invalid input color")
-
-    def get_color_format(self, input_color):
-        if isinstance(input_color, tuple):
-            output_format = 'rgb'
-        elif input_color.startswith('#'):
-            output_format = 'hex'
-        elif input_color in webcolors.CSS3_NAMES_TO_HEX:
-            output_format = 'color'
-        else:
-            raise ValueError("Invalid input color")
-
-        return output_format
-
-
-    def get_complimentary_colors(self, input_color, output_format=self.get_color_format(input_color), num_colors=5):
-        rgb = self.convert(input_color, 'rgb')
-        r, g, b = rgb
-
-        # Generate complimentary colors
-        colors = []
-        for i in range(num_colors):
-            comp_color = ((255 - r + i) % 256, (255 - g + i) % 256, (255 - b + i) % 256)
-            if input_format == 'hex':
-                comp_color = self.rgb_to_hex(comp_color)
-            formatted_color = self.convert((r, g, b), output_format)
-            colors.append(formated_color)
-
-        return colors
-
-    def get_contrasting_colors(self, input_color, output_format=self.get_color_format(input_color), num_colors=5):
-        rgb = self.convert(input_color, 'rgb')
-        r, g, b = rgb
-
-        # Generate contrasting colors
-        brightness = (r * 299 + g * 587 + b * 114) / 1000
-        colors = []
-        for i in range(num_colors):
-            if brightness < 128:
-                contrast_color = ((255 - i) % 256, (255 - i) % 256, (255 - i) % 256)  # white
-            else:
-                contrast_color = (i % 256, i % 256, i % 256)  # black
-
-            formatted_color = self.convert((r, g, b), output_format)
-            colors.append(contrast_color)
-
-        return colors
-
-    def get_analogous_colors(self, input_color, output_format=self.get_color_format(input_color), num_colors=5):
-        rgb = self.convert(input_color, 'rgb')
-        h, s, l = colorsys.rgb_to_hls(rgb[0]/255, rgb[1]/255, rgb[2]/255)
-
-        # Generate analogous colors
-        colors = []
-        for i in range(num_colors):
-            h_new = (h + i/float(num_colors)) % 1
-            r, g, b = [int(x*255) for x in colorsys.hls_to_rgb(h_new, s, l)]
-            formatted_color = self.convert((r, g, b), output_format)
-            colors.append(formated_color)
-        return colors
-
-    def get_triadic_colors(self, input_color, output_format=self.get_color_format(input_color), num_colors=5):
-        rgb = self.convert(input_color, 'rgb')
-        h, s, l = colorsys.rgb_to_hls(rgb[0]/255, rgb[1]/255, rgb[2]/255)
-        h1 = (h + 1/3) % 1
-        h2 = (h + 2/3) % 1
-        colors = [rgb]
-        for h_new in [h1, h2]:
-            r, g, b = [int(x*255) for x in colorsys.hls_to_rgb(h_new, s, l)]
-            formatted_color = self.convert((r, g, b), output_format)
-            colors.append(formated_color)
-        return colors
-
-    def get_split_complementary_colors(self, input_color, output_format=self.get_color_format(input_color), num_colors=5):
-        rgb = self.convert(input_color, 'rgb')
-        h, s, l = colorsys.rgb_to_hls(rgb[0]/255, rgb[1]/255, rgb[2]/255)
-        h1 = (h + 1/2 + 1/12) % 1
-        h2 = (h + 1/2 - 1/12) % 1
-        colors = [rgb]
-        for h_new in [h1, h2]:
-            r, g, b = [int(x*255) for x in colorsys.hls_to_rgb(h_new, s, l)]
-            formatted_color = self.convert((r, g, b), output_format)
-            colors.append(formated_color)
-        return colors
-
-    def get_tetradic_colors(self, input_color, output_format=self.get_color_format(input_color), num_colors=5):
-        rgb = self.convert(input_color, 'rgb')
-        h, s, l = colorsys.rgb_to_hls(rgb[0]/255, rgb[1]/255, rgb[2]/255)
-        colors = [rgb]
-        for i in range(1, 4):
-            h_new = (h + i/4) % 1
-            r, g, b = [int(x*255) for x in colorsys.hls_to_rgb(h_new, s, l)]
-            formatted_color = self.convert((r, g, b), output_format)
-            colors.append(formated_color)
-        return colors
-
-    def get_square_colors(self, input_color, output_format=self.get_color_format(input_color), num_colors=5):
-        return self.get_tetradic_colors(input_color, output_format, num_colors)
-
-    def get_monochromatic_colors(self, input_color, output_format=self.get_color_format(input_color),  num_colors=5):
-        rgb = self.convert(input_color, 'rgb')
-        h, s, l = colorsys.rgb_to_hls(rgb[0]/255, rgb[1]/255, rgb[2]/255)
-        colors = []
-        for i in range(num_colors):
-            l_new = l * (i+1)/float(num_colors)
-            r, g, b = [int(x*255) for x in colorsys.hls_to_rgb(h, s, l_new)]
-            formatted_color = self.convert((r, g, b), output_format)
-            colors.append(formatted_color)
-        return colors
-
-    def rgb_to_hex(self, rgb):
-        return '#{:02x}{:02x}{:02x}'.format(rgb[0], rgb[1], rgb[2])
-
-    def hex_to_rgb(self, hex_color):
-        h = hex_color.lstrip('#')
-        return tuple(int(h[i:i+2], 16) for i in (0, 2, 4))
-
-    def name_to_rgb(self, name):
-        rgb = webcolors.name_to_rgb(name)
-        return rgb.red, rgb.green, rgb.blue
-
-    def name_to_hex(self, name):
-        return webcolors.name_to_hex(name)
-
-    def rgb_to_name(self, rgb):
-        try:
-            return webcolors.rgb_to_name(rgb)
-        except ValueError:
-            return None
-
-    def hex_to_name(self, hex_color):
-        try:
-            return webcolors.hex_to_name(hex_color)
-        except ValueError:
-            return None
-
-    def get_color_names(self):
-        for color_name in webcolors.CSS3_NAMES_TO_HEX:
-            print(color_name)
-
-        return webcolors.CSS3_NAMES_TO_HEX
-
-    def iterate_all_colors(self):
-        for r in range(256):
-            for g in range(256):
-                for b in range(256):
-                    rgb = (r, g, b)
-                    hex_color = self.rgb_to_hex(rgb)
-                    color_name = self.rgb_to_name(rgb)
-                    # ANSI escape code for colored output
-                    colored_block = f"\033[48;2;{r};{g};{b}m    \033[m"
-                    print(f"RGB: {rgb}, Hex: {hex_color}, Color Name: {color_name} {colored_block}")
-
-    # method aliases
-    co = convert
-    gc = get_color_names
-    ic = iterate_all_colors
-    contrast = get_contrasting_colors
-    compliment = get_complimentary_colors
-
-    # Example usage
-    '''
-    converter = ColorConverter()
-    hex_color = converter.convert('red', 'hex')  # Output: '#ff0000'
-    rgb_color = converter.convert('#ff0000', 'rgb')  # Output: (255, 0, 0)
-    color_name = converter.convert('#ff0000', 'color')  # Output: 'red'
-    '''
-
-color = ColorConverter()
-hex_color = color.co('purple', 'hex')
-rgb_color = color.co('magenta', 'rgb')
-print(rgb_color)
-print(hex_color)
-a = color.contrast('magenta', 6)
-b = color.compliment('magenta', 6)
-print(a)
-print(b)
 
 def save_settings():
     print(f"Settings saved.")
@@ -385,12 +185,14 @@ def create_streams(matrix):
 def detect_and_draw_contours(surface):
     # Get the dimensions of the display
     info = pygame.display.Info()
-    display_width = info.current_w
-    display_height = info.current_h
+    width = info.current_w
+    height = info.current_h
 
     # Convert the Pygame surface to an OpenCV image
-    cv_image = pygame.surfarray.array3d(surface)
-    cv_image = cv2.cvtColor(cv_image, cv2.COLOR_RGB2BGR)
+    array = pygame.surfarray.array3d(surface)
+    array = np.rot90(array)
+    array = np.flipud(array)
+    cv_image = cv2.cvtColor(array, cv2.COLOR_RGB2BGR)
 
     # Convert the image to grayscale
     gray = cv2.cvtColor(cv_image, cv2.COLOR_BGR2GRAY)
@@ -402,7 +204,7 @@ def detect_and_draw_contours(surface):
     contours, _ = cv2.findContours(threshold, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
 
     # Create a new surface with the same size as the original
-    contour_surface = pygame.Surface((display_width, display_height), pygame.SRCALPHA)
+    contour_surface = pygame.Surface((width, height), pygame.SRCALPHA)
 
     # Draw the contours on the new surface
     for contour in contours:
@@ -428,7 +230,7 @@ def display_help_menu():
     surface.fill((0, 0, 0, 128))  # Semi-transparent black
 
     # Create a font object
-    font = pygame.freetype.SysFont('Courier', 16)
+    font = pygame.freetype.SysFont('Courier', 24)
 
     # Define the help text
     help_text = [
@@ -446,25 +248,26 @@ def display_help_menu():
         "N: Cycle matrix vissual",
         "C: Toggle contour detection",
         "T: Toggle OCR detection",
+        "R: Cycle through resolutions",
         "1: Toggle random fade intensity",
         "3: Toggle persistent dot", 
         "4: Cycle font color",
         "5: Cycle decay color",
         "6: Cycle background color",
         "8: Toggle edge detection",
+        "9: Toggle static overlay",
         "S: Save settings",
         "Q: Quit / Exit",
     ]
 
     # Render the help text
     for i, line in enumerate(help_text):
-        font.render_to(surface, (10, 10 + 20*i), line, (255, 255, 255))  # White text
+        font.render_to(surface, (10, 10 + 20*i), line, colors['neon_green'])
 
     return surface
 
 def generate_tv_static(width, height, alpha=128):
-    # Generate a random noise image
-    static = np.random.randint(0, 255, (height, width, 3), dtype=np.uint8)
+    static = np.random.randint(0, 255, (width, height, 3), dtype=np.uint8)
 
     # Convert the noise image to a Pygame surface
     static_surface = pygame.surfarray.make_surface(static)
@@ -474,7 +277,7 @@ def generate_tv_static(width, height, alpha=128):
     alpha_surface.fill((0, 0, 0, alpha))
 
     # Blend the static with the semi-transparent surface
-    static_surface.blit(alpha_surface, (0, 0), special_flags=pygame.BLEND_RGBA_MULT)
+    static_surface.blit(alpha_surface, (0, 0), special_flags=pygame.BLEND_RGBA_ADD)
 
     return static_surface
 
@@ -600,6 +403,14 @@ while running:
             elif event.key == pygame.K_1:
                 random_fade = not random_fade
                 setting_message = f"Random fade: {random_fade} {fade_intensity}"
+            elif event.key == pygame.K_0:
+                font_color = default_font_color
+                decay_color = default_decay_color
+                background_color = default_background_color
+                setting_message = f"Reset colors: {font_color} {decay_color} {background_color}"
+            elif event.key == pygame.K_9:
+                static_overlay = not static_overlay
+                setting_message = f"Toggle static overlay: {static_overlay}"
 
     current_frame = screen.copy()
 
@@ -627,7 +438,7 @@ while running:
         print(f"Screen resolution: {width} x {height}")
 
     # Clear screen
-    screen.fill((0, 0, 0))
+    screen.fill((0, 0, 0, 120))
 
     # Clear screen with a semi-transparent black rectangle
     fade_surface = pygame.Surface((width, height), pygame.SRCALPHA)
@@ -721,7 +532,13 @@ while running:
 
         # Blit the static surface onto the screen
         screen.blit(static_surface, (0, 0))
-        pygame.display.flip()
+
+    if static_overlay:
+        # Generate a semi-transparent static surface
+        static_surface = generate_tv_static(width, height, alpha=128)
+
+        # Blit the static surface onto the screen
+        screen.blit(static_surface, (0, 0))
 
     # OCR function
     if ocr_enabled:
@@ -742,9 +559,12 @@ while running:
         help_surface = display_help_menu()
         screen.blit(help_surface, (0, 0))
 
+    contour_frames = 10 
     if contour_detection:
-        contour_surface = detect_and_draw_contours(screen)
-        screen.blit(contour_surface, (0, 0))
+        if frame_counter % contour_frames == 0:
+            print(frame_counter, contour_frames)
+            contour_surface = detect_and_draw_contours(screen)
+            screen.blit(contour_surface, (0, 0))
 
     # Draw edges on the screen if edge detection is enabled
     if edge_detection:
@@ -752,6 +572,9 @@ while running:
         edge_surface.blit(new_edge_surface, (0, 0))
         edge_surface.set_alpha(100)
         screen.blit(edge_surface, (0, 0))
+
+    if frame_counter >= 1024:
+        frame_counter = 0
 
     pygame.display.flip()
     clock.tick(FPS)
