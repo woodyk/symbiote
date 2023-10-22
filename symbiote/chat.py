@@ -47,6 +47,7 @@ import symbiote.speech as speech
 import symbiote.codeextract as codeextract
 import symbiote.logo as logo
 import symbiote.webcrawler as webcrawler
+from symbiote.themes import ThemeManager
 
 os.environ['PYGAME_HIDE_SUPPORT_PROMPT'] = '1'
 import pygame
@@ -88,6 +89,7 @@ command_list = {
         "purge::": "Purge the last response given. eg. thumbs down",
         "note::": "Create a note that is tracked in a separate conversation",
         "whisper::": "Process audio file to text using whipser.",
+        "theme::": "Change the theme for the symbiote cli.",
         "order::": "Issue an order",
     }
 
@@ -134,12 +136,14 @@ prompt_colors = {
     }
 
 # Configure prompt settings.
+'''
 prompt_style = Style.from_dict({
         '': prompt_colors['rich_yellow'], # typed text color
         'prompt': prompt_colors['light_blue'], # prompt color
         'bottom-toolbar': f'bg:{prompt_colors["white"]} {prompt_colors["gray"]}', # Bottom toolbar style
         'bottom-toolbar.off': f'bg:{prompt_colors["off_white"]} {prompt_colors["light_gray"]}',  # Bottom toolbar off style
     })
+'''
 
 pricing = {
        "gpt-4": { "prompt": .03, "completion": .06 },
@@ -183,6 +187,7 @@ symbiote_settings = {
         "image_dir": os.path.join(homedir, ".symbiote") + "/images",
         "notes": os.path.join(homedir, ".symbiote") + "/notes.jsonl",
         "syntax_highlight": False,
+        "theme": 'default',
     }
 
 keybindings = {}
@@ -261,6 +266,10 @@ class symchat():
 
         # Load utils object
         self.symutils = utils.utilities(settings=self.symbiote_settings)
+
+        # Init the shell theme manager
+        self.theme_manager = ThemeManager()
+        self.prompt_style = self.theme_manager.get_theme(self.symbiote_settings['theme'])
 
         self.token_track = {
             'truncated_tokens': 0,
@@ -524,7 +533,7 @@ class symchat():
         def _(event):
             self.user_input = "" 
        
-        chat_session = PromptSession(key_bindings=bindings, vi_mode=self.symbiote_settings['vi_mode'], history=self.history, style=prompt_style)
+        self.chat_session = PromptSession(key_bindings=bindings, vi_mode=self.symbiote_settings['vi_mode'], history=self.history, style=self.prompt_style)
 
         while True:
             # Chack for a change in settings and write them
@@ -556,12 +565,12 @@ class symchat():
                 current_path = '~' + current_path[len(home_dir):]
 
             if self.prompt_only:
-                chat_session.bottom_toolbar = None
+                self.chat_session.bottom_toolbar = None
             else:
-                chat_session.bottom_toolbar = f"Model: {self.symbiote_settings['model']}\nCurrent Conversation: {self.convo_file}\nLast Char Count: {self.token_track['last_char_count']}\nToken Usage:\nUser: {self.token_track['user_tokens']} Assistant: {self.token_track['completion_tokens']} Conversation: {self.token_track['truncated_tokens']} Total Used: {self.token_track['rolling_tokens']}\nCost: ${self.token_track['cost']:.2f}\ncwd: {current_path}"
+                self.chat_session.bottom_toolbar = f"Model: {self.symbiote_settings['model']}\nCurrent Conversation: {self.convo_file}\nLast Char Count: {self.token_track['last_char_count']}\nToken Usage:\nUser: {self.token_track['user_tokens']} Assistant: {self.token_track['completion_tokens']} Conversation: {self.token_track['truncated_tokens']} Total Used: {self.token_track['rolling_tokens']}\nCost: ${self.token_track['cost']:.2f}\ncwd: {current_path}"
 
             if self.run is False:
-                self.user_input = chat_session.prompt(message="symchat> ",
+                self.user_input = self.chat_session.prompt(message="symchat> ",
                                                    multiline=True,
                                                    default=self.user_input,
                                                    vi_mode=self.symbiote_settings['vi_mode']
@@ -1066,6 +1075,25 @@ class symchat():
             self.sym.save_conversation(user_input, self.symbiote_settings['notes'])
 
             return None
+
+        # Trigger menu for cli theme change
+        theme_pattern = r'theme::|theme:(.*):'
+        match = re.search(theme_pattern, user_input)
+        if match:
+            self.suppress = True
+            if match.group(1):
+                theme_name = match.group(1)
+                prompt_style = self.theme_manager.get_theme(theme_name)
+            else:
+                theme_name, prompt_style = self.theme_manager.select_theme() 
+
+            self.chat_session.style = prompt_style
+            self.symbiote_settings['theme'] = theme_name
+            self.sym.update_symbiote_settings(settings=self.symbiote_settings)
+            self.save_settings(settings=self.symbiote_settings)
+
+            return None
+
 
         # Trigger for file:filename processing. Load file content into user_input for ai consumption.
         # file:: - opens file or directory to be pulled into the conversation
