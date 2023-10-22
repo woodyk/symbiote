@@ -53,6 +53,10 @@ os.environ['PYGAME_HIDE_SUPPORT_PROMPT'] = '1'
 import pygame
 import pygame.freetype
 
+from datetime import datetime
+
+start = datetime.now()
+
 command_list = {
         "help::": "This help output.",
         "convo::": "Load, create conversation.",
@@ -60,7 +64,7 @@ command_list = {
         "clear::": "Clear the screen.",
         "flush::": "Flush the current conversation from memory.",
         "tokens::": "Token usage summary.",
-        "save::": "Save setting:: changes.",
+        "save::": "Save  self.symbiote_settingssetting:: changes.",
         "exit::": "Exit symbiote.",
         "setting::": "View, update symbiote settings.",
         "maxtoken::": "Change maxtoken setting.",
@@ -204,6 +208,11 @@ class symchat():
                 write_through=True
             )
 
+        self.orig_stdout = sys.stdout
+
+        if 'stdout' in kwargs:
+            self.set_stdout(kwargs['stdout'])
+
         self.symbiote_settings = symbiote_settings 
         self.audio_triggers = audio_triggers
         self.flush = False
@@ -217,6 +226,13 @@ class symchat():
             self.working_directory = kwargs['working_directory']
         else:
             self.working_directory = os.getcwd()
+
+        self.exit = False
+
+        if 'output' in kwargs:
+            self.output = kwargs['output']
+        else:
+            self.output = True
        
         # Set symbiote home path parameters
         home_dir = os.path.expanduser("~")
@@ -235,6 +251,9 @@ class symchat():
         else:
             self.symbiote_settings = self.load_settings()
 
+        if 'stream' in kwargs:
+            self.symbiote_settings['stream'] = kwargs['stream']
+
         # Load symbiote core 
         self.sym = core.symbiotes(settings=self.symbiote_settings)
         signal.signal(signal.SIGINT, self.sym.handle_control_c)
@@ -248,8 +267,12 @@ class symchat():
             os.mkdir(self.conversations_dir)
 
         # Set the default conversation
-        self.conversations_file = os.path.join(self.conversations_dir, self.symbiote_settings['conversation'])
-        self.convo_file = os.path.basename(self.conversations_file)
+        if self.symbiote_settings['conversation'] == '/dev/null':
+            self.conversations_file = self.symbiote_settings['conversation']
+            self.convo_file = self.conversations_file
+        else:
+            self.conversations_file = os.path.join(self.conversations_dir, self.symbiote_settings['conversation'])
+            self.convo_file = os.path.basename(self.conversations_file)
 
         # Set conversations catch-all file 
         self.conversations_dump = os.path.join(self.conversations_dir, "dump.jsonl")
@@ -298,6 +321,19 @@ class symchat():
 
         self.role = "user"
 
+    def set_stdout(self, state):
+        if state is False:
+            sys.stdout = open(os.devnull, 'w')
+        elif state is True:
+            sys.stdout = self.orig_stdout 
+        else:
+            print("Invalid state. Use 0 to suppress stdout and 1 to restore stdout.")
+
+    def cktime(self):
+        stop = datetime.now()
+        diff = stop - start
+        print(start, stop, diff)
+
     def keyboardContinue(self):
         keyboard = Controller()
 
@@ -311,6 +347,8 @@ class symchat():
         keyboard.release(Key.enter)
 
     def symhelp(self):
+        self.suppress = True
+        self.exit = True
         help_output = "Symbiote Help Menu\n------------------\nAvailable keywords:\n"
         # Sort the command list by keys
         sorted_commands = sorted(command_list.items())
@@ -380,6 +418,7 @@ class symchat():
                 return
 
             conversation_files.insert(0, Choice("notes", name="Open notes conversation."))
+            conversation_files.insert(0, Choice("null", name="Do not record conversations."))
             conversation_files.append(Choice("new", name="Create new conversation."))
             conversation_files.append(Choice("clear", name="Clear conversation."))
             conversation_files.append(Choice("export", name="Export conversation."))
@@ -395,6 +434,7 @@ class symchat():
 
         if selected_file == "new":
             selected_file = inquirer.text(message="File name:").execute()
+            return 
         elif selected_file == "notes":
             selected_file = self.symbiote_settings['notes']
         elif selected_file == "clear":
@@ -429,11 +469,17 @@ class symchat():
             self.sym.export_conversation(file_name)
 
             return
-
-        self.symbiote_settings['conversation'] = selected_file
-        self.conversations_file = os.path.join(self.conversations_dir, selected_file)
-        self.current_conversation = self.sym.load_conversation(self.conversations_file)
-        self.convo_file = os.path.basename(self.conversations_file)
+        
+        if selected_file == "null": 
+            self.conversations_file = '/dev/null'
+            self.symbiote_settings['conversation'] = self.conversations_file
+            self.current_conversation = []
+            self.convo_file = self.conversations_file
+        else:
+            self.symbiote_settings['conversation'] = selected_file
+            self.conversations_file = os.path.join(self.conversations_dir, selected_file)
+            self.current_conversation = self.sym.load_conversation(self.conversations_file)
+            self.convo_file = os.path.basename(self.conversations_file)
 
         print(f"Loaded conversation: {selected_file}")
 
@@ -489,6 +535,32 @@ class symchat():
 
         return None
 
+    def process_input(self, *args, **kwargs):
+        if 'user_input' in kwargs:
+            user_input = kwargs['user_input']
+            query = user_input
+        else:
+            return None
+
+        if 'working_directory' in kwargs:
+            working_directory = kwargs['working_directory']
+            os.chdir(working_directory)
+        else:
+            working_directory = os.getcwd()
+
+
+        self.set_stdout(False)
+        user_input = self.process_commands(user_input)
+        self.save_settings(settings=self.symbiote_settings)
+        self.set_stdout(True)
+
+        if self.exit:
+            self.exit = False
+            return self.current_conversation, None, None, None, None, None, query, user_input
+
+        returned = self.send_message(user_input)
+
+        return returned
 
     def chat(self, *args, **kwargs):
         # Begin symchat loop
@@ -578,15 +650,21 @@ class symchat():
 
             self.user_input = self.process_commands(self.user_input)
 
+
             if check_settings != self.settings_hash:
                 self.save_settings(settings=self.symbiote_settings)
                 self.settings_hash = check_settings
 
-            if self.user_input is None or re.search(r'^\n+$', self.user_input) or self.user_input== "":
+            if self.exit:
+                self.exit = False
                 self.user_input = ""
+                continue
+
+            if self.user_input is None or re.search(r'^\n+$', self.user_input) or self.user_input== "":
                 if self.run is True and self.enable is False:
-                    return "OK"
+                    return None 
                     break
+                self.user_input = ""
 
                 self.enable = False
                 self.run = False
@@ -605,8 +683,6 @@ class symchat():
 
             continue
 
-        return returned 
-
     def send_message(self, user_input):
         #if self.suppress and not self.run:
         #    self.launch_animation(True)
@@ -615,7 +691,7 @@ class symchat():
         if self.symbiote_settings['debug']:
             pp.pprint(self.current_conversation)
 
-        returned = self.sym.send_request(user_input, self.current_conversation, completion=self.symbiote_settings['completion'], suppress=self.suppress, role=self.role, flush=self.flush, logging=self.logging, timeout=self.timeout)
+        returned = self.sym.send_request(user_input, self.current_conversation, completion=self.symbiote_settings['completion'], suppress=self.suppress, role=self.role, flush=self.flush, logging=self.logging, timeout=self.timeout, output=self.output)
 
         #if self.suppress and not self.run:
         #    self.launch_animation(False)
@@ -660,6 +736,7 @@ class symchat():
         return returned
 
     def symtokens(self):
+        self.suppress = True
         print(f"\nToken Details:\n\tLast User: {self.token_track['user_tokens']}\n\tTotal User: {self.token_track['total_user_tokens']}\n\tLast Completion: {self.token_track['completion_tokens']}\n\tTotal Completion: {self.token_track['total_completion_tokens']}\n\tLast Conversation: {self.token_track['truncated_tokens']}\n\tTotal Used Tokens: {self.token_track['rolling_tokens']}\n\tToken Cost: ${self.token_track['cost']:.2f}\n")
         return self.token_track
 
@@ -683,8 +760,8 @@ class symchat():
             return None
 
         if re.search(r'^help::', user_input):
-            self.symhelp()
-            return None
+            output = self.symhelp()
+            return output 
 
         if re.search(r"^clear::|^reset::", user_input):
             os.system('reset')
@@ -692,7 +769,7 @@ class symchat():
 
         if re.search(r"^tokens::", user_input):
             output = self.symtokens()
-            return None
+            return output
 
         if re.search(r"^save::", user_input):
             self.save_settings(settings=self.symbiote_settings)
@@ -707,6 +784,7 @@ class symchat():
         prompter_pattern = r'prompter::|prompter:(.*):'
         match = re.search(prompter_pattern, user_input)
         if match:
+            self.exit = True
             if match.group(1):
                 file_path = match.group(1)
 
@@ -727,7 +805,9 @@ class symchat():
             file_path = os.path.expanduser(file_path)
             absolute_path = os.path.abspath(file_path)
 
-            return None
+            prompts = {}
+
+            return prompts 
 
         # Trigger to read clipboard contents
         clipboard_pattern = r'clipboard::|clipboard:(.*):'
@@ -740,7 +820,10 @@ class symchat():
                 if sub_command == 'get':
                     if re.search(r'^https?://\S+', contents):
                         print(f"Fetching content from: {contents}")
-                        website_content = self.symutils.pull_website_content(contents, browser='firefox')
+                        crawler = webcrawler.WebCrawler(browser='firefox')
+                        pages = crawler.pull_website_content(url, search_term=None, crawl=False, depth=None)
+                        for md5, page in pages.items():
+                            website_content += page['content']
                         user_input = user_input[:match.start()] + website_content + user_input[match.end():]
             else:
                 user_input = user_input[:match.start()] + contents + user_input[match.end():]
@@ -752,6 +835,7 @@ class symchat():
         match = re.search(role_pattern, user_input)
         if match:
             self.suppress = True
+            self.exit = True
             import symbiote.roles as roles
             available_roles = roles.get_roles()
 
@@ -780,7 +864,7 @@ class symchat():
             return available_roles[selected_role] 
 
         # Trigger to apply a system role
-        system_pattern = r'^system::(.*)'
+        system_pattern = r'^system:(.*):'
         match = re.search(system_pattern, user_input)
         if match:
             self.suppress = True
@@ -794,6 +878,7 @@ class symchat():
         match = re.search(setting_pattern, user_input)
         if match:
             self.suppress = True
+            self.exit = True
             if match.group(1):
                 setting = match.group(1)
                 set_value = match.group(2)
@@ -819,48 +904,57 @@ class symchat():
                         continue
                     print(f"\t{setting}: {self.symbiote_settings[setting]}")
 
-            return None
+            return self.symbiote_settings 
 
         # Trigger for changing max_tokens. 
         maxtoken_pattern = r'^maxtoken::|maxtoken:(.*):'
         match = re.search(maxtoken_pattern, user_input)
         if match:
+            self.suppress = True
+            self.exit = True
             if match.group(1):
                 setmaxtoken = int(match.group(1))
                 self.sym.change_max_tokens(setmaxtoken, update=True)
             else:
                 print("Maxtoken menu needed.")
+                return None
 
-            return None
+            return setmaxtoken
 
         # Trigger for changing gpt model 
         model_pattern = r'^model::|model:(.*):'
         match = re.search(model_pattern, user_input)
         if match:
+            self.suppress = True
+            self.exit = True
             if match.group(1):
                 model_name = match.group(1).strip()
                 self.symmodel(model_name)
             else:
                 self.symmodel()
 
-            return None
+            return self.symbiote_settings['model'] 
 
         # Trigger for changing the conversation file
         convo_pattern = r'^convo::|convo:(.*):'
         match = re.search(convo_pattern, user_input)
         if match:
+            self.suppress = True
+            self.exit = True
             if match.group(1):
                 convo_name = match.group(1).strip()
                 self.symconvo(convo_name) 
             else:
                 self.symconvo()
         
-            return None
+            return None 
 
         # Trigger for changing working directory in chat
         cd_pattern = r'^cd::|cd:(.*):'
         match = re.search(cd_pattern, user_input)
         if match:
+            self.suppress = True
+            self.exit = True
             if match.group(1):
                 requested_directory = match.group(1).strip()
             else:
@@ -876,26 +970,31 @@ class symchat():
                 os.chdir(self.working_directory)
             else:
                 print(f"Directory does not exit: {requested_directory}")
+                return None
 
-            return None
+            return requested_directory 
 
         # Trigger to list verbal keywords prompts.
         keywords_pattern = r'^keywords::'
         match = re.search(keywords_pattern, user_input)
         if match:
+            self.suppress = True
+            self.exit = True
             for keyword in self.audio_triggers:
                 if keyword == 'perifious':
                     continue
                 print(f'trigger: {self.audio_triggers[keyword][0]}')
 
-            return None
+            return self.audio_triggers 
 
         # Trigger to get current working directory
         pwd_pattern = r'^pwd::'
         match = re.search(pwd_pattern, user_input)
         if match:
+            self.suppress = True
+            self.exit = True
             print(self.working_directory)
-            return None
+            return self.working_directory 
 
         # Trigger for extract:: processing. Load file content and generate a json object about the file.
         summary_pattern = r'extract::|extract:(.*):(.*):|extract:(.*):'
@@ -904,6 +1003,7 @@ class symchat():
         
         if match:
             self.suppress = True
+            self.exit = True
 
             if match.group(1):
                 file_path = match.group(1)
@@ -940,14 +1040,14 @@ class symchat():
                 index = inquirer.confirm(message=f'Index {file_path}?').execute()
 
                 if index is True:
-                    self.symutils.createIndex(file_path, reindex=False)
+                    result = self.symutils.createIndex(file_path, reindex=False)
 
-                return None
+                return result
             elif not os.path.isfile(file_path):
                 print(f"File not found: {file_path}")
                 return None
 
-            self.symutils.createIndex(file_path, reindex=False)
+            result = self.symutils.createIndex(file_path, reindex=False)
 
             #summary = self.symutils.summarizeFile(file_path)
 
@@ -963,15 +1063,17 @@ class symchat():
         match = re.search(flush_pattern, user_input)
         if match:
             self.suppress = True
+            self.exit = True
             self.current_conversation = []
 
-            return user_input
+            return None 
 
-        # Trigger to search es index
+        # Trigger for search:: to search es index
         search_pattern = r'^search::|^search:(.*):'
         match = re.search(search_pattern, user_input)
         if match:
             self.suppress = True
+            self.exit = True
             if match.group(1):
                 query = match.group(1)
             elif self.symbiote_settings['listen']:
@@ -987,6 +1089,7 @@ class symchat():
                 results = self.symutils.searchIndex(query)
 
                 user_input = self.symutils.grepFiles(results, query)
+
                 if self.symbiote_settings['debug']:
                     print(json.dumps(results, indent=4))
                     print(user_input)
@@ -998,8 +1101,12 @@ class symchat():
         # Trigger for history::. Show the history of the messages.
         history_pattern = r'^history::|^history:(.*):'
         match = re.search(history_pattern, user_input)
+        if self.symbiote_settings['conversation'] == '/dev/null':
+            return
+
         if match:
             self.suppress = True
+            self.exit = True
             if match.group(1):
                 history_length = int(match.group(1))
                 print(history_length)
@@ -1007,14 +1114,16 @@ class symchat():
             else:
                 history_length = False 
 
-            self.sym.export_conversation(self.symbiote_settings['conversation'], history=True, lines=history_length)
+            history = self.sym.export_conversation(self.symbiote_settings['conversation'], history=True, lines=history_length)
 
-            return None
+            return history
 
         # Trigger for rendering images from text input
         render_pattern = r'^render:(.*):'
         match = re.search(render_pattern, user_input)
         if match:
+            self.suppress = True
+            self.exit = True
             if match.group(1):
                 query = match.group(1)
                 result = self.sym.process_openaiImage(query)
@@ -1022,12 +1131,14 @@ class symchat():
                     command = f"open {self.symbiote_settings['image_dir']}"
                     self.symutils.exec_command(command)
 
-            return None
+            return result
 
         # Trigger for code:: extraction from provided text
         code_pattern = r'code::|code:(.*):'
         match = re.search(code_pattern, user_input)
         if match:
+            self.suppress = True
+            self.exit = True
             if match.group(1):
                 text = match.group(1)
                 if re.search(r'^https?://\S+', text):
@@ -1046,12 +1157,13 @@ class symchat():
             for file in files:
                 print(file)
 
-            return None
+            return files
 
         # Trigger for purge:: removing the last message received
         purge_pattern = r'purge::|purge:(.*):'
         match = re.search(purge_pattern, user_input)
         if match:
+            self.suppress = True
             if match.group(1):
                 last_messages = match.group(1)
             else:
@@ -1067,8 +1179,10 @@ class symchat():
         note_pattern = r'note::|note:(.*):'
         match = re.search(note_pattern, user_input)
         if match:
+            self.suppress = True
+            self.exit = True
             if match.group(1):
-                pass
+                user_input = match.group(1)
             else:
                 pass
 
@@ -1081,6 +1195,7 @@ class symchat():
         match = re.search(theme_pattern, user_input)
         if match:
             self.suppress = True
+            self.exit = True
             if match.group(1):
                 theme_name = match.group(1)
                 prompt_style = self.theme_manager.get_theme(theme_name)
@@ -1092,7 +1207,7 @@ class symchat():
             self.sym.update_symbiote_settings(settings=self.symbiote_settings)
             self.save_settings(settings=self.symbiote_settings)
 
-            return None
+            return theme_name
 
 
         # Trigger for file:filename processing. Load file content into user_input for ai consumption.
@@ -1177,7 +1292,7 @@ class symchat():
         match = re.search(exec_pattern, user_input)
         if match:
             self.suppress = True
-            result = False
+            self.exit = True
             if match.group(1):
                 command = match.group(1)
                 result = self.symutils.exec_command(command)
@@ -1186,7 +1301,7 @@ class symchat():
             else:
                 print(f"No command specified")
 
-            return None
+            return result
 
         # Trigger to replay prior log data.
         replay_pattern = r'replay::|replay:(.*):'
@@ -1326,6 +1441,7 @@ class symchat():
                 content = f"Directory content of {path}: \n" + "\n".join(dir_content)
                 insert_content = ' ``` {} ``` '.format(content)
                 user_input = re.sub(ls_pattern, insert_content, user_input)
+                print(user_input)
             else:
                 print("Directory not found. Please try again.")
                 return None
@@ -1366,41 +1482,6 @@ class symchat():
             return user_input 
 
         return user_input
-
-    '''
-    def pull_website_content(self, url):
-        # Headers with User-Agent
-        headers = {
-            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/89.0.4389.82 Safari/537.36"
-        }
-
-        try:
-            response = requests.get(url, headers=headers)
-            response.raise_for_status()
-        except requests.exceptions.RequestException as e:
-            print(f"Error fetching the website content: {e}")
-            return ""
-
-        soup = BeautifulSoup(response.text, 'html.parser')
-
-        # Remove all script and style elements
-        for script in soup(["script", "style"]):
-            script.decompose()
-
-        # Get the text content
-        text = soup.get_text()
-
-        # Remove extra whitespace and newlines
-        lines = (line.strip() for line in text.splitlines())
-        chunks = (phrase.strip() for line in lines for phrase in line.split("  "))
-        text = '\n'.join(chunk for chunk in chunks if chunk)
-
-        # Encapsulate the extracted text within triple backticks
-        text = f"URL / Website: {url}.\n\n```{text}```\n\n"
-        text = str(text)
-
-        return text
-    '''
 
     def clear_screen(self):
         os.system('cls' if os.name == 'nt' else 'clear')

@@ -36,6 +36,8 @@ class symbiotes:
         self.remember = self.models[self.settings['model']]
 
         self.ce = codeextract.CodeBlockIdentifier()
+
+        self.output = True
         
     def update_symbiote_settings(self, settings, *args, **kwargs):
         self.settings = settings 
@@ -223,8 +225,12 @@ class symbiotes:
         if self.settings['debug']:
             print(json.dumps(messages, indent=4))
 
-        if not self.suppress:
+        stream = self.settings['stream']
+
+        if self.output:
             print("---")
+        else:
+            stream = False
 
         message = " "
         chunk_block = ""
@@ -239,7 +245,7 @@ class symbiotes:
                 max_tokens = self.settings['max_tokens'],
                 temperature = self.settings['temperature'],
                 top_p = self.settings['top_p'],
-                stream = self.settings['stream'],
+                stream = stream,
                 presence_penalty = self.settings['presence_penalty'],
                 frequency_penalty = self.settings['frequency_penalty'],
                 stop = self.settings['stop'] 
@@ -257,39 +263,38 @@ class symbiotes:
 
         # Handle real time stream output from openai response
         chunk_size = 8 
-        if self.settings['stream']:
+        if stream and self.output:
             for chunk in response:
                 try:
                     chunk_block += chunk.choices[0].delta.content
+                    message += chunk_block
                     if len(chunk_block) >= chunk_size:
-                        if not self.suppress:
-                            if self.settings['syntax_highlight']:
-                                snip = self.ce.syntax_highlighter(text=chunk_block)
-                                print(snip, end="")
-                            else:
-                                print(chunk_block, end="")
+                        if self.settings['syntax_highlight']:
+                            snip = self.ce.syntax_highlighter(text=chunk_block)
+                            print(snip, end="")
+                        else:
+                            print(chunk_block, end="")
                         chunk_block = ""
                 except:
                     continue
                 
-                message += chunk.choices[0].delta.content
+            if self.settings['syntax_highlight']:
+                snip = self.ce.syntax_highlighter(text=chunk_block)
+                print(snip, end="")
+            else:
+                print(chunk_block)
 
-            if not self.suppress:
-                if self.settings['syntax_highlight']:
-                    snip = self.ce.syntax_highlighter(text=chunk_block)
-                    print(snip, end="")
-                else:
-                    print(chunk_block)
+            message += chunk_block
         else:
             message = response.choices[0].message.content
-            if not self.suppress:
+            if self.output:
                 if self.settings['syntax_highlight']:
                     snip = self.ce.syntax_highlighter(text=message)
                     print(snip)
                 else:
                     print(message)
 
-        if not self.suppress:
+        if self.output:
             print("\n---")
 
         if self.settings['max_tokens'] < self.settings['default_max_tokens']:
@@ -339,7 +344,7 @@ class symbiotes:
 
         return conversation
 
-    def send_request(self, user_input, conversation, completion=False, suppress=False, role="user", flush=False, logging=True, timeout=30):
+    def send_request(self, user_input, conversation, completion=False, suppress=False, role="user", flush=False, logging=True, timeout=30, output=True):
         self.conversation = conversation
         self.suppress = suppress
         total_trunc_tokens = 0
@@ -347,6 +352,9 @@ class symbiotes:
         total_assist_tokens = 0
         char_count = 0
         completion_content = []
+        self.output = output
+
+        original_user_input = user_input
 
         # Check if we are processing a string or other data type.
         if not isinstance(user_input, str):
@@ -373,8 +381,9 @@ class symbiotes:
                 self.save_conversation(user_content, self.conversations_file)
 
         # Handle suppressed messaging
-        if suppress:
-            return self.conversation, 0, 0, 0, char_count, self.remember
+        if self.suppress:
+            print("suppression set returning")
+            return self.conversation, 0, 0, 0, char_count, self.remember, original_user_input, None
 
         if completion:
             truncated_conversation, total_user_tokens, char_count = self.truncate_messages(completion_content, flush=flush)
@@ -388,7 +397,7 @@ class symbiotes:
             try:
                 send_message = truncated_conversation.pop()
             except Exception as e:
-                return self.conversation, 0, 0, 0, char_count, self.remember
+                return self.conversation, 0, 0, 0, char_count, self.remember, original_user_input, None
             prompt = send_message['content']
             response = self.process_someone(prompt, timeout=timeout)
         elif self.settings['model'] == 'dummy':
@@ -411,7 +420,7 @@ class symbiotes:
             self.save_conversation(assistant_content, self.conversations_file)
         #conversation = self.load_conversation(self.conversations_file)
 
-        return truncated_conversation, (total_user_tokens + total_assist_tokens), total_user_tokens, total_assist_tokens, char_count, self.remember
+        return truncated_conversation, (total_user_tokens + total_assist_tokens), total_user_tokens, total_assist_tokens, char_count, self.remember, original_user_input, response
 
     def load_conversation(self, conversations_file, flush=False):
         ''' Load openai conversation json file '''
@@ -528,8 +537,6 @@ class symbiotes:
     def handle_control_x(self):
         print("\nControl-X detected. Sending 'stop::' command.")
         conversation = []
-        self.send_request("stop::", conversation)
-
         return
 
     def change_max_tokens(self, max_tokens, update=False):
@@ -584,6 +591,7 @@ class symbiotes:
         with open(input_file, 'r') as infile:
             lines_to_read = infile.readlines()[-lines:] if lines else infile.readlines()
 
+        full_history = str()
         with open(output_filename, 'w') as outfile:
             for line in lines_to_read:
                 # Parse each line as a JSON object
@@ -608,9 +616,12 @@ class symbiotes:
                 formatted_data += f"Content:\n{content}\n"
                 formatted_data += '-'*50 + '\n' # separator
 
+                full_history += formatted_data
                 if history:
                     print(formatted_data)
                 else:
                     # Write the formatted data to the output file
                     outfile.write(formatted_data)
                     print(f"Data saved to {output_filename}")
+
+        return full_history
