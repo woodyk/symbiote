@@ -12,6 +12,7 @@ import pygame.freetype
 import pytesseract
 import numpy as np
 import cv2
+import webcolors
 
 # Color Codes
 colors = {
@@ -45,6 +46,7 @@ fade_intensity = .1  # The higher this value, the faster the trails will fade
 random_fade = False
 new_stream = True
 persistent_dot = False
+font = 'Courier'
 
 setting_message = None
 setting_message_expiration = 0
@@ -73,6 +75,206 @@ edge_surface = pygame.Surface((width, height), pygame.SRCALPHA)
 # Create streams
 new_streams = []
 current_resolution = 0
+
+class ColorConverter:
+    def convert(self, input_color, output_format):
+        if isinstance(input_color, tuple) and len(input_color) == 3:
+            # Input is RGB
+            if output_format.lower() == 'hex':
+                return self.rgb_to_hex(input_color)
+            elif output_format.lower() == 'color':
+                return self.rgb_to_name(input_color)
+        elif isinstance(input_color, str):
+            if input_color.startswith('#'):
+                # Input is Hex
+                if output_format.lower() == 'rgb':
+                    return self.hex_to_rgb(input_color)
+                elif output_format.lower() == 'color':
+                    return self.hex_to_name(input_color)
+            else:
+                # Input is color name
+                if output_format.lower() == 'rgb':
+                    return self.name_to_rgb(input_color)
+                elif output_format.lower() == 'hex':
+                    return self.name_to_hex(input_color)
+        else:
+            raise ValueError("Invalid input color")
+
+    def get_color_format(self, input_color):
+        if isinstance(input_color, tuple):
+            output_format = 'rgb'
+        elif input_color.startswith('#'):
+            output_format = 'hex'
+        elif input_color in webcolors.CSS3_NAMES_TO_HEX:
+            output_format = 'color'
+        else:
+            raise ValueError("Invalid input color")
+
+        return output_format
+
+
+    def get_complimentary_colors(self, input_color, output_format=self.get_color_format(input_color), num_colors=5):
+        rgb = self.convert(input_color, 'rgb')
+        r, g, b = rgb
+
+        # Generate complimentary colors
+        colors = []
+        for i in range(num_colors):
+            comp_color = ((255 - r + i) % 256, (255 - g + i) % 256, (255 - b + i) % 256)
+            if input_format == 'hex':
+                comp_color = self.rgb_to_hex(comp_color)
+            formatted_color = self.convert((r, g, b), output_format)
+            colors.append(formated_color)
+
+        return colors
+
+    def get_contrasting_colors(self, input_color, output_format=self.get_color_format(input_color), num_colors=5):
+        rgb = self.convert(input_color, 'rgb')
+        r, g, b = rgb
+
+        # Generate contrasting colors
+        brightness = (r * 299 + g * 587 + b * 114) / 1000
+        colors = []
+        for i in range(num_colors):
+            if brightness < 128:
+                contrast_color = ((255 - i) % 256, (255 - i) % 256, (255 - i) % 256)  # white
+            else:
+                contrast_color = (i % 256, i % 256, i % 256)  # black
+
+            formatted_color = self.convert((r, g, b), output_format)
+            colors.append(contrast_color)
+
+        return colors
+
+    def get_analogous_colors(self, input_color, output_format=self.get_color_format(input_color), num_colors=5):
+        rgb = self.convert(input_color, 'rgb')
+        h, s, l = colorsys.rgb_to_hls(rgb[0]/255, rgb[1]/255, rgb[2]/255)
+
+        # Generate analogous colors
+        colors = []
+        for i in range(num_colors):
+            h_new = (h + i/float(num_colors)) % 1
+            r, g, b = [int(x*255) for x in colorsys.hls_to_rgb(h_new, s, l)]
+            formatted_color = self.convert((r, g, b), output_format)
+            colors.append(formated_color)
+        return colors
+
+    def get_triadic_colors(self, input_color, output_format=self.get_color_format(input_color), num_colors=5):
+        rgb = self.convert(input_color, 'rgb')
+        h, s, l = colorsys.rgb_to_hls(rgb[0]/255, rgb[1]/255, rgb[2]/255)
+        h1 = (h + 1/3) % 1
+        h2 = (h + 2/3) % 1
+        colors = [rgb]
+        for h_new in [h1, h2]:
+            r, g, b = [int(x*255) for x in colorsys.hls_to_rgb(h_new, s, l)]
+            formatted_color = self.convert((r, g, b), output_format)
+            colors.append(formated_color)
+        return colors
+
+    def get_split_complementary_colors(self, input_color, output_format=self.get_color_format(input_color), num_colors=5):
+        rgb = self.convert(input_color, 'rgb')
+        h, s, l = colorsys.rgb_to_hls(rgb[0]/255, rgb[1]/255, rgb[2]/255)
+        h1 = (h + 1/2 + 1/12) % 1
+        h2 = (h + 1/2 - 1/12) % 1
+        colors = [rgb]
+        for h_new in [h1, h2]:
+            r, g, b = [int(x*255) for x in colorsys.hls_to_rgb(h_new, s, l)]
+            formatted_color = self.convert((r, g, b), output_format)
+            colors.append(formated_color)
+        return colors
+
+    def get_tetradic_colors(self, input_color, output_format=self.get_color_format(input_color), num_colors=5):
+        rgb = self.convert(input_color, 'rgb')
+        h, s, l = colorsys.rgb_to_hls(rgb[0]/255, rgb[1]/255, rgb[2]/255)
+        colors = [rgb]
+        for i in range(1, 4):
+            h_new = (h + i/4) % 1
+            r, g, b = [int(x*255) for x in colorsys.hls_to_rgb(h_new, s, l)]
+            formatted_color = self.convert((r, g, b), output_format)
+            colors.append(formated_color)
+        return colors
+
+    def get_square_colors(self, input_color, output_format=self.get_color_format(input_color), num_colors=5):
+        return self.get_tetradic_colors(input_color, output_format, num_colors)
+
+    def get_monochromatic_colors(self, input_color, output_format=self.get_color_format(input_color),  num_colors=5):
+        rgb = self.convert(input_color, 'rgb')
+        h, s, l = colorsys.rgb_to_hls(rgb[0]/255, rgb[1]/255, rgb[2]/255)
+        colors = []
+        for i in range(num_colors):
+            l_new = l * (i+1)/float(num_colors)
+            r, g, b = [int(x*255) for x in colorsys.hls_to_rgb(h, s, l_new)]
+            formatted_color = self.convert((r, g, b), output_format)
+            colors.append(formatted_color)
+        return colors
+
+    def rgb_to_hex(self, rgb):
+        return '#{:02x}{:02x}{:02x}'.format(rgb[0], rgb[1], rgb[2])
+
+    def hex_to_rgb(self, hex_color):
+        h = hex_color.lstrip('#')
+        return tuple(int(h[i:i+2], 16) for i in (0, 2, 4))
+
+    def name_to_rgb(self, name):
+        rgb = webcolors.name_to_rgb(name)
+        return rgb.red, rgb.green, rgb.blue
+
+    def name_to_hex(self, name):
+        return webcolors.name_to_hex(name)
+
+    def rgb_to_name(self, rgb):
+        try:
+            return webcolors.rgb_to_name(rgb)
+        except ValueError:
+            return None
+
+    def hex_to_name(self, hex_color):
+        try:
+            return webcolors.hex_to_name(hex_color)
+        except ValueError:
+            return None
+
+    def get_color_names(self):
+        for color_name in webcolors.CSS3_NAMES_TO_HEX:
+            print(color_name)
+
+        return webcolors.CSS3_NAMES_TO_HEX
+
+    def iterate_all_colors(self):
+        for r in range(256):
+            for g in range(256):
+                for b in range(256):
+                    rgb = (r, g, b)
+                    hex_color = self.rgb_to_hex(rgb)
+                    color_name = self.rgb_to_name(rgb)
+                    # ANSI escape code for colored output
+                    colored_block = f"\033[48;2;{r};{g};{b}m    \033[m"
+                    print(f"RGB: {rgb}, Hex: {hex_color}, Color Name: {color_name} {colored_block}")
+
+    # method aliases
+    co = convert
+    gc = get_color_names
+    ic = iterate_all_colors
+    contrast = get_contrasting_colors
+    compliment = get_complimentary_colors
+
+    # Example usage
+    '''
+    converter = ColorConverter()
+    hex_color = converter.convert('red', 'hex')  # Output: '#ff0000'
+    rgb_color = converter.convert('#ff0000', 'rgb')  # Output: (255, 0, 0)
+    color_name = converter.convert('#ff0000', 'color')  # Output: 'red'
+    '''
+
+color = ColorConverter()
+hex_color = color.co('purple', 'hex')
+rgb_color = color.co('magenta', 'rgb')
+print(rgb_color)
+print(hex_color)
+a = color.contrast('magenta', 6)
+b = color.compliment('magenta', 6)
+print(a)
+print(b)
 
 def save_settings():
     print(f"Settings saved.")
@@ -212,6 +414,13 @@ def detect_and_draw_contours(surface):
 
 # Help menu
 help_menu = False
+
+def rgb_to_hex(rgb):
+    return '#{:02x}{:02x}{:02x}'.format(rgb[0], rgb[1], rgb[2])
+
+def hex_to_rgb(hex):
+    h = hex.lstrip('#')
+    return tuple(int(h[i:i+2], 16) for i in (0, 2, 4))
 
 def display_help_menu():
     # Create a semi-transparent surface

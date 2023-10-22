@@ -267,8 +267,8 @@ class symbiotes:
             for chunk in response:
                 try:
                     chunk_block += chunk.choices[0].delta.content
-                    message += chunk_block
                     if len(chunk_block) >= chunk_size:
+                        message += chunk_block
                         if self.settings['syntax_highlight']:
                             snip = self.ce.syntax_highlighter(text=chunk_block)
                             print(snip, end="")
@@ -277,14 +277,14 @@ class symbiotes:
                         chunk_block = ""
                 except:
                     continue
-                
-            if self.settings['syntax_highlight']:
-                snip = self.ce.syntax_highlighter(text=chunk_block)
-                print(snip, end="")
-            else:
-                print(chunk_block)
-
-            message += chunk_block
+            
+            if len(chunk_block) > 0:
+                if self.settings['syntax_highlight']:
+                    snip = self.ce.syntax_highlighter(text=chunk_block)
+                    print(snip)
+                else:
+                    print(chunk_block)
+                message += chunk_block
         else:
             message = response.choices[0].message.content
             if self.output:
@@ -295,11 +295,11 @@ class symbiotes:
                     print(message)
 
         if self.output:
-            print("\n---")
+            print("---\n")
 
         if self.settings['max_tokens'] < self.settings['default_max_tokens']:
             message = "Data consumed."
-       
+
         return message.strip()
 
     def split_user_input_into_chunks(self, user_input):
@@ -375,20 +375,21 @@ class symbiotes:
                 "content": user_input_chunk
             }
 
-            conversation.append(user_content)
+            self.conversation.append(user_content)
             completion_content.append(user_content)
             if logging:
                 self.save_conversation(user_content, self.conversations_file)
 
         # Handle suppressed messaging
         if self.suppress:
-            print("suppression set returning")
+            if self.settings['debug']:
+                print("suppression set returning")
             return self.conversation, 0, 0, 0, char_count, self.remember, original_user_input, None
 
         if completion:
             truncated_conversation, total_user_tokens, char_count = self.truncate_messages(completion_content, flush=flush)
         else:
-            truncated_conversation, total_user_tokens, char_count = self.truncate_messages(conversation, flush=flush)
+            truncated_conversation, total_user_tokens, char_count = self.truncate_messages(self.conversation, flush=flush)
 
         # Push queries to model
         if self.settings['model'] == 'symbiote':
