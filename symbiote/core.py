@@ -452,7 +452,7 @@ class symbiotes:
 
         jsonl_string = json.dumps(json_conv)
 
-        with open(conversations_file, 'a') as file:
+        with open(conversations_file, 'a+') as file:
             #json.dump(data, file, indent=2)
             file.write(jsonl_string + "\n")
 

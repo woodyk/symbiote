@@ -32,6 +32,7 @@ pip3 install .
 For linux support on ubuntu be sure to add your user to the 'input' group.
 
 # ToDo
+- Built in devops tool kit for interacting with the commands you run and configurations you create
 - Create documentation and usage guide.
 - Create usable demo cases.
 - Add scheduled checking ability. Look for change in file or on api result and provide a response.

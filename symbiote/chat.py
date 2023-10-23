@@ -417,11 +417,11 @@ class symchat():
             if not conversation_files:
                 return
 
-            conversation_files.insert(0, Choice("notes", name="Open notes conversation."))
             conversation_files.insert(0, Choice("null", name="Do not record conversations."))
-            conversation_files.append(Choice("new", name="Create new conversation."))
-            conversation_files.append(Choice("clear", name="Clear conversation."))
-            conversation_files.append(Choice("export", name="Export conversation."))
+            conversation_files.insert(0, Choice("notes", name="Open notes conversation."))
+            conversation_files.insert(0, Choice("clear", name="Clear conversation."))
+            conversation_files.insert(0, Choice("export", name="Export conversation."))
+            conversation_files.insert(0, Choice("new", name="Create new conversation."))
 
             selected_file = inquirer.select(
                 message="Select a conversation:",
@@ -434,7 +434,6 @@ class symchat():
 
         if selected_file == "new":
             selected_file = inquirer.text(message="File name:").execute()
-            return 
         elif selected_file == "notes":
             selected_file = self.symbiote_settings['notes']
         elif selected_file == "clear":
@@ -835,7 +834,6 @@ class symchat():
         match = re.search(role_pattern, user_input)
         if match:
             self.suppress = True
-            self.exit = True
             import symbiote.roles as roles
             available_roles = roles.get_roles()
 
@@ -1134,17 +1132,21 @@ class symchat():
             return result
 
         # Trigger for code:: extraction from provided text
+        ''' Add options for running, extracting and editing code on the fly '''
         code_pattern = r'code::|code:(.*):'
         match = re.search(code_pattern, user_input)
         if match:
+            codeRun = False
             self.suppress = True
-            self.exit = True
+            codeidentify = codeextract.CodeBlockIdentifier(last_message['content'])
             if match.group(1):
                 text = match.group(1)
                 if re.search(r'^https?://\S+', text):
                     print(f"Fetching content from: {url}")
                     website_content = self.symutils.pull_website_content(url, browser="firefox")
                     codeidentify = codeextract.CodeBlockIdentifier(website_content)
+                elif text == 'run':
+                    codeRun = True
                 else:
                     # process any text placed in code:<text>: for extraction
                     codeidentify = codeextract.CodeBlockIdentifier(text)
@@ -1156,6 +1158,9 @@ class symchat():
             files = codeidentify.process_text()
             for file in files:
                 print(file)
+
+            if codeRun:
+                pass
 
             return files
 
@@ -1176,7 +1181,7 @@ class symchat():
 
         # Trigger for note:: taking.  Take the note provided and query the current model but place the note and results
         # in a special file for future tracking.
-        note_pattern = r'note::|note:(.*):'
+        note_pattern = r'^note::|^note:(.*):'
         match = re.search(note_pattern, user_input)
         if match:
             self.suppress = True
