@@ -6,11 +6,10 @@ import re
 import os
 import uuid
 from collections import Counter
-from pygments.lexers import get_lexer_by_name, guess_lexer, get_all_lexers
 from bs4 import BeautifulSoup
 
 import pygments
-from pygments.lexers import guess_lexer, Python3Lexer
+from pygments.lexers import Python3Lexer, guess_lexer_for_filename, get_lexer_by_name, guess_lexer, get_all_lexers
 from pygments.styles import get_all_styles
 from pygments import highlight
 from pygments.style import Style
@@ -39,6 +38,43 @@ class CodeBlockIdentifier:
         self.text = text
         self.block_match = r'`{3}(\w+\n)(.*)`{3}|\'{3}(\w+\n)(.*)\'{3}'
         self.syntax_style = 'monokai'
+
+    def lint_file(self, file_name):
+        # Read the file contents
+        with open(file_name, 'r') as file:
+            code = file.read()
+
+        # Guess the lexer based on the filename and the code
+        try:
+            lexer = guess_lexer_for_filename(file_name, code)
+        except ClassNotFound:
+            print(f'Could not determine the language of the file: {file_name}')
+            return None
+
+        # Choose the linter command based on the lexer name
+        if 'python' in lexer.name.lower():
+            command = ['pylint', file_name]
+        elif 'javascript' in lexer.name.lower():
+            command = ['eslint', file_name]
+        elif 'java' in lexer.name.lower():
+            command = ['checkstyle', file_name]
+        elif 'c++' in lexer.name.lower() or 'c' in lexer.name.lower():
+            command = ['cppcheck', file_name]
+        elif 'shell' in lexer.name.lower():
+            command = ['shellcheck', file_name]
+        elif 'php' in lexer.name.lower():
+            command = ['php', '-l', file_name]
+        elif 'ruby' in lexer.name.lower():
+            command = ['ruby', '-c', file_name]
+        else:
+            print(f'Unsupported language: {lexer.name}')
+            return None
+
+        # Run the linter command
+        process = subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+
+        # Return the linter output
+        return process.stdout.decode()
 
     def extract_html_code_blocks(self, *args, **kwargs):
         if 'text' in kwargs:
@@ -82,13 +118,70 @@ class CodeBlockIdentifier:
         os.chmod(unique_filename, 0o755)
         return unique_filename
 
-    def score_code_block(self, block):
+    def score_code_block(self, block, file_name=False):
+        ''' add counts of code artifacts to the scoring eg. higher number of import, or if else statements can increase the score '''
+        # Define weights for each scoring component
+        weights = {
+            'keyword_score': 0.2,
+            'pattern_score': 0.2,
+            'comment_score': 0.2,
+            'code_percentage_score': 0.2,
+            'filename_score': 0.1,
+            'lexer_score': 0.1
+        }
+
+        # Initialize scores
+        scores = {
+            'keyword_score': 0,
+            'pattern_score': 0,
+            'comment_score': 0,
+            'code_percentage_score': 0,
+            'filename_score': 0,
+            'lexer_score': 0
+        }
+
+        # Get all keywords from all lexers
         keywords = [item[2] for item in get_all_lexers() if item[1]]
         keywords = [item for sublist in keywords for item in sublist]
-        tokens = re.findall(r'\b\w+\b', block)
+
+        # Find all tokens in the block
+        tokens = re.findall(r'\b\w+\b', text)
         token_counts = Counter(tokens)
-        score = sum(count for token, count in token_counts.items() if token in keywords)
-        return score
+
+        # Calculate the score based on the presence of keywords
+        scores['keyword_score'] = sum(count for token, count in token_counts.items() if token in keywords) / len(tokens)
+
+        # Calculate the score based on the presence of import statements, function or class definitions, and common programming keywords
+        patterns = [r'\bimport\b', r'\bdef\b', r'\bclass\b', r'\bif\b', r'\belse\b', r'\bfor\b', r'\bwhile\b', r'\breturn\b', r'\bin\b', r'\btry\b', r'\bexcept\b']
+        scores['pattern_score'] = sum(1 for pattern in patterns if re.search(pattern, text)) / len(tokens)
+
+        # Calculate the score based on the presence of comment lines
+        comment_patterns = [r'//', r'#', r'"""', r'/*', r"'''"]
+        scores['comment_score'] = sum(1 for pattern in comment_patterns if re.search(pattern, text)) / len(tokens)
+
+        # Calculate the percentage of code vs other text
+        code_percentage = len(re.findall(r'\b\w+\b', text)) / len(text.split())
+        scores['code_percentage_score'] = code_percentage
+
+        # Use Pygments to guess the language
+        try:
+            guess_lexer(text)
+            scores['lexer_score'] = 1
+        except:
+            pass
+
+        # Use Pygments to get a lexer for the filename
+        if filename:
+            try:
+                get_lexer_for_filename(file_name)
+                scores['filename_score'] = 1
+            except:
+                pass
+
+        # Calculate the final score as the weighted sum of the scores
+        final_score = sum(scores[key] * weights[key] for key in scores)
+
+        return final_score
 
     def identify_language(self, block, lang=None):
         print(lang)
