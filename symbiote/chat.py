@@ -29,15 +29,20 @@ from pynput.keyboard import Controller, Key
 
 from prompt_toolkit import Application
 from prompt_toolkit.history import InMemoryHistory, FileHistory
-from prompt_toolkit.shortcuts import PromptSession, prompt
+from prompt_toolkit.shortcuts import PromptSession, prompt, input_dialog, yes_no_dialog, progress_dialog, message_dialog
 from prompt_toolkit.key_binding import KeyBindings
 from prompt_toolkit.keys import Keys
 from prompt_toolkit.completion import WordCompleter
 from prompt_toolkit.styles import Style
 from prompt_toolkit.layout import Layout, HSplit
-from prompt_toolkit.widgets import TextArea, Frame, Box
+from prompt_toolkit.widgets import Dialog, TextArea, Frame, Box, Button
 from prompt_toolkit.layout.dimension import Dimension
-from prompt_toolkit.layout.containers import VSplit
+from prompt_toolkit.layout.containers import Window, VSplit, Float, FloatContainer
+from prompt_toolkit.layout.controls import FormattedTextControl
+
+from rich.console import Console
+from rich.panel import Panel
+from rich.syntax import Syntax
 
 import symbiote.roles as roles
 import symbiote.speech as speech
@@ -89,6 +94,7 @@ command_list = {
         "whisper::": "Process audio file to text using whipser.",
         "theme::": "Change the theme for the symbiote cli.",
         "order::": "Issue an order",
+        "view::": "View a file",
     }
 
 
@@ -118,20 +124,18 @@ audio_triggers = {
         'perifious': [r'(i cast|icast) periph', 'perifious::']
     }
 
-prompt_colors = {
-        'matrix_green': '#00FF41',
-        'soft_green': '#06AC6C',
-        'salmon_red': '#f95393',
-        'dark_gray': '#2C2827',
-        'light_blue': '#02788E',
-        'burnt_yellow': '#E67000',
-        'off_white': '#e5e5e5',
-        'rich_yellow': '#DED300',
-        'light_gray': '#9A9A9A',
-        'gray': '#6e757c',
-        'white': '#FFFFFF',
-        'black': '#000000'
-    }
+# Define prompt_toolkig keybindings
+global kb
+kb = KeyBindings()
+
+@kb.add('c-c')
+def _(event):
+    ''' Exit Application '''
+    sys.exit(0) 
+
+@kb.add('c-q')
+def _(event):
+    self.user_input = "" 
 
 # Configure prompt settings.
 '''
@@ -187,8 +191,6 @@ symbiote_settings = {
         "syntax_highlight": False,
         "theme": 'default',
     }
-
-keybindings = {}
 
 # Create a pretty printer
 pp = pprint.PrettyPrinter(indent=4)
@@ -589,13 +591,8 @@ class symchat():
             self.previous_directory = self.working_directory
             os.chdir(self.working_directory)
 
-        bindings = KeyBindings()
-
-        @bindings.add('c-q')
-        def _(event):
-            self.user_input = "" 
-       
-        self.chat_session = PromptSession(key_bindings=bindings, vi_mode=self.symbiote_settings['vi_mode'], history=self.history, style=self.prompt_style)
+      
+        self.chat_session = PromptSession(key_bindings=kb, vi_mode=self.symbiote_settings['vi_mode'], history=self.history, style=self.prompt_style)
 
         while True:
             # Chack for a change in settings and write them
@@ -639,7 +636,6 @@ class symchat():
                                                 )
 
             self.user_input = self.process_commands(self.user_input)
-
 
             if check_settings != self.settings_hash:
                 self.save_settings(settings=self.symbiote_settings)
@@ -737,6 +733,13 @@ class symchat():
                 user_input = self.audio_triggers[keyword][1]
                 break
 
+        if user_input.startswith('test::'):
+            #self.createWindow(25, 25, "hello", "some random text to put in the window.")
+            #self.createDialog("test", "hello there")
+            #self.richTest()
+            #self.richTest2()
+            return None
+  
         if re.search(r'^perifious::', user_input):
             self.symspeech = speech.SymSpeech(debug=self.symbiote_settings['debug'])
             self.symspeech.say('Your wish is my command!')
@@ -787,7 +790,6 @@ class symchat():
                         #validate=PathValidator(is_file=True, message="Input is not a file"),
                         wrap_lines=True,
                         mandatory=False,
-                        keybindings=keybindings
                     ).execute()
 
             if file_path is None:
@@ -1017,7 +1019,6 @@ class symchat():
                         #validate=PathValidator(is_file=True, message="Input is not a file"),
                         wrap_lines=True,
                         mandatory=False,
-                        keybindings=keybindings
                     ).execute()
 
             if file_path is None:
@@ -1130,7 +1131,7 @@ class symchat():
         if match:
             codeRun = False
             self.suppress = True
-            codeidentify = codeextract.CodeBlockIdentifier(last_message['content'])
+            self.exit = True
             if match.group(1):
                 text = match.group(1)
                 if re.search(r'^https?://\S+', text):
@@ -1209,7 +1210,7 @@ class symchat():
 
         # Trigger for file:filename processing. Load file content into user_input for ai consumption.
         # file:: - opens file or directory to be pulled into the conversation
-        file_pattern = r'file::|file:(.*):|learn:(.*):'
+        file_pattern = r'file::|file:(.*):|^view::|^view:(.*)|learn:(.*):'
         match = re.search(file_pattern, user_input)
         file_path = None
         sub_command = None
@@ -1220,6 +1221,8 @@ class symchat():
                 self.suppress = True
             elif re.search(r'^learn', user_input):
                 learn = True
+            elif re.search(r'^view', user_input):
+                view = True
             else:
                 self.suppress = False
 
@@ -1243,7 +1246,6 @@ class symchat():
                         #validate=PathValidator(is_file=True, message="Input is not a file"),
                         wrap_lines=True,
                         mandatory=False,
-                        keybindings=keybindings
                     ).execute()
 
             if file_path is None:
@@ -1254,6 +1256,10 @@ class symchat():
 
             if learn:
                 self.symutils.learnFiles(absolute_path)
+                return None
+
+            if view:
+                self.viewFile(absolute_path)
                 return None
 
             if sub_command is not None:
@@ -1342,7 +1348,6 @@ class symchat():
                         #validate=PathValidator(is_file=True, message="Input is not a file"),
                         wrap_lines=True,
                         mandatory=False,
-                        keybindings=keybindings
                     ).execute()
 
             if file_path is None:
@@ -1384,7 +1389,6 @@ class symchat():
                 url = inquirer.text(
                         message="URL to load:",
                         mandatory=False,
-                        keybindings=keybindings
                     ).execute()
             
             if url == None:
@@ -1412,7 +1416,6 @@ class symchat():
                 url = inquirer.text(
                         message="URL to load:",
                         mandatory=False,
-                        keybindings=keybindings
                     ).execute()
             
             if url == None:
@@ -1461,7 +1464,6 @@ class symchat():
                         only_directories=True,
                         wrap_lines=True,
                         mandatory=False,
-                        keybindings=keybindings
                     ).execute()
 
             if dir_path == None:
@@ -1503,3 +1505,131 @@ class symchat():
 
         return settings
 
+    def createWindow(self, height, width, title, text):
+        @kb.add('c-z')
+        def _(event):
+            " Exit application "
+            event.app.exit()
+
+        # Main content window (your prompt session)
+        body = TextArea(
+            text='This is your main content window (like your prompt session).',
+            multiline=True,
+            wrap_lines=True,
+        )
+
+        # Floating window
+        float_window = Float(
+            xcursor=True,
+            ycursor=True,
+            width=width,
+            height=height,
+            content=Frame(
+                body=Box(
+                    body=TextArea(
+                        text=text,
+                        multiline=True,
+                        wrap_lines=True,
+                    ),
+                    padding=1,
+                ),
+                title=title,
+            )
+        )
+
+        # Root container
+        root_container = FloatContainer(
+            content=body,
+            floats=[float_window]
+        )
+
+        layout = Layout(root_container)
+
+        app = Application(key_bindings=kb, layout=layout, full_screen=False)
+        app.run()
+
+    def createDialog(self, title, text):
+        message_dialog(
+            title=title,
+            text=text).run()
+
+    def richTest(self):
+        from datetime import datetime
+
+        from time import sleep
+
+        from rich.align import Align
+        from rich.console import Console
+        from rich.layout import Layout
+        from rich.live import Live
+        from rich.text import Text
+
+        console = Console()
+        layout = Layout()
+
+        layout.split(
+            Layout(name="header", size=1),
+            Layout(ratio=1, name="main"),
+            Layout(size=10, name="footer"),
+        )
+
+        layout["main"].split_row(Layout(name="side"), Layout(name="body", ratio=2))
+
+        layout["side"].split(Layout(), Layout())
+
+        layout["body"].update(
+            Align.center(
+                Text(
+                    """This is a demonstration of rich.Layout\n\nHit Ctrl+C to exit""",
+                    justify="center",
+                ),
+                vertical="middle",
+            )
+        )
+
+        class Clock:
+            """Renders the time in the center of the screen."""
+
+            def __rich__(self) -> Text:
+                return Text(datetime.now().ctime(), style="bold magenta", justify="center")
+
+        layout["header"].update(Clock())
+
+        with Live(layout, screen=True, redirect_stderr=False) as live:
+            try:
+                while True:
+                    sleep(1)
+            except KeyboardInterrupt:
+                pass
+
+    def richTest2(self):
+        from time import sleep
+        from rich.console import Console
+
+        console = Console()
+        console.print()
+
+        tasks = [f"task {n}" for n in range(1, 11)]
+
+        with console.status("[bold green]Working on tasks...") as status:
+            while tasks:
+                task = tasks.pop(0)
+                sleep(1)
+                console.log(f"{task} complete")
+
+    def viewFile(self, file_path):
+        # Create a console object
+        console = Console()
+
+        # Open the file and read its content
+        with open(file_path, "r") as file:
+            code = file.read()
+
+        # Create a Syntax object to highlight the code
+        syntax = Syntax(code, "python", line_numbers=True)
+
+        # Create a Panel to display the code
+        panel = Panel(syntax, title=file_path, expand=True)
+
+        # Print the panel to the console, centered
+        console.print(panel, justify="center")
