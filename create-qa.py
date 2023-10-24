@@ -9,18 +9,31 @@ import pprint
 from pygments.lexers import guess_lexer_for_filename, guess_lexer, get_all_lexers
 from pygments.util import ClassNotFound
 
+from pygments.style import Style
 from collections import Counter
+from transformers import pipeline
 
 filename = sys.argv[1]
 
-from transformers import pipeline
 nlp = spacy.load("en_core_web_sm")
+nlp.max_length = 5000000
 
 # Initialize a named entity recognition pipeline
 ner_pipe = pipeline('ner')
 
 # Initialize a question answering pipeline
 qa_pipe = pipeline('question-answering')
+
+def is_json(filename):
+    try:
+        with open(filename, 'r') as f:
+            json.load(f)
+        return True
+    except ValueError:
+        return False
+    except FileNotFoundError:
+        print(f"File not found: {filename}")
+        return False
 
 def lint_file(filename):
     # Read the file contents
@@ -72,7 +85,6 @@ def get_exif_data(filename):
     try:
         result = subprocess.run(['exiftool', '-j', filename], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         exif_data = json.loads(result.stdout.decode())[0]  # exiftool outputs JSON data, so we parse it
-        print(exif_data)
         return exif_data
 
     except Exception as e:
@@ -149,7 +161,6 @@ def is_software(text, filename):
     return final_score
 
 def generate_code_qa(code, filename):
-    print(code)
     tree = ast.parse(code)
     functions = [node for node in tree.body if isinstance(node, ast.FunctionDef)]
     classes = [node for node in tree.body if isinstance(node, ast.ClassDef)]
@@ -266,12 +277,18 @@ exif_string = pprint.pformat(exif)
 # Prepend the EXIF data to the file contents
 c_content = f"exif {filename}\n---\n{exif}\n---\n\ncontents {filename}\n---\n{content}\n---\n"
 
-score = is_software(content, filename)
-print(score)
+json_check = False
+score = 0
+json_check = is_json(filename)
 
-qa_pairs = generate_code_qa(content, filename) 
-for i in qa_pairs:
-    print(i)
+if json_check:
+    score = is_software(content, filename)
+    print(score)
+
+if score >= 4:
+    qa_pairs = generate_code_qa(content, filename) 
+    for i in qa_pairs:
+        print(i)
 
 qa_pairs = generate_qa(c_content, filename)
 for i in qa_pairs:

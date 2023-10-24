@@ -95,6 +95,7 @@ command_list = {
         "theme::": "Change the theme for the symbiote cli.",
         "order::": "Issue an order",
         "view::": "View a file",
+        "scroll::": "Scroll through the text of a given file a file",
     }
 
 
@@ -121,7 +122,8 @@ audio_triggers = {
         'search': [r'keyword search query', 'search::'],
         'keyword': [r'keyword (get|show) keyword', 'keywords::'],
         'history': [r'keyword (get|show) history', 'history::'],
-        'perifious': [r'(i cast|icast) periph', 'perifious::']
+        'perifious': [r'(i cast|icast) periph', 'perifious::'],
+        'scroll': [r'keyword scroll file', 'scroll::'],
     }
 
 # Define prompt_toolkig keybindings
@@ -643,8 +645,7 @@ class symchat():
 
             if self.exit:
                 self.exit = False
-                self.user_input = ""
-                continue
+                self.user_input = None
 
             if self.user_input is None or re.search(r'^\n+$', self.user_input) or self.user_input== "":
                 if self.run is True and self.enable is False:
@@ -1210,11 +1211,13 @@ class symchat():
 
         # Trigger for file:filename processing. Load file content into user_input for ai consumption.
         # file:: - opens file or directory to be pulled into the conversation
-        file_pattern = r'file::|file:(.*):|^view::|^view:(.*)|learn:(.*):'
+        file_pattern = r'file::|file:(.*):|^scroll::|^scroll:(.*):|^view::|^view:(https?://\S+):|^view:(.*):|learn:(.*):'
         match = re.search(file_pattern, user_input)
         file_path = None
         sub_command = None
         learn = False
+        view = False
+        scroll = False
 
         if match: 
             if re.search(r'^file', user_input):
@@ -1223,12 +1226,15 @@ class symchat():
                 learn = True
             elif re.search(r'^view', user_input):
                 view = True
+            elif re.search(r'^scroll', user_input):
+                scroll = True
             else:
                 self.suppress = False
 
             if match.group(1):
-                meta_pattern = r'meta:(.*)'
+                print(match.group(1))
                 matched = match.group(1)
+                meta_pattern = r'meta:(.*)'
 
                 matchb = re.search(meta_pattern, matched)
                 if matchb:
@@ -1237,6 +1243,8 @@ class symchat():
                         file_path = os.path.expanduser(matchb.group(1))
                 else:
                     file_path = os.path.expanduser(match.group(1))
+
+            print(file_path)
 
             if file_path is None:
                 start_path = "./"
@@ -1259,7 +1267,12 @@ class symchat():
                 return None
 
             if view:
-                self.viewFile(absolute_path)
+                print(absolute_path)
+                self.symutils.viewFile(absolute_path)
+                return None
+
+            if scroll:
+                self.symutils.scrollContent(absolute_path)
                 return None
 
             if sub_command is not None:
@@ -1617,19 +1630,3 @@ class symchat():
                 sleep(1)
                 console.log(f"{task} complete")
 
-    def viewFile(self, file_path):
-        # Create a console object
-        console = Console()
-
-        # Open the file and read its content
-        with open(file_path, "r") as file:
-            code = file.read()
-
-        # Create a Syntax object to highlight the code
-        syntax = Syntax(code, "python", line_numbers=True)
-
-        # Create a Panel to display the code
-        panel = Panel(syntax, title=file_path, expand=True)
-
-        # Print the panel to the console, centered
-        console.print(panel, justify="center")

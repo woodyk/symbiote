@@ -13,11 +13,15 @@ import magic
 import textract
 import hashlib
 import requests 
+from urllib.parse import urlparse
 import piexif
 import hashlib
 
 from mss import mss
-from PIL import Image
+import climage
+from climage import color_to_flags, color_types, convert
+from PIL import Image, ImageEnhance
+from ascii_magic import AsciiArt, Back
 import numpy as np
 import pandas as pd
 import speech_recognition as sr
@@ -789,3 +793,68 @@ class utilities():
 
         # Save the image with the new EXIF data
         img.save(image, exif=exif_bytes)
+
+    def scrollContent(self, file_path, speed=0.01):
+        # Scroll through text content automatically
+        text = self.extractText(file_path)
+        for line in text.splitlines():
+            print(line)
+            time.sleep(speed)
+
+    def imageToAscii(self, image_source):
+        # Get terminal size
+        rows, columns = os.popen('stty size', 'r').read().split()
+        term_width = int(columns)
+
+        # Check if the source is a URL or a local path
+        if image_source.startswith(('http://', 'https://')):
+            try:
+                image_path = download_image(image_source)
+            except Exception as e:
+                print(f'Could not load the url: {e}')
+        else:
+            art = climage.convert(image_path, width=term_width, is_unicode=True, **color_to_flags(color_types.color256))
+
+        # Display the ASCII art, scaled to fit the terminal width
+        output = climage.convert(image_path, width=term_width, is_unicode=True, **color_to_flags(color_types.color256))
+
+        print(output)
+
+    def viewFile(self, file_path):
+        if self.is_image(path):
+            imageToAscii(file_path)
+            return
+
+        # Create a console object
+        console = Console()
+
+        # Open the file and read its content
+        with open(file_path, "r") as file:
+            code = file.read()
+
+        # Create a Syntax object to highlight the code
+        syntax = Syntax(code, "python", line_numbers=True)
+
+        # Create a Panel to display the code
+        panel = Panel(syntax, title=file_path, expand=True)
+
+        # Print the panel to the console, centered
+        console.print(panel, justify="center")
+
+    def is_image(self, path):
+        if path.startswith(('http://', 'https://')):
+            # It's a URL
+            try:
+                response = requests.head(path_or_url)
+                content_type = response.headers.get('Content-Type', '')
+                return content_type.startswith('image/')
+            except Exception:
+                return False
+        else:
+            # It's a file path
+            try:
+                # Open the file with PIL and check if it has a format attribute
+                with Image.open(path_or_url) as img:
+                    return True if img.format else False
+            except Exception:
+                return False
