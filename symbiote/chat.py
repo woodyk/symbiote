@@ -8,19 +8,19 @@ import os
 import io
 import re
 import signal
-import requests
+#import requests
 import threading
-import textract
-import magic
-import subprocess
-import platform
+#import textract
+#import magic
+#import subprocess
+#import platform
 import clipboard
 import json
-import queue
-import webbrowser
+#import queue
+#import webbrowser
 import pprint
 
-from bs4 import BeautifulSoup
+#from bs4 import BeautifulSoup
 
 from InquirerPy import inquirer
 from InquirerPy.base.control import Choice
@@ -37,25 +37,19 @@ from prompt_toolkit.styles import Style
 from prompt_toolkit.layout import Layout, HSplit
 from prompt_toolkit.widgets import TextArea, Frame, Box
 from prompt_toolkit.layout.dimension import Dimension
-from prompt_toolkit.layout.containers import HSplit, VSplit
+from prompt_toolkit.layout.containers import VSplit
 
-import symbiote.core as core
-import symbiote.shell as shell
 import symbiote.roles as roles
-import symbiote.utils as utils
 import symbiote.speech as speech
 import symbiote.codeextract as codeextract
-import symbiote.logo as logo
 import symbiote.webcrawler as webcrawler
+import symbiote.utils as utils
+import symbiote.core as core
 from symbiote.themes import ThemeManager
 
 os.environ['PYGAME_HIDE_SUPPORT_PROMPT'] = '1'
-import pygame
-import pygame.freetype
 
-from datetime import datetime
-
-start = datetime.now()
+start = time.time() 
 
 command_list = {
         "help::": "This help output.",
@@ -210,9 +204,6 @@ class symchat():
 
         self.orig_stdout = sys.stdout
 
-        if 'stdout' in kwargs:
-            self.set_stdout(kwargs['stdout'])
-
         self.symbiote_settings = symbiote_settings 
         self.audio_triggers = audio_triggers
         self.flush = False
@@ -330,7 +321,7 @@ class symchat():
             print("Invalid state. Use 0 to suppress stdout and 1 to restore stdout.")
 
     def cktime(self):
-        stop = datetime.now()
+        stop = time.time()
         diff = stop - start
         print(start, stop, diff)
 
@@ -555,7 +546,7 @@ class symchat():
 
         if self.exit:
             self.exit = False
-            return self.current_conversation, None, None, None, None, None, query, user_input
+            return None, None, None, None, None, None, query, user_input
 
         returned = self.send_message(user_input)
 
@@ -755,7 +746,8 @@ class symchat():
                 user_input = 'setting:perifious:1:'
 
         if re.search(r'^shell::', user_input):
-            shell.symBash().launch_shell()
+            print("disabled needs work")
+            #shell.symBash().launch_shell()
             return None
 
         if re.search(r'^help::', user_input):
@@ -1510,65 +1502,4 @@ class symchat():
                 settings[setting] = self.symbiote_settings[setting]
 
         return settings
-
-class ChatInterface:
-    def __init__(self, width, height):
-        pygame.init()
-        self.screen = pygame.display.set_mode((width, height))
-        self.font = pygame.freetype.Font(None, 24)
-        self.input_box = pygame.Rect(100, 100, 140, 32)
-        self.color_inactive = pygame.Color('lightskyblue3')
-        self.color_active = pygame.Color('dodgerblue2')
-        self.color = self.color_inactive
-        self.active = False
-        self.text = ''
-        self.done = False
-        self.messages = []
-
-    def draw(self):
-        self.screen.fill((30, 30, 30))
-        txt_surface = self.font.render(self.text, self.color)
-        width = max(200, txt_surface[1].width+10)
-        self.input_box.w = width
-        self.font.render_to(self.screen, (self.input_box.x+5, self.input_box.y+5), self.text, self.color)
-        pygame.draw.rect(self.screen, self.color, self.input_box, 2)
-
-        y = 5
-        for message in self.messages:
-            self.font.render_to(self.screen, (5, y), message, pygame.Color('white'))
-            y += 20
-
-        pygame.display.flip()
-
-    def handle_event(self, event):
-        if event.type == pygame.MOUSEBUTTONDOWN:
-            if self.input_box.collidepoint(event.pos):
-                self.active = not self.active
-            else:
-                self.active = False
-            self.color = self.color_active if self.active else self.color_inactive
-        if event.type == pygame.KEYDOWN:
-            if self.active:
-                if event.key == pygame.K_RETURN:
-                    response = self.send_message(self.text)
-                    self.messages.append('You: ' + self.text)
-                    self.messages.append('Bot: ' + response)
-                    self.text = ''
-                elif event.key == pygame.K_BACKSPACE:
-                    self.text = self.text[:-1]
-                else:
-                    self.text += event.unicode
-
-    def run(self):
-        while not self.done:
-            for event in pygame.event.get():
-                if event.type == pygame.QUIT:
-                    self.done = True
-                self.handle_event(event)
-            self.draw()
-
-    # Call if needed
-    #if __name__ == "__main__":
-    #    chat = ChatInterface(800, 600)
-    #    chat.run()
 

@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-
 import time
 import sys
 import json
@@ -9,12 +8,11 @@ import re
 import os
 import requests
 import uuid
-import magic
 from pygments.formatters import Terminal256Formatter
 from transformers import GPT2Tokenizer
 
-import symbiote.utils as utils
 import symbiote.codeextract as codeextract
+import symbiote.utils as utils
 
 class symbiotes:
     def __init__(self, settings):

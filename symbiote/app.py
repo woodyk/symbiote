@@ -88,19 +88,16 @@ def main():
         return
 
     import symbiote.chat as chat
-    import symbiote.core as core
-    import symbiote.monitor as monitor
-    import symbiote.speech as speech
-    import symbiote.api as api
 
     schat = chat.symchat(working_directory=current_path, debug=args.debug)
 
     if args.api:
+        import symbiote.api as api
         symapi = api.SymbioteAPI(schat, debug=args.debug)
         symapi.start()
 
     if len(piped_query) > 0:
-        schat.chat(user_input="hello", suppress=True, run=True)
+        schat.chat(user_input=piped_query, suppress=True, run=True)
         os.system('reset')
         print("User data loaded. How can I help you?")
         schat.chat(user_input="", run=args.run)
@@ -109,6 +106,7 @@ def main():
         schat.chat(user_input=args.load, suppress=True, run=True)
     elif args.monitor:
         #schat.chat(user_input="role:HELP_ROLE:", run=True)
+        import symbiote.monitor as monitor
         monmode = monitor.KeyLogger(schat, debug=args.debug)
         monmode.start()
         while True:

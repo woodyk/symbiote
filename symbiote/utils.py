@@ -3,7 +3,6 @@
 # symbiote/utils.py
 
 import json
-import spacy
 #import scispacy
 import sys
 import re
@@ -14,7 +13,6 @@ import magic
 import textract
 import hashlib
 import requests 
-import pathspec
 import piexif
 import hashlib
 
@@ -25,25 +23,11 @@ import pandas as pd
 import speech_recognition as sr
 from pydub import AudioSegment
 from thefuzz import fuzz
-from thefuzz import process
-
-from selenium import webdriver
-from selenium.webdriver.chrome.options import Options as ChromeOptions
-from selenium.webdriver.firefox.options import Options as FirefoxOptions
-from bs4 import BeautifulSoup
-from nltk.sentiment import SentimentIntensityAnalyzer
-from spacy.lang.en.stop_words import STOP_WORDS
 from sumy.parsers.plaintext import PlaintextParser
 from sumy.nlp.tokenizers import Tokenizer
 from sumy.summarizers.lsa import LsaSummarizer
-from postal.parser import parse_address
 from dateutil.parser import parse
-from collections import defaultdict
 from elasticsearch import Elasticsearch, exceptions
-from elasticsearch import Elasticsearch
-from transformers import GPT2Tokenizer, GPT2LMHeadModel, TextDataset, DataCollatorForLanguageModeling, Trainer, TrainingArguments
-import torch
-
 import warnings
 warnings.filterwarnings("ignore", category=UserWarning, module="sumy")
 
@@ -169,6 +153,7 @@ class utilities():
         return clean
 
     def extractAddress(self, text):
+        from postal.parser import parse_address
         components = [ 'house_number', 'road', 'postcode', 'city', 'state' ]
         parsed_address = parse_address(text)
         addresses = []
@@ -232,7 +217,8 @@ class utilities():
 
         return clean
 
-    def exctractMedical(self, text):
+    def extractMedical(self, text):
+        import spacy
         self.nlpm = spacy.load("en_core_sci_sm")
 
         doc = self.nlpm(text)
@@ -241,6 +227,9 @@ class utilities():
             print(ent.label_, ent.text)
 
     def analyze_text(self, text, meta):
+        import spacy
+        from spacy.lang.en.stop_words import STOP_WORDS
+        from nltk.sentiment import SentimentIntensityAnalyzer
         self.nlp = spacy.load('en_core_web_sm')
         self.sia = SentimentIntensityAnalyzer()
         self.tokenizer = Tokenizer("english")
@@ -406,6 +395,7 @@ class utilities():
         return es
 
     def learnFiles(self, path):
+        from transformers import GPT2Tokenizer, GPT2LMHeadModel, TextDataset, DataCollatorForLanguageModeling, Trainer, TrainingArguments
         ''' Model builder off personal data '''
         learning_dir = self.settings['symbiote_path'] + "/learning"
         if not os.path.exists(learning_dir):
@@ -799,49 +789,3 @@ class utilities():
 
         # Save the image with the new EXIF data
         img.save(image, exif=exif_bytes)
-
-    ''' Depricated
-    def pull_website_content(self, url, browser="chrome"):
-        # Set up the WebDriver and make it run headlessly
-        if browser.lower() == "chrome":
-            options = ChromeOptions()
-            options.headless = True
-            driver = webdriver.Chrome(options=options)
-        elif browser.lower() == "firefox":
-            options = FirefoxOptions()
-            options.headless = True
-            driver = webdriver.Firefox(options=options)
-        else:
-            print(f"Unsupported browser: {browser}")
-            return ""
-
-        try:
-            driver.get(url)
-        except Exception as e:
-            print(f"Error fetching the website content: {e}")
-            return ""
-
-        soup = BeautifulSoup(driver.page_source, 'html.parser')
-
-        # Close the WebDriver
-        driver.quit()
-
-        # Remove all script and style elements
-        for script in soup(["script", "style"]):
-            script.decompose()
-
-        # Get the text content
-        text = soup.get_text()
-
-        # Remove extra whitespace and newlines
-        lines = (line.strip() for line in text.splitlines())
-        chunks = (phrase.strip() for line in lines for phrase in line.split(" "))
-        text = '\n'.join(chunk for chunk in chunks if chunk)
-
-        # Encapsulate the extracted text within triple backticks
-        text = f"URL / Website: {url}.\n\n```{text}```\n\n"
-        text = str(text)
-
-        return text
-    '''
-

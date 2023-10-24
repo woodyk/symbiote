@@ -11,7 +11,6 @@ import select
 import tty
 import termios
 import subprocess
-import symbiote.chat as chat
 
 class symBash():
     def __init__(self, *args, **kwargs):
