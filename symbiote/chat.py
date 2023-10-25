@@ -25,14 +25,15 @@ import pprint
 from InquirerPy import inquirer
 from InquirerPy.base.control import Choice
 from InquirerPy.validator import PathValidator
-from pynput.keyboard import Controller, Key
+from InquirerPy.prompts.filepath import FilePathCompleter
 
+from pynput.keyboard import Controller, Key
 from prompt_toolkit import Application
 from prompt_toolkit.history import InMemoryHistory, FileHistory
 from prompt_toolkit.shortcuts import PromptSession, prompt, input_dialog, yes_no_dialog, progress_dialog, message_dialog
 from prompt_toolkit.key_binding import KeyBindings
 from prompt_toolkit.keys import Keys
-from prompt_toolkit.completion import WordCompleter
+from prompt_toolkit.completion import Completion, WordCompleter
 from prompt_toolkit.styles import Style
 from prompt_toolkit.layout import Layout, HSplit
 from prompt_toolkit.widgets import Dialog, TextArea, Frame, Box, Button
@@ -411,32 +412,22 @@ class symchat():
         else:
             if not conversation_files:
                 return
-
-            conversation_files.insert(0, Choice("null", name="Do not record conversations."))
             conversation_files.insert(0, Choice("notes", name="Open notes conversation."))
             conversation_files.insert(0, Choice("clear", name="Clear conversation."))
             conversation_files.insert(0, Choice("export", name="Export conversation."))
             conversation_files.insert(0, Choice("new", name="Create new conversation."))
 
-            selected_file = inquirer.select(
-                message="Select a conversation:",
-                choices=conversation_files,
-                mandatory=False
-            ).execute()
+            selected_file = self.listSelector("Select a conversation:", conversation_files)
 
         if selected_file == None:
             return
 
         if selected_file == "new":
-            selected_file = inquirer.text(message="File name:").execute()
+            selected_file = self.textPrompt("File name:")
         elif selected_file == "notes":
             selected_file = self.symbiote_settings['notes']
         elif selected_file == "clear":
-            clear_file = inquirer.select(
-                message="Select a conversation:",
-                choices=conversation_files, 
-                mandatory=False
-            ).execute()
+            clear_file = self.listSelector("Select a conversation:", conversation_files)
 
             clear_file = os.path.join(self.conversations_dir, clear_file)
 
@@ -453,11 +444,7 @@ class symchat():
 
             return
         elif selected_file == "export":
-            export_file = inquirer.select(
-                message="Select a conversation:",
-                choices=conversation_files,
-                mandatory=False
-            ).execute()
+            export_file = self.listSelector("Select a conversation:", conversation_files)
 
             file_name = os.path.join(self.conversations_dir, export_file)
             self.sym.export_conversation(file_name)
@@ -494,12 +481,8 @@ class symchat():
         role_list = []
         for role in available_roles:
             role_list.append(role)
-
-        selected_role = inquirer.select(
-            message="Select a role:",
-            choices=role_list,
-            mandatory=False
-        ).execute()
+        
+        selected_role = self.listSelector("Select a role:", sorted(role_list))
 
         if selected_role == None:
             return
@@ -519,10 +502,7 @@ class symchat():
                 print(f"No such model: {model_name}")
                 return None
         except:
-            selected_model = inquirer.select(
-                message="Select a model:",
-                choices=model_list
-            ).execute()
+            selected_model = self.listSelector("Select a model:", sorted(model_list))
 
         self.symbiote_settings['model'] = selected_model
         self.sym.update_symbiote_settings(settings=self.symbiote_settings)
@@ -784,14 +764,7 @@ class symchat():
                 file_path = match.group(1)
 
             if file_path is None:
-                start_path = "./"
-                file_path = inquirer.filepath(
-                        message="Insert file contents:",
-                        default=start_path,
-                        #validate=PathValidator(is_file=True, message="Input is not a file"),
-                        wrap_lines=True,
-                        mandatory=False,
-                    ).execute()
+                file_path = self.fileSelector("Insert File contents:")
 
             if file_path is None:
                 return None
@@ -842,11 +815,7 @@ class symchat():
                 for role_name in available_roles:
                     role_list.append(role_name)
 
-                selected_role = inquirer.select(
-                    message="Select a role:",
-                    choices=sorted(role_list),
-                    mandatory=False
-                ).execute()
+                selected_role = self.listSelector("Select a role:", sorted(role_list))
 
                 if selected_role == None:
                     return
@@ -1013,14 +982,7 @@ class symchat():
                     reindex = False
 
             if file_path is None:
-                start_path = "./"
-                file_path = inquirer.filepath(
-                        message="Extract file features:",
-                        default=start_path,
-                        #validate=PathValidator(is_file=True, message="Input is not a file"),
-                        wrap_lines=True,
-                        mandatory=False,
-                    ).execute()
+                file_path = self.fileSelector("Extraction path:")
 
             if file_path is None:
                 return None
@@ -1075,7 +1037,7 @@ class symchat():
                 print(query)
                 del obj
             else:
-                query = inquirer.text(message="Search Term:").execute()
+                query = textPrompt("Search Terms:")
             
             if query is not None:
                 results = self.symutils.searchIndex(query)
@@ -1208,25 +1170,79 @@ class symchat():
 
             return theme_name
 
+        # trigger terminal image rendering image::
+        view_pattern = r'view::|^view:(.*):|^view:(https?:\/\/\S+):'
+        match = re.search(view_pattern, user_input)
+        file_path = None
 
+        if match:
+            if match.group(1):
+                file_path = match.group(1)
+            else:
+                file_path = self.fileSelector('File name:')
+            
+            if os.path.isfile(file_path):
+                file_path = os.path.expanduser(file_path)
+                file_path = os.path.abspath(file_path)
+            elif os.path.isdir(file_path):
+                print(f'Must be a file not a directory.')
+                return None
+
+            self.symutils.viewFile(file_path)
+
+            return None
+
+        # Trigger to find files by search find::
+        find_pattern = r'^find::|^find:(.*):'
+        match = re.search(find_pattern, user_input)
+        if match:
+            self.suppress = True
+            self.exit = True
+            if match.group(1):
+                pattern = match.group(1)
+                result = self.findFiles(pattern)
+                return None
+
+            result = self.findFiles()   
+
+            return None
+
+        # Trigger to init scrolling
+        scroll_pattern = r'scroll::|scroll:(.*):'
+        match = re.search(scroll_pattern, user_input)
+        if match:
+            file_path = None
+            if match.group(1):
+                file_path = match.group(1)
+
+            file_path = self.fileSelector("File name:")
+            print(file_path)
+
+            if file_path is None:
+                return None
+
+            file_path = os.path.expanduser(file_path)
+            absolute_path = os.path.abspath(file_path)
+
+            self.symutils.scrollContent(absolute_path)
+
+            return None
+             
         # Trigger for file:filename processing. Load file content into user_input for ai consumption.
         # file:: - opens file or directory to be pulled into the conversation
-        file_pattern = r'file::|file:(.*):|^scroll::|^scroll:(.*):|^view::|^view:(https?://\S+):|^view:(.*):|learn:(.*):'
+        file_pattern = r'file::|file:(.*):|learn:(.*):'
         match = re.search(file_pattern, user_input)
-        file_path = None
-        sub_command = None
-        learn = False
-        view = False
-        scroll = False
-
         if match: 
+            file_path = None
+            sub_command = None
+            learn = False
+            scroll = False
             if re.search(r'^file', user_input):
                 self.suppress = True
             elif re.search(r'^learn', user_input):
                 learn = True
-            elif re.search(r'^view', user_input):
-                view = True
             elif re.search(r'^scroll', user_input):
+                self.suppress = True
                 scroll = True
             else:
                 self.suppress = False
@@ -1243,18 +1259,8 @@ class symchat():
                         file_path = os.path.expanduser(matchb.group(1))
                 else:
                     file_path = os.path.expanduser(match.group(1))
-
-            print(file_path)
-
-            if file_path is None:
-                start_path = "./"
-                file_path = inquirer.filepath(
-                        message="Insert file contents:",
-                        default=start_path,
-                        #validate=PathValidator(is_file=True, message="Input is not a file"),
-                        wrap_lines=True,
-                        mandatory=False,
-                    ).execute()
+            else:
+                file_path = self.fileSelector("File name:")
 
             if file_path is None:
                 return None 
@@ -1264,15 +1270,6 @@ class symchat():
 
             if learn:
                 self.symutils.learnFiles(absolute_path)
-                return None
-
-            if view:
-                print(absolute_path)
-                self.symutils.viewFile(absolute_path)
-                return None
-
-            if scroll:
-                self.symutils.scrollContent(absolute_path)
                 return None
 
             if sub_command is not None:
@@ -1354,14 +1351,7 @@ class symchat():
             if match.group(1):
                 file_path = match.group(1)
             elif file_path is None:
-                start_path = "./"
-                file_path = inquirer.filepath(
-                        message="Transcribe audio file:",
-                        default=start_path,
-                        #validate=PathValidator(is_file=True, message="Input is not a file"),
-                        wrap_lines=True,
-                        mandatory=False,
-                    ).execute()
+                file_path = self.fileSelector("File name:")
 
             if file_path is None:
                 return None 
@@ -1399,10 +1389,7 @@ class symchat():
             if match.group(1):
                 url = match.group(1)
             else:
-                url = inquirer.text(
-                        message="URL to load:",
-                        mandatory=False,
-                    ).execute()
+                url = textPrompt("URL to load:")
             
             if url == None:
                 return None 
@@ -1426,10 +1413,7 @@ class symchat():
             if match.group(1):
                 url = match.group(1)
             else:
-                url = inquirer.text(
-                        message="URL to load:",
-                        mandatory=False,
-                    ).execute()
+                url = textPrompt("URL to load:")
             
             if url == None:
                 return None 
@@ -1469,15 +1453,7 @@ class symchat():
             if match.group(1):
                 dir_path = match.group(1)
             else:
-                start_path = "./"
-                dir_path = inquirer.filepath(
-                        message="Insert file contents:",
-                        default=start_path,
-                        validate=PathValidator(is_dir=True, message="Input is not dir"),
-                        only_directories=True,
-                        wrap_lines=True,
-                        mandatory=False,
-                    ).execute()
+                dir_path = self.fileSelector("Select your directory.")
 
             if dir_path == None:
                 return None 
@@ -1602,7 +1578,6 @@ class symchat():
 
         class Clock:
             """Renders the time in the center of the screen."""
-
             def __rich__(self) -> Text:
                 return Text(datetime.now().ctime(), style="bold magenta", justify="center")
 
@@ -1630,3 +1605,55 @@ class symchat():
                 sleep(1)
                 console.log(f"{task} complete")
 
+    def fileSelector(self, message, start_path='./'):
+        result = inquirer.filepath(
+                message=message,
+                default=start_path,
+                #validate=PathValidator(is_file=True, message="Input is not a file"),
+                wrap_lines=True,
+                mandatory=False,
+            ).execute()
+        return result
+
+    def listSelector(self, message, selection):
+        result = inquirer.select(
+                message=message,
+                choices=selection,
+                mandatory=False).execute()
+        return  result 
+
+    def textPrompt(self, message):
+        result = inquirer.text(
+                message=message,
+                mandatory=False,
+            ).execute()
+        return result
+            
+    def findFiles(self, pattern=None):
+        # Recursively get a list of all files from the current directory
+        all_files = []
+        for root, dirs, files in os.walk('.'):
+            for f in files:
+                full_path = os.path.join(root, f)
+                all_files.append(full_path)
+
+        if pattern is None:
+            # Prompt user for a pattern (regex)
+            pattern = prompt("Enter a pattern (regex) to search for files: ")
+
+        try:
+            # Filter files based on the regex pattern
+            matching_files = []
+            for file in all_files:
+                if re.search(pattern, file):
+                    matching_files.append(file)
+
+            if len(matching_files) > 0:
+                selected_file = self.listSelector("Matching files:", sorted(matching_files))
+                return selected_file
+            else:
+                print(f"No matching file found for: {pattern}")
+                return None
+
+        except re.error:
+            print("Invalid regex pattern!")

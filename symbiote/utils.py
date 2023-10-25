@@ -32,6 +32,9 @@ from sumy.nlp.tokenizers import Tokenizer
 from sumy.summarizers.lsa import LsaSummarizer
 from dateutil.parser import parse
 from elasticsearch import Elasticsearch, exceptions
+from rich.syntax import Syntax
+from rich.panel import Panel
+from rich.console import Console
 import warnings
 warnings.filterwarnings("ignore", category=UserWarning, module="sumy")
 
@@ -801,28 +804,55 @@ class utilities():
             print(line)
             time.sleep(speed)
 
-    def imageToAscii(self, image_source):
+    def imageToAscii(self, image_path):
         # Get terminal size
         rows, columns = os.popen('stty size', 'r').read().split()
         term_width = int(columns)
 
-        # Check if the source is a URL or a local path
-        if image_source.startswith(('http://', 'https://')):
+        # Calculate 70% of the terminal width
+        image_width = int(term_width * 0.7)
+
+        # Display the ASCII art, scaled to fit 70% of the terminal width
+        image = climage.convert(image_path, width=image_width, is_unicode=True, **color_to_flags(color_types.color256))
+
+        # Calculate padding to center the image
+        padding = (term_width - image_width) // 2
+        padded_image = "\n".join([" " * padding + line for line in image.split("\n")])
+
+        print(padded_image)
+
+    def getImage(self, url):
+        if url.startswith(('http://', 'https://')):
+            # It's a URL
+            content_type = None 
             try:
-                image_path = download_image(image_source)
-            except Exception as e:
-                print(f'Could not load the url: {e}')
-        else:
-            art = climage.convert(image_path, width=term_width, is_unicode=True, **color_to_flags(color_types.color256))
+                response = requests.head(url)
+                content_type = response.headers.get('Content-Type', '')
+            except Exception:
+                return False
 
-        # Display the ASCII art, scaled to fit the terminal width
-        output = climage.convert(image_path, width=term_width, is_unicode=True, **color_to_flags(color_types.color256))
+            if content_type.startswith('image/'):
+                # Extract the image filename from the URL
+                filename = os.path.basename(urlparse(url).path)
+                save_path = os.path.join('/tmp/', filename)
 
-        print(output)
+                # Download the image
+                response = requests.get(url, stream=True)
+                response.raise_for_status()
+
+                # Save the image to /tmp/
+                with open(save_path, 'wb') as file:
+                    for chunk in response.iter_content(chunk_size=8192):
+                        file.write(chunk)
+
+            return save_path
+
+    
 
     def viewFile(self, file_path):
-        if self.is_image(path):
-            imageToAscii(file_path)
+        if self.is_image(file_path):
+            img_path = self.getImage(file_path)
+            self.imageToAscii(img_path)
             return
 
         # Create a console object
@@ -842,19 +872,9 @@ class utilities():
         console.print(panel, justify="center")
 
     def is_image(self, path):
-        if path.startswith(('http://', 'https://')):
-            # It's a URL
-            try:
-                response = requests.head(path_or_url)
-                content_type = response.headers.get('Content-Type', '')
-                return content_type.startswith('image/')
-            except Exception:
-                return False
+        image_extensions = [".jpg", ".jpeg", ".png", ".gif", ".bmp", ".tiff", ".webp", ".ico"]
+
+        if any(path.lower().endswith(ext) for ext in image_extensions):
+            return True
         else:
-            # It's a file path
-            try:
-                # Open the file with PIL and check if it has a format attribute
-                with Image.open(path_or_url) as img:
-                    return True if img.format else False
-            except Exception:
-                return False
+            return False

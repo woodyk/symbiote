@@ -194,24 +194,6 @@ def generate_code_qa(code, filename):
     return qa_pairs
 
 def generate_qa(data, filename):
-    '''
-    # Understand the data
-    entities = ner_pipe(data_description)
-    
-    questions = []
-    for entity in entities:
-        # Generate questions based on entities
-        questions = [f"What is the {entity['entity']}?" for entity in entities]
-
-    # Find answers in the data
-    qa_pairs = []
-    if questions:
-        for question in questions:
-            answer = qa_pipe(question=question, context=data)
-            qa_pairs.append((question, answer))
-            print(question, answer)
-    '''
-
     doc = nlp(data)
     qa_pairs = []
     for ent in doc.ents:
@@ -247,7 +229,6 @@ def generate_qa(data, filename):
             qa_pairs.append((f"What is the amount of money {ent.text}?", ent.text))
         elif ent.label_ == "TIME":
             qa_pairs.append((f"What is the time {ent.text}?", ent.text))
-
 
     '''
     qa_pairs = []
