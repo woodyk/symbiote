@@ -1330,13 +1330,15 @@ class symchat():
                 elif message['role'] == 'assistant' or message['role'] == 'system':
                     returned_content = message['content']
                     trole = message['role']
-                    if user_content:
-                        input_data = f'role: user\n\n{user_content}\n\nrole: {trole}\n\n{returned_content}\n'
-                        print(input_data)
-                        print("--------")
-                        response = self.send_message(input_data)
-                    else:
-                        continue
+                    continue
+
+                if user_content:
+                    input_data = f'role: user\n\n{user_content}\n\nrole: {trole}\n\n{returned_content}\n'
+                    print(input_data)
+
+                    response = self.send_message(input_data)
+                else:
+                    continue
 
             self.logging = True
             self.timeout = old_timeout
