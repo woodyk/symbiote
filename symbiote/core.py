@@ -28,6 +28,8 @@ class symbiotes:
             "text-davinci-003": 4097,
             "someone": 1024,
             "dummy": 8192,
+            "gpt-4-vision-preview": 128000,
+            "gpt-4-1106-preview": 128000,
           }
 
         self.settings = settings

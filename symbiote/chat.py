@@ -153,8 +153,8 @@ prompt_style = Style.from_dict({
 pricing = {
        "gpt-4": { "prompt": .03, "completion": .06 },
        "gpt-4-32k": { "prompt": .06, "completion": .12},
-       "gpt-4-0314": { "prompt": .06, "completion": .12},
-       "gpt-4-0613": { "prompt": .06, "completion": .12},
+       "gpt-4-vision-preview": { "prompt": .01, "completion": .03},
+       "gpt-4-1106-preview": { "prompt": .01, "completion": .03},
        "gpt-3.5-turbo": { "prompt": .002, "completion": .002},
        "gpt-3.5-turbo-16k": { "prompt": .003, "completion": .004},
        "dummy": { "prompt": 0, "completion": 0},
