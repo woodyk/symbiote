@@ -64,7 +64,7 @@ command_list = {
         "clear::": "Clear the screen.",
         "flush::": "Flush the current conversation from memory.",
         "tokens::": "Token usage summary.",
-        "save::": "Save  self.symbiote_settingssetting:: changes.",
+        "save::": "Save  self.symbiote_settings",
         "exit::": "Exit symbiote.",
         "setting::": "View, update symbiote settings.",
         "maxtoken::": "Change maxtoken setting.",
