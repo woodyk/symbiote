@@ -3,9 +3,6 @@ import time
 import sys
 import json
 import openai
-from openai import OpenAI
-
-client = OpenAI()
 import tiktoken
 import re
 import os
