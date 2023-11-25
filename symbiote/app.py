@@ -12,7 +12,7 @@ import subprocess
 import platform
 import symbiote.logo as logo
 
-openai.api_key = os.getenv("OPENAI_API_KEY")
+
 # Pull a list of available models to use.
 # available_models = openai.Model.list()
 

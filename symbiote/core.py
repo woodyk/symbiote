@@ -3,6 +3,9 @@ import time
 import sys
 import json
 import openai
+from openai import OpenAI
+
+client = OpenAI()
 import tiktoken
 import re
 import os
@@ -57,13 +60,13 @@ class symbiotes:
 
     def process_openaiTranscribe(self, file_path):
         audio_file = open(file_path, "rb")
-        transcript = openai.Audio.transcribe("whisper-1", audio_file)
+        transcript = client.audio.transcribe("whisper-1", audio_file)
 
         return transcript['text']
 
     def process_openaiTranlate(self, file_path):
         audio_file = open(file_path, "rb")
-        transcript = openai.Audio.translate("whisper-1", audio_file)
+        transcript = client.audio.translate("whisper-1", audio_file)
 
         return tranlation
 
@@ -78,14 +81,12 @@ class symbiotes:
         
         if func == "create":
             try:
-                response = openai.Image.create(
-                  prompt=message,
-                  n=n,
-                  size=size,
-                  response_format='url',
-                  user=self.settings['user']
-                )
-            except openai.error.OpenAIError as e:
+                response = client.images.generate(prompt=message,
+                n=n,
+                size=size,
+                response_format='url',
+                user=self.settings['user'])
+            except openai.OpenAIError as e:
                 # Handle openai error responses
                 if e is not None:
                     print()
@@ -96,16 +97,14 @@ class symbiotes:
                     message = "Unknown Error"
         elif func == "edit":
             try:
-                response = openai.Image.create_edit(
-                  image=open("otter.png", "rb"),
-                  mask=open("mask.png", "rb"),
-                  prompt=message,
-                  n=n,
-                  size=size,
-                  response_format='url',
-                  user=self.settings['user']
-                )
-            except openai.error.OpenAIError as e:
+                response = client.images.generate(image=open("otter.png", "rb"),
+                mask=open("mask.png", "rb"),
+                prompt=message,
+                n=n,
+                size=size,
+                response_format='url',
+                user=self.settings['user'])
+            except openai.OpenAIError as e:
                 # Handle openai error responses
                 if e is not None:
                     print()
@@ -116,14 +115,12 @@ class symbiotes:
                     message = "Unknown Error"
         elif func == "variation":
             try:
-                response = openai.Image.create_variation(
-                  image=open("otter.png", "rb"),
-                  n=n,
-                  size=size,
-                  response_format='url',
-                  user=self.settings['user']
-                )
-            except openai.error.OpenAIError as e:
+                response = client.images.generate(image=open("otter.png", "rb"),
+                n=n,
+                size=size,
+                response_format='url',
+                user=self.settings['user'])
+            except openai.OpenAIError as e:
                 # Handle openai error responses
                 if e is not None:
                     print()
@@ -239,19 +236,17 @@ class symbiotes:
         # Proper use of openai.ChatCompletion.create() function.
         try:
             # Process user_input
-            response = openai.ChatCompletion.create(
-                model = self.settings['model'],
-                messages = messages,
-                max_tokens = self.settings['max_tokens'],
-                temperature = self.settings['temperature'],
-                top_p = self.settings['top_p'],
-                stream = stream,
-                presence_penalty = self.settings['presence_penalty'],
-                frequency_penalty = self.settings['frequency_penalty'],
-                stop = self.settings['stop'] 
-            )
+            response = client.chat.completions.create(model = self.settings['model'],
+            messages = messages,
+            max_tokens = self.settings['max_tokens'],
+            temperature = self.settings['temperature'],
+            top_p = self.settings['top_p'],
+            stream = stream,
+            presence_penalty = self.settings['presence_penalty'],
+            frequency_penalty = self.settings['frequency_penalty'],
+            stop = self.settings['stop'])
 
-        except openai.error.OpenAIError as e:
+        except openai.OpenAIError as e:
             # Handle openai error responses
             if e is not None:
                 print()
