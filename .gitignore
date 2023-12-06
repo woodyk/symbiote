@@ -43,3 +43,4 @@ conversations/**
 
 # models
 gpt2_finetuned
+.grit/

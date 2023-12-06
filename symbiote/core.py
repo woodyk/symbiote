@@ -461,7 +461,7 @@ class symbiotes:
             encoded_tokens = tokenizer.encode(text)
         else:
             tokenizer = tiktoken.encoding_for_model(self.settings['model'])
-            encoded_tokens = tokenizer.encode(text)
+            encoded_tokens = tokenizer.encode(text, disallowed_special=())
 
         tokens = len(encoded_tokens)
 
