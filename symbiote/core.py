@@ -10,6 +10,12 @@ import requests
 import uuid
 from pygments.formatters import Terminal256Formatter
 from transformers import GPT2Tokenizer
+from openai import OpenAI
+client = OpenAI()
+client = OpenAI(
+  organization='org-BDOemo1zpG7Uva1OF4TwkWVI',
+)
+
 
 import symbiote.codeextract as codeextract
 import symbiote.utils as utils
@@ -243,15 +249,9 @@ class symbiotes:
             frequency_penalty = self.settings['frequency_penalty'],
             stop = self.settings['stop'])
 
-        except openai.OpenAIError as e:
+        except Exception as e:
             # Handle openai error responses
-            if e is not None:
-                print()
-                print(e.http_status)
-                print(e.error)
-                print()
-            else:
-                message = "Unknown Error"
+            print(e)
 
         # Handle real time stream output from openai response
         chunk_size = 8 

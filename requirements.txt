@@ -9,7 +9,7 @@ InquirerPy==0.3.4
 mss==9.0.1
 nltk==3.8.1
 numpy==1.24.3
-openai==0.27.4
+openai
 pandas==2.0.0
 pathspec==0.11.2
 piexif==1.1.3
