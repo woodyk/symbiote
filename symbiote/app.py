@@ -15,6 +15,7 @@ import symbiote.logo as logo
 
 # Pull a list of available models to use.
 # available_models = openai.Model.list()
+disallowed_special=()
 
 def main():
     def is_data():
