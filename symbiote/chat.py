@@ -97,6 +97,7 @@ command_list = {
         "order::": "Issue an order",
         "view::": "View a file",
         "scroll::": "Scroll through the text of a given file a file",
+        "read::": "Read through a directory path and out put the raw contents to the terminal",
     }
 
 
