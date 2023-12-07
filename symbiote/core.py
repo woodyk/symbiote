@@ -248,6 +248,7 @@ class symbiotes:
             presence_penalty = self.settings['presence_penalty'],
             frequency_penalty = self.settings['frequency_penalty'],
             stop = self.settings['stop'])
+            return
 
         except Exception as e:
             # Handle openai error responses
