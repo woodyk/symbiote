@@ -42,3 +42,7 @@ sounddevice
 simpleaudio
 webdriver_manager
 ascii_magic
+google-auth
+rich
+textual
+
