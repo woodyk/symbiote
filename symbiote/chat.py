@@ -83,9 +83,10 @@ command_list = {
         "ls::": "Load ls output for submission.",
         "search::": "Search index for specific data.",
         "history::": "Show discussion history.",
-        "learn::": "Train AI model on given data in directory. *",
+        "train::": "Train AI model on given data in a file or directory.",
         "structure::": "Data structure builder.",
         "exec::": "Execute a local cli command and learn from the execution fo the command.",
+        "fine-tune::": "Fine-tune a model on a given data in a file or directory.",
         "render::": "Render an image from the provided text.",
         "replay::": "Replay the current conversation to the current model.",
         "prompter::": "Create prompts matched to datasets.",
@@ -159,7 +160,8 @@ pricing = {
        "gpt-3.5-turbo": { "prompt": .002, "completion": .002},
        "gpt-3.5-turbo-16k": { "prompt": .003, "completion": .004},
        "dummy": { "prompt": 0, "completion": 0},
-       "someone": { "prompt": 0, "completion": 0}
+       "someone": { "prompt": 0, "completion": 0},
+       "symbiote": { "prompt": 0, "completion": 0}
    }
 
 # Default settings for openai and symbiot module.
@@ -1228,10 +1230,16 @@ class symchat():
             self.symutils.scrollContent(absolute_path)
 
             return None
+
+        # Trigger for fine-tunning
+        # fine-tune:: - fine tune a model on specific
              
-        # Trigger for file:filename processing. Load file content into user_input for ai consumption.
+        # Trigger for train::
+        # train:: - train a new model on particular data or data sets.  Create special purpose models.
+
+        # Trigger for file:: processing. Load file content into user_input for ai consumption.
         # file:: - opens file or directory to be pulled into the conversation
-        file_pattern = r'file::|file:(.*):|learn:(.*):'
+        file_pattern = r'file::|file:(.*):|train:(.*):|fine-tune:(.*):'
         match = re.search(file_pattern, user_input)
         if match: 
             file_path = None

@@ -32,8 +32,9 @@ class symbiotes:
             "gpt-4-0314": 8192,
             "text-davinci-002": 4097,
             "text-davinci-003": 4097,
-            "someone": 1024,
-            "mswhite": 10000000000, # Ms. White
+            "someone": 1024, 
+            "dummy": 1024,
+            "symbiote": 128000,
             "gpt-4-vision-preview": 128000,
             "gpt-4-1106-preview": 128000,
           }
@@ -394,7 +395,7 @@ class symbiotes:
             prompt = send_message['content']
             response = self.process_someone(prompt, timeout=timeout)
         elif self.settings['model'] == 'dummy':
-            response = "Dummy response for testing."
+            response = ""
         else:
             response = self.process_openaiChat(truncated_conversation)
 
