@@ -33,7 +33,7 @@ class symbiotes:
             "text-davinci-002": 4097,
             "text-davinci-003": 4097,
             "someone": 1024,
-            "dummy": 8192,
+            "mswhite": 10000000000, # Ms. White
             "gpt-4-vision-preview": 128000,
             "gpt-4-1106-preview": 128000,
           }

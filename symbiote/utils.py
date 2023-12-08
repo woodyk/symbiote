@@ -404,7 +404,7 @@ class utilities():
     def learnFiles(self, path):
         from transformers import GPT2Tokenizer, GPT2LMHeadModel, TextDataset, DataCollatorForLanguageModeling, Trainer, TrainingArguments
         ''' Model builder off personal data '''
-        learning_dir = self.settings['symbiote_path'] + "/learning"
+        learning_dir = self.settings['symbiote_path'] + "/learning/"
         if not os.path.exists(learning_dir):
             os.mkdir(learning_dir)
 
