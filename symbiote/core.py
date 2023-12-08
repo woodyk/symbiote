@@ -12,9 +12,9 @@ from pygments.formatters import Terminal256Formatter
 from transformers import GPT2Tokenizer
 from openai import OpenAI
 client = OpenAI()
-client = OpenAI(
-  organization='org-BDOemo1zpG7Uva1OF4TwkWVI',
-)
+#client = OpenAI(
+#  organization='org-BDOemo1zpG7Uva1OF4TwkWVI',
+#)
 
 
 import symbiote.codeextract as codeextract
@@ -248,7 +248,6 @@ class symbiotes:
             presence_penalty = self.settings['presence_penalty'],
             frequency_penalty = self.settings['frequency_penalty'],
             stop = self.settings['stop'])
-            return
 
         except Exception as e:
             # Handle openai error responses
