@@ -799,10 +799,14 @@ class utilities():
 
     def scrollContent(self, file_path, speed=0.01):
         # Scroll through text content automatically
-        text = self.extractText(file_path)
-        for line in text.splitlines():
-            print(line)
-            time.sleep(speed)
+        if os.path.isfile(file_path):
+            text = self.extractText(file_path)
+            for line in text.splitlines():
+                print(line)
+                time.sleep(speed)
+
+        else:
+            return f"Unable to find {file_path}."
 
     def imageToAscii(self, image_path):
         # Get terminal size
