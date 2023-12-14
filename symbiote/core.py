@@ -24,7 +24,7 @@ class symbiotes:
     def __init__(self, settings):
         # Available models
         self.models = {
-            "gpt-4": 128000,
+            "gpt-4": 8192,
             "gpt-3.5-turbo-16k": 16000,
             "gpt-4-32k": 32768,
             "gpt-3.5-turbo": 4096,
@@ -35,8 +35,8 @@ class symbiotes:
             "someone": 1024, 
             "dummy": 1024,
             "symbiote": 128000,
-            "gpt-4-vision-preview": 128000,
-            "gpt-4-1106-preview": 128000,
+            "gpt-4-vision-preview": 8192,
+            "gpt-4-1106-preview": 8192,
           }
 
         self.settings = settings
