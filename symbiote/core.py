@@ -24,8 +24,9 @@ class symbiotes:
     def __init__(self, settings):
         # Available models
         self.models = {
-            "gpt-4": 128000,
-            "gpt-3.5-turbo-16k": 16000,
+            "gpt-4": 8192,
+            "gpt-3.5-turbo-16k": 16385,
+            "gpt-3.5-turbo-instruct": 4096,
             "gpt-4-32k": 32768,
             "gpt-3.5-turbo": 4096,
             "gpt-4-0613": 8192,
@@ -35,8 +36,8 @@ class symbiotes:
             "someone": 1024, 
             "dummy": 1024,
             "symbiote": 128000,
-            "gpt-4-vision-preview": 8192,
-            "gpt-4-1106-preview": 8192,
+            "gpt-4-vision-preview": 128000,
+            "gpt-4-1106-preview": 128000,
           }
 
         self.settings = settings
@@ -178,7 +179,7 @@ class symbiotes:
 
     def process_someone(self, message, timeout=120):
         # Define the url of the API
-        url = "http://ai.sr:5000/predict"
+        url = "http://192.168.1.40:5000/predict"
 
         print("---")
         # Define the data to be sent to the API
@@ -249,10 +250,18 @@ class symbiotes:
             presence_penalty = self.settings['presence_penalty'],
             frequency_penalty = self.settings['frequency_penalty'],
             stop = self.settings['stop'])
-
-        except Exception as e:
-            # Handle openai error responses
-            print(e)
+        except openai.APIError as e:
+            #Handle API error here, e.g. retry or log
+            print(f"OpenAI API returned an API Error: {e}")
+            pass
+        except openai.APIConnectionError as e:
+            #Handle connection error here
+            print(f"Failed to connect to OpenAI API: {e}")
+            pass
+        except openai.RateLimitError as e:
+            #Handle rate limit error (we recommend using exponential backoff)
+            print(f"OpenAI API request exceeded rate limit: {e}")
+            pass
 
         # Handle real time stream output from openai response
         chunk_size = 8 
@@ -396,8 +405,11 @@ class symbiotes:
             response = self.process_someone(prompt, timeout=timeout)
         elif self.settings['model'] == 'dummy':
             response = ""
-        else:
+        elif self.settings['model'].startswith("gpt"):
             response = self.process_openaiChat(truncated_conversation)
+        else:
+            print("No AI model defined.\n");
+            return self.conversation, 0, 0, 0, char_count, self.remember, original_user_input, None
 
         total_assist_tokens, _, _ = self.tokenize(response)
 

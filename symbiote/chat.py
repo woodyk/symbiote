@@ -159,6 +159,7 @@ pricing = {
        "gpt-4-1106-preview": { "prompt": .01, "completion": .03},
        "gpt-3.5-turbo": { "prompt": .002, "completion": .002},
        "gpt-3.5-turbo-16k": { "prompt": .003, "completion": .004},
+       "gpt-3.5-turbo-instruct": { "prompt": 0, "completion": 0},
        "dummy": { "prompt": 0, "completion": 0},
        "someone": { "prompt": 0, "completion": 0},
        "symbiote": { "prompt": 0, "completion": 0}
@@ -630,7 +631,7 @@ class symchat():
                 self.exit = False
                 self.user_input = None
 
-            if self.user_input is None or re.search(r'^\n+$', self.user_input) or self.user_input== "":
+            if self.user_input is None or re.search(r'^\n+$', self.user_input) or self.user_input == "":
                 if self.run is True and self.enable is False:
                     return None 
                     break
@@ -747,7 +748,7 @@ class symchat():
 
         if re.search(r"^tokens::", user_input):
             output = self.symtokens()
-            return output
+            return None
 
         if re.search(r"^save::", user_input):
             self.save_settings(settings=self.symbiote_settings)
@@ -1248,7 +1249,7 @@ class symchat():
             scroll = False
             if re.search(r'^file', user_input):
                 self.suppress = True
-            elif re.search(r'^learn', user_input):
+            elif re.search(r'^fine-tune', user_input):
                 learn = True
             elif re.search(r'^scroll', user_input):
                 self.suppress = True
@@ -1336,6 +1337,8 @@ class symchat():
             for message in self.current_conversation:
                 if message['role'] == 'user':
                     user_content = message['content']
+                    print(user_content)
+                    print("---")
                     response = self.send_message(user_content)
 
             self.logging = True

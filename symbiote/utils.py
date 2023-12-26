@@ -882,3 +882,17 @@ class utilities():
             return True
         else:
             return False
+
+    import urllib.parse
+
+    def google_search_url(search_terms):
+        """
+        Constructs a Google search URL with the given search terms.
+
+        :param search_terms: A string containing the search terms and Google Dorking operators.
+        :return: A string containing the Google search URL.
+        """
+        base_url = "https://www.google.com/search?q="
+        query_string = urllib.parse.quote_plus(search_terms)
+        search_url = base_url + query_string
+        return search_url
