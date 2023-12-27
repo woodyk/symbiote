@@ -373,7 +373,7 @@ class utilities():
             content = ""
         elif re.search(r'^image\/', mime_type):
             try: 
-                content = textract.process(file_path)
+                content = textract.process(file_path, language='eng')
             except Exception as e:
                 content = ""
         else:

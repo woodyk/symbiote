@@ -165,7 +165,7 @@ pricing = {
        "symbiote": { "prompt": 0, "completion": 0}
    }
 
-# Default settings for openai and symbiot module.
+# Default settings for openai and symbiote module.
 homedir = os.getenv('HOME')
 symbiote_settings = {
         "model": "gpt-3.5-turbo",
@@ -235,8 +235,7 @@ class symchat():
             self.output = True
        
         # Set symbiote home path parameters
-        home_dir = os.path.expanduser("~")
-        symbiote_dir = self.symbiote_settings['symbiote_path']
+        symbiote_dir = os.path.expanduser(self.symbiote_settings['symbiote_path'])
         if not os.path.exists(symbiote_dir):
             os.mkdir(symbiote_dir)
 

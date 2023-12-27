@@ -583,7 +583,7 @@ class symbiotes:
 
         # Make sure the conversation exists in the conversations directory.
         if not os.path.exists(input_file):
-            conversation_path = self.settings['symbiote_path'] + "/conversations"
+            conversation_path = os.path.expanduser(self.settings['symbiote_path']) + "/conversations"
             check_file = os.path.join(conversation_path, input_file)
             if os.path.exists(check_file):
                 input_file = check_file
