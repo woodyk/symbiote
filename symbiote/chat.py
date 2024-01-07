@@ -45,6 +45,10 @@ from rich.console import Console
 from rich.panel import Panel
 from rich.syntax import Syntax
 
+# Add these imports at the beginning of the file
+from symbiote.huggingface_integration import import_model, load_hf_dataset, fine_tune_model
+from symbiote.model_creator import create_model, train_model, evaluate_model
+
 import symbiote.roles as roles
 import symbiote.speech as speech
 import symbiote.codeextract as codeextract
@@ -1659,3 +1663,15 @@ class symchat():
 
         except re.error:
             print("Invalid regex pattern!")
+
+
+    # Sample function to handle new commands
+    def handle_huggingface_commands(command, args):
+        if command == 'import_model':
+            model, tokenizer = import_model(args[0])
+            return f'Model {args[0]} imported successfully.'
+        elif command == 'load_dataset':
+            dataset = load_hf_dataset(args[0])
+            return f'Dataset {args[0]} loaded successfully.'
+        # Add more cases as needed
+

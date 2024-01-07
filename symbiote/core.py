@@ -12,9 +12,9 @@ from pygments.formatters import Terminal256Formatter
 from transformers import GPT2Tokenizer
 from openai import OpenAI
 client = OpenAI()
-#client = OpenAI(
-#  organization='org-BDOemo1zpG7Uva1OF4TwkWVI',
-#)
+client = OpenAI(
+  organization='org-BDOemo1zpG7Uva1OF4TwkWVI',
+)
 
 
 import symbiote.codeextract as codeextract
@@ -38,6 +38,7 @@ class symbiotes:
             "symbiote": 128000,
             "gpt-4-vision-preview": 128000,
             "gpt-4-1106-preview": 128000,
+            "davinci:ft-smallroom:someone-2023-04-17-18-42-21": 1024,
           }
 
         self.settings = settings
@@ -242,26 +243,18 @@ class symbiotes:
         try:
             # Process user_input
             response = client.chat.completions.create(model = self.settings['model'],
-            messages = messages,
-            max_tokens = self.settings['max_tokens'],
-            temperature = self.settings['temperature'],
-            top_p = self.settings['top_p'],
-            stream = stream,
-            presence_penalty = self.settings['presence_penalty'],
-            frequency_penalty = self.settings['frequency_penalty'],
-            stop = self.settings['stop'])
-        except openai.APIError as e:
+                messages = messages,
+                max_tokens = self.settings['max_tokens'],
+                temperature = self.settings['temperature'],
+                top_p = self.settings['top_p'],
+                stream = stream,
+                presence_penalty = self.settings['presence_penalty'],
+                frequency_penalty = self.settings['frequency_penalty'],
+                stop = self.settings['stop'])
+        except Exception as e:
             #Handle API error here, e.g. retry or log
-            print(f"OpenAI API returned an API Error: {e}")
-            pass
-        except openai.APIConnectionError as e:
-            #Handle connection error here
-            print(f"Failed to connect to OpenAI API: {e}")
-            pass
-        except openai.RateLimitError as e:
-            #Handle rate limit error (we recommend using exponential backoff)
-            print(f"OpenAI API request exceeded rate limit: {e}")
-            pass
+            message = f"OpenAI API returned an Error: {e}"
+            return message
 
         # Handle real time stream output from openai response
         chunk_size = 8 
@@ -498,9 +491,14 @@ class symbiotes:
             if 'conversation' in last_message:
                 del last_message['conversation']
 
+
             truncated_conversation.insert(0, last_message)
             t_tokens, _, _ = self.tokenize(last_message['content'])
-            char_count += len(last_message['content'])
+
+            if last_message['content'] is None:
+                char_count = 0
+            else:
+                char_count += len(last_message['content'])
             truncated_tokens += t_tokens
             single_message = False
 

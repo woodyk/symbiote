@@ -46,3 +46,6 @@ google-auth
 rich
 textual
 OpenAI
+datasets
+tensorflow
+keras
