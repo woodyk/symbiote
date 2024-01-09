@@ -33,7 +33,7 @@ class symbiotes:
             "gpt-4-0314": 8192,
             "text-davinci-002": 4097,
             "text-davinci-003": 4097,
-            "someone": 1024, 
+            "someone": 1000000, 
             "dummy": 1024,
             "symbiote": 128000,
             "gpt-4-vision-preview": 128000,
@@ -211,12 +211,8 @@ class symbiotes:
 
         # If the request was successful, return the generated text
         if response.status_code == 200:
-            if self.settings['syntax_highlight']:
-                snip = self.ce.syntax_highlighter(text=response.text)
-                print(snip, end="")
-            else:
-                print(response.text)
             print("---")
+            print(response.text)
             return response.text
         else:
             print(f"Request failed with status code {response.status_code}")
@@ -391,7 +387,8 @@ class symbiotes:
             response = self.interactWithModel(truncated_conversation)
         elif self.settings['model'] == 'someone':
             try:
-                send_message = truncated_conversation.pop()
+                #send_message = truncated_conversation.pop()
+                send_message = self.conversation
             except Exception as e:
                 return self.conversation, 0, 0, 0, char_count, self.remember, original_user_input, None
             prompt = send_message['content']
