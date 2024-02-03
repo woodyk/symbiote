@@ -21,7 +21,7 @@ def chat():
 
         # Encode the user's input and add the end-of-string token
         input_ids = tokenizer.encode(user_input + tokenizer.eos_token, return_tensors='pt')
-        attention_mask = (input_ids != tokenizer.pad_token_id).long()
+        attention_mask = (input_ids != tokenizer.pad_token_id)
 
         # Generate a response
         output = model.generate(input_ids,

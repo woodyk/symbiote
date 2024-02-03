@@ -48,8 +48,8 @@ if platform.system() == 'Linux':
 
 setup(
     name='symbiote',
-    version='0.11.0',
-    description='A command line harness to openai functions.',
+    version='0.12.0',
+    description='A command line harness to AI functions.',
     author='Wadih Khairallah',
     url='https://github.com/woodyk/symbiote',
     packages=find_packages(),
@@ -58,7 +58,6 @@ setup(
         'Development Status :: 3 - Alpha',
         'Intended Audience :: Developers',
         #'License :: OSI Approved :: MIT License',
-        'Programming Language :: Python :: 3.11',
     ],
     entry_points={
         'console_scripts': [
