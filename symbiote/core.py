@@ -355,6 +355,7 @@ class symbiotes:
         user_input = re.sub('[ ]+', ' ', user_input)
 
         # Split user input into chunks
+        '''
         query_tokens, _, _ = self.tokenize(user_input)
         user_input_chunks = self.split_user_input_into_chunks(user_input)
 
@@ -370,6 +371,19 @@ class symbiotes:
             completion_content.append(user_content)
             if logging:
                 self.save_conversation(user_content, self.conversations_file)
+        '''
+
+        # Update our conversation with the user input
+        user_content = {
+            "epoch": time.time(),
+            "role": role,
+            "content": user_input
+        }
+
+        self.conversation.append(user_content)
+        completion_content.append(user_content)
+        if logging:
+            self.save_conversation(user_content, self.conversations_file)
 
         # Handle suppressed messaging
         if self.suppress:
@@ -401,7 +415,8 @@ class symbiotes:
             print("No AI model defined.\n");
             return self.conversation, 0, 0, 0, char_count, self.remember, original_user_input, None
 
-        total_assist_tokens, _, _ = self.tokenize(response)
+        #total_assist_tokens, _, _ = self.tokenize(response)
+        total_assist_tokens = 0
 
         # update our conversation with the assistant response
         assistant_content = {
@@ -450,7 +465,6 @@ class symbiotes:
         with open(conversations_file, 'a+') as file:
             #json.dump(data, file, indent=2)
             file.write(jsonl_string + "\n")
-
     def tokenize(self, text):
         ''' Tokenize text '''
         if not isinstance(text, str):
