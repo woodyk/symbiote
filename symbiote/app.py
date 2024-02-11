@@ -35,6 +35,10 @@ import symbiote.logo as logo
 # available_models = openai.Model.list()
 disallowed_special=()
 
+def initialize():
+    # Load the NLP module
+    nlp = phlack_nlp.init()
+
 def main():
     def is_data():
         return select.select([sys.stdin], [], [], 0) == ([sys.stdin], [], [])
@@ -244,7 +248,9 @@ def check_libpostal():
         print("libpostal installation completed")
 
 def entry_point() -> None:
+    nlp = phlack_nlp.init()
     main()
 
 if __name__ == "__main__":
+    nlp = phlack_nlp.init()
     main()
