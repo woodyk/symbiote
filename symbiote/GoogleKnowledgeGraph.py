@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 #
-# googleknowledgegraphchatbot.py
+# GoogleKnowledgeGraph.py
 
 import requests
 from bs4 import BeautifulSoup
@@ -14,7 +14,7 @@ from textblob import TextBlob
 import random
 import string
 
-class GoogleKnowledgeGraphChatbot:
+class GoogleKnowledgeGraph:
     def __init__(self):
         # Initialize a graph to represent the knowledge graph
         self.G = nx.Graph()

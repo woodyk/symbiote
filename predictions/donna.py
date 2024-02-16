@@ -27,6 +27,18 @@ class Symbiote:
         response_text = ' '.join([str(r) for r in response[0]])  # Adjust as needed
         return response_text
 
+    def get_layers(self):
+        # Get the number of layers
+        num_layers = len(model.layers)
+        print(f"Number of Layers: {num_layers}")
+
+        # View layer names
+        print("Layer Names: ")
+        for layer in model.layers:
+            print(layer.name)
+
+        model.summary()
+
     def chat(self):
         print("Chatbot is running. Type 'quit' to exit.")
         while True:
@@ -38,7 +50,7 @@ class Symbiote:
 
 # Usage
 if __name__ == "__main__":
-    model_path = '~/.symbiote/model/donna.h5'  # Replace with the correct path to your model
+    model_path = '~/.symbiote/models/donna.h5'  # Replace with the correct path to your model
     model_path = os.path.expanduser(model_path)
     symbiote = Symbiote(model_path)
     symbiote.chat()

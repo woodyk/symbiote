@@ -36,6 +36,7 @@ class symbiotes:
             "someone": 1000000, 
             "dummy": 1024,
             "symbiote": 128000,
+            "GSEGNN": 128000,
             "gpt-4-vision-preview": 128000,
             "gpt-4-1106-preview": 128000,
             "davinci:ft-smallroom:someone-2023-04-17-18-42-21": 1024,
@@ -465,6 +466,7 @@ class symbiotes:
         with open(conversations_file, 'a+') as file:
             #json.dump(data, file, indent=2)
             file.write(jsonl_string + "\n")
+
     def tokenize(self, text):
         ''' Tokenize text '''
         if not isinstance(text, str):
