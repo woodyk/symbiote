@@ -14,7 +14,7 @@ pandas
 pathspec
 piexif
 Pillow
-postal
+#postal
 prompt_toolkit
 PyAudio
 pydub

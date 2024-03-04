@@ -402,9 +402,12 @@ class symbiotes:
             response = self.interactWithModel(truncated_conversation)
         elif self.settings['model'] == 'someone':
             try:
-                response = self.process_someone(turncated_conversation, timeout=timeout)
+                #send_message = truncated_conversation.pop()
+                send_message = self.conversation
             except Exception as e:
                 return self.conversation, 0, 0, 0, char_count, self.remember, original_user_input, None
+            prompt = send_message['content']
+            response = self.process_someone(prompt, timeout=timeout)
         elif self.settings['model'] == 'dummy':
             response = ""
         elif self.settings['model'].startswith("gpt"):
@@ -472,7 +475,9 @@ class symbiotes:
         if self.settings['model'] == 'dummy':
             return 1000, 0, 0 
         elif self.settings['model'] == 'someone':
-            return 1024, 0, 0
+            # Initialize the tokenizer
+            tokenizer = GPT2Tokenizer.from_pretrained('gpt2')
+            encoded_tokens = tokenizer.encode(text)
         else:
             tokenizer = tiktoken.encoding_for_model(self.settings['model'])
             encoded_tokens = tokenizer.encode(text, disallowed_special=())

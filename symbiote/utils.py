@@ -160,7 +160,7 @@ class utilities():
         return clean
 
     def extractAddress(self, text):
-        from postal.parser import parse_address
+        #from postal.parser import parse_address
         components = [ 'house_number', 'road', 'postcode', 'city', 'state' ]
         parsed_address = parse_address(text)
         addresses = []

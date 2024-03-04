@@ -36,8 +36,52 @@ pygment_styles = [
 class CodeBlockIdentifier:
     def __init__(self, text=None):
         self.text = text
-        self.block_match = r'`{3}(\w+\n)(.*)`{3}|\'{3}(\w+\n)(.*)\'{3}'
+        # Regex to match fenced code blocks in Markdown or similar formats
+        self.block_match = r'```(\w*\n)?(.*?)```|```(\w*\n)?(.*?)```|~~~(\w*\n)?(.*?)~~~|\'\'\'(\w*\n)?(.*?)\'\'\''
         self.syntax_style = 'monokai'
+
+    def extract_code_blocks(self, text):
+        """
+        Extracts code blocks from text using regex and BeautifulSoup for HTML.
+        """
+        code_blocks = re.findall(self.block_match, text, re.DOTALL)
+        # Flatten the tuple results from regex and remove empty matches
+        code_blocks = [item for sublist in code_blocks for item in sublist if item]
+
+        # Additional extraction from HTML if BeautifulSoup is initialized
+        if BeautifulSoup:
+            soup = BeautifulSoup(text, 'html.parser')
+            for tag in soup.find_all(['code', 'pre', 'script']):
+                code_blocks.append(tag.get_text())
+
+        return code_blocks
+
+    def identify_language(self, code_block):
+        """
+        Identifies the programming language of a code block using Pygments.
+        """
+        try:
+            lexer = guess_lexer(code_block)
+            return lexer.aliases[0]  # Return the primary alias of the lexer
+        except Exception as e:
+            return "unknown"
+
+    def highlight_code(self, code_block, language='auto'):
+        """
+        Syntax highlights a code block. If language is 'auto', attempts to guess.
+        """
+        if language == 'auto':
+            try:
+                lexer = guess_lexer(code_block)
+            except Exception:
+                lexer = get_lexer_by_name('text')
+        else:
+            lexer = get_lexer_by_name(language)
+
+        formatter = Terminal256Formatter(style=self.syntax_style)
+        return highlight(code_block, lexer, formatter)
+
+    # Additional methods like lint_file, write_tmp_code, score_code_block, etc., can be added here.
 
     def lint_file(self, file_name):
         # Read the file contents
@@ -239,8 +283,21 @@ class CodeBlockIdentifier:
 
         return highlighted_text
 
-'''
-Usage:
-identifier = CodeBlockIdentifier(text)
-file_list = identifier.process_text()
-'''
+# Example usage
+if __name__ == "__main__":
+    identifier = CodeBlockIdentifier()
+    text = """Here is some Python code:
+    ```python
+    def hello_world():
+        print("Hello, world!")
+    ```
+    And here is some HTML:
+    ```html
+    <div>Hello, world!</div>
+    ```
+    """
+    code_blocks = identifier.extract_code_blocks(text)
+    for block in code_blocks:
+        language = identifier.identify_language(block)
+        highlighted = identifier.highlight_code(block, language)
+        print(f"Language: {language}\nHighlighted Code:\n{highlighted}")
