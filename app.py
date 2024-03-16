@@ -107,7 +107,7 @@ def main():
         os.chdir('/tmp')
         check_libmagic()
         check_nl_packages()
-        check_libpostal()
+        #check_libpostal()
         return
 
     import symbiote.chat as chat

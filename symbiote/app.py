@@ -36,7 +36,8 @@ disallowed_special=()
 
 def initialize():
     # Load the NLP module
-    nlp = phlack_nlp.init()
+    #nlp = phlack_nlp.init()
+    pass
 
 def main():
     def is_data():
@@ -106,7 +107,7 @@ def main():
         os.chdir('/tmp')
         check_libmagic()
         check_nl_packages()
-        check_libpostal()
+        #check_libpostal()
         return
 
     import symbiote.chat as chat
@@ -247,9 +248,9 @@ def check_libpostal():
         print("libpostal installation completed")
 
 def entry_point() -> None:
-    nlp = phlack_nlp.init()
+    #nlp = phlack_nlp.init()
     main()
 
 if __name__ == "__main__":
-    nlp = phlack_nlp.init()
+    #nlp = phlack_nlp.init()
     main()
