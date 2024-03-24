@@ -8,7 +8,8 @@ import os
 import requests
 import uuid
 from pygments.formatters import Terminal256Formatter
-from transformers import GPT2Tokenizer
+from transformers import GPT2Tokenizer, GPT2LMHeadModel, AdamW, get_linear_schedule_with_warmup
+
 
 import symbiote.codeextract as codeextract
 import symbiote.utils as utils
@@ -21,6 +22,7 @@ class symbiotes:
             "dummy": 1024,
             "symbiote": 128000,
             "GSEGNN": 128000,
+            "mistral-small-latest": 128000,
           }
 
         self.settings = settings
@@ -45,6 +47,33 @@ class symbiotes:
             model_list.append(model)
 
         return model_list
+
+    def process_mistral(self, message):
+        request_body = {
+            "model": "mistral-small-latest",
+            "messages": [{"role": "user", "content": message}],
+            "temperature": 0.7,
+            "max_tokens": 100,
+        }
+
+        api_key = os.getenv("MISTRAL_AI_API_KEY")
+        api_url = "https://api.mistral.ai/v1/chat/completions"
+
+        headers = {
+            'x-api-key': api_key,
+            'Content-Type': 'application/json'
+        }
+
+
+        try:
+            response = requests.post(api_url, headers=headers, data=json.dumps(request_body))
+        except Exception as e:
+            print(e)
+            return
+
+        print(response["choices"][0]["message"]["content"].strip())
+
+        return response_data["choices"][0]["message"]["content"].strip() 
 
     def process_someone(self, message, timeout=120):
         # Define the url of the API
@@ -191,6 +220,8 @@ class symbiotes:
         # Push queries to model
         if self.settings['model'] == 'symbiote':
             response = self.interactWithModel(truncated_conversation)
+        elif self.settings['model'].startswith("mistral"):
+            response = self.process_mistral(truncated_conversation)
         elif self.settings['model'] == 'someone':
             try:
                 response = self.process_someone(turncated_conversation, timeout=timeout)
@@ -263,7 +294,7 @@ class symbiotes:
         elif self.settings['model'] == 'someone':
             return 1024, 0, 0
         else:
-            tokenizer = tiktoken.encoding_for_model(self.settings['model'])
+            tokenizer = tiktoken.encoding_for_model('gpt-4')
             encoded_tokens = tokenizer.encode(text, disallowed_special=())
 
         tokens = len(encoded_tokens)
@@ -353,7 +384,7 @@ class symbiotes:
 
     def interactWithModel(self, prompt):
         # Load the trained model and tokenizer
-        model_dir = self.settings['symbiote_path'] + "learning/index_model"
+        model_dir = self.settings['symbiote_path'] + "/learning/gpt2_finetuned"
         model = GPT2LMHeadModel.from_pretrained(model_dir)
         tokenizer = GPT2Tokenizer.from_pretrained(model_dir)
 
