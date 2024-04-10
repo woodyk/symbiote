@@ -2,13 +2,18 @@
 import time
 import sys
 import json
+import openai
 import tiktoken
 import re
 import os
 import requests
 import uuid
 from pygments.formatters import Terminal256Formatter
-from transformers import GPT2Tokenizer, GPT2LMHeadModel, AdamW, get_linear_schedule_with_warmup
+from transformers import GPT2Tokenizer
+from openai import OpenAI
+client = OpenAI(
+  organization='org-BDOemo1zpG7Uva1OF4TwkWVI',
+)
 
 
 import symbiote.codeextract as codeextract
@@ -18,11 +23,22 @@ class symbiotes:
     def __init__(self, settings):
         # Available models
         self.models = {
+            "gpt-4": 4096,
+            "gpt-3.5-turbo-16k": 16385,
+            "gpt-3.5-turbo-instruct": 4096,
+            "gpt-4-32k": 32768,
+            "gpt-3.5-turbo": 4096,
+            "gpt-4-0613": 8192,
+            "gpt-4-0314": 8192,
+            "text-davinci-002": 4097,
+            "text-davinci-003": 4097,
             "someone": 1000000, 
             "dummy": 1024,
             "symbiote": 128000,
             "GSEGNN": 128000,
-            "mistral-small-latest": 128000,
+            "gpt-4-vision-preview": 4096,
+            "gpt-4-1106-preview": 4096,
+            "davinci:ft-smallroom:someone-2023-04-17-18-42-21": 1024,
           }
 
         self.settings = settings
@@ -48,32 +64,119 @@ class symbiotes:
 
         return model_list
 
-    def process_mistral(self, message):
-        request_body = {
-            "model": "mistral-small-latest",
-            "messages": [{"role": "user", "content": message}],
-            "temperature": 0.7,
-            "max_tokens": 100,
-        }
+    def process_openaiTranscribe(self, file_path):
+        audio_file = open(file_path, "rb")
+        transcript = client.audio.transcribe("whisper-1", audio_file)
 
-        api_key = os.getenv("MISTRAL_AI_API_KEY")
-        api_url = "https://api.mistral.ai/v1/chat/completions"
+        return transcript['text']
 
-        headers = {
-            'x-api-key': api_key,
-            'Content-Type': 'application/json'
-        }
+    def process_openaiTranlate(self, file_path):
+        audio_file = open(file_path, "rb")
+        transcript = client.audio.translate("whisper-1", audio_file)
 
+        return tranlation
 
-        try:
-            response = requests.post(api_url, headers=headers, data=json.dumps(request_body))
-        except Exception as e:
-            print(e)
-            return
+    def process_openaiImage(self, message=None, func='create', n=1, size='1024x1024', image=None):
+        if message is None:
+            print(f"No message provided.")
+            return None
 
-        print(response["choices"][0]["message"]["content"].strip())
+        if len(message) > 1000:
+            print("Prompt is too long, must be lest than 1000 chars.")
+            return None
+        
+        if func == "create":
+            try:
+                response = client.images.generate(prompt=message,
+                n=n,
+                size=size,
+                response_format='url',
+                user=self.settings['user'])
+            except openai.OpenAIError as e:
+                # Handle openai error responses
+                if e is not None:
+                    print()
+                    print(e.http_status)
+                    print(e.error)
+                    print()
+                else:
+                    message = "Unknown Error"
+        elif func == "edit":
+            try:
+                response = client.images.generate(image=open("otter.png", "rb"),
+                mask=open("mask.png", "rb"),
+                prompt=message,
+                n=n,
+                size=size,
+                response_format='url',
+                user=self.settings['user'])
+            except openai.OpenAIError as e:
+                # Handle openai error responses
+                if e is not None:
+                    print()
+                    print(e.http_status)
+                    print(e.error)
+                    print()
+                else:
+                    message = "Unknown Error"
+        elif func == "variation":
+            try:
+                response = client.images.generate(image=open("otter.png", "rb"),
+                n=n,
+                size=size,
+                response_format='url',
+                user=self.settings['user'])
+            except openai.OpenAIError as e:
+                # Handle openai error responses
+                if e is not None:
+                    print()
+                    print(e.http_status)
+                    print(e.error)
+                    print()
+                else:
+                    message = "Unknown Error"
 
-        return response_data["choices"][0]["message"]["content"].strip() 
+        # Get the current time
+        current_time = str(time.time())
+        current_time = current_time.replace('.', '')
+
+        directory_name = self.settings['image_dir']
+
+        image_urls = []
+        for count, value in enumerate(response['data']):
+            image_urls.append(response['data'][count]['url'])
+
+        extension = None
+        # Download each image
+        symutils = utils.utilities(settings=self.settings)
+        for url in image_urls:
+            # Send a GET request to the image URL
+            response = requests.get(url)
+
+            # Check if the request succeeded
+            if response.status_code == 200:
+                # Generate a unique identifier for the image
+                image_name = str(uuid.uuid4()) + current_time
+
+                # Get the file extension from the URL
+                extension = os.path.splitext(url)[1]
+
+                # Create the full file path
+                file_path = os.path.join(directory_name, image_name + extension)
+
+                # Write the image data to a file
+                with open(file_path, 'wb') as file:
+                    file.write(response.content)
+
+                if not extension:
+                    extension = symutils.get_extension(file_path)
+                    new_file = file_path + extension
+                    os.rename(file_path, new_file) 
+                    #symutils.exif_comment(new_file, message)
+            else:
+                print(f"Error getting image: {url}")
+
+        return image_urls
 
     def process_someone(self, message, timeout=120):
         # Define the url of the API
@@ -115,6 +218,82 @@ class symbiotes:
             print(f"Request failed with status code {response.status_code}")
             print("---")
             return
+
+    def process_openaiChat(self, messages):
+        ''' Send user_input to openai for processing '''
+        if self.settings['debug']:
+            print(json.dumps(messages, indent=4))
+
+        stream = self.settings['stream']
+
+        if self.output:
+            print("---")
+        else:
+            stream = False
+
+        message = ""
+        chunk_block = ""
+        response = {} 
+
+        # Proper use of openai.ChatCompletion.create() function.
+        try:
+            # Process user_input
+            response = client.chat.completions.create(model = self.settings['model'],
+                messages = messages,
+                #max_tokens = self.settings['max_tokens'],
+                temperature = self.settings['temperature'],
+                top_p = self.settings['top_p'],
+                stream = stream,
+                presence_penalty = self.settings['presence_penalty'],
+                frequency_penalty = self.settings['frequency_penalty'],
+                stop = self.settings['stop'])
+        except Exception as e:
+            #Handle API error here, e.g. retry or log
+            message = f"OpenAI API returned an Error: {e}"
+            print(message)
+            return message
+
+
+        # Handle real time stream output from openai response
+        chunk_size = 8 
+        if stream and self.output:
+            for chunk in response:
+                try:
+                    chunk_block += chunk.choices[0].delta.content
+                    if len(chunk_block) >= chunk_size:
+                        message += chunk_block
+                        if self.settings['syntax_highlight']:
+                            snip = self.ce.syntax_highlighter(text=chunk_block)
+                            print(snip, end="")
+                        else:
+                            print(chunk_block, end="")
+                        chunk_block = ""
+                except:
+                    continue
+            
+            if len(chunk_block) > 0:
+                if self.settings['syntax_highlight']:
+                    snip = self.ce.syntax_highlighter(text=chunk_block)
+                    print(snip)
+                else:
+                    print(chunk_block)
+                message += chunk_block
+        else:
+            message = response.choices[0].message.content
+            if self.output:
+                if self.settings['syntax_highlight']:
+                    snip = self.ce.syntax_highlighter(text=message)
+                    print(snip)
+                else:
+                    print(message)
+
+        if self.output:
+            print("---\n")
+
+        if self.settings['max_tokens'] < self.settings['default_max_tokens']:
+            message = "Data consumed."
+
+        return message.strip()
 
     def split_user_input_into_chunks(self, user_input):
         chunks = []
@@ -220,8 +399,6 @@ class symbiotes:
         # Push queries to model
         if self.settings['model'] == 'symbiote':
             response = self.interactWithModel(truncated_conversation)
-        elif self.settings['model'].startswith("mistral"):
-            response = self.process_mistral(truncated_conversation)
         elif self.settings['model'] == 'someone':
             try:
                 response = self.process_someone(turncated_conversation, timeout=timeout)
@@ -229,6 +406,8 @@ class symbiotes:
                 return self.conversation, 0, 0, 0, char_count, self.remember, original_user_input, None
         elif self.settings['model'] == 'dummy':
             response = ""
+        elif self.settings['model'].startswith("gpt"):
+            response = self.process_openaiChat(truncated_conversation)
         else:
             print("No AI model defined.\n");
             return self.conversation, 0, 0, 0, char_count, self.remember, original_user_input, None
@@ -252,7 +431,7 @@ class symbiotes:
         return truncated_conversation, (total_user_tokens + total_assist_tokens), total_user_tokens, total_assist_tokens, char_count, self.remember, original_user_input, response
 
     def load_conversation(self, conversations_file, flush=False):
-        ''' Load conversation json file '''
+        ''' Load openai conversation json file '''
         self.conversations_file = conversations_file
         data = []
 
@@ -294,7 +473,7 @@ class symbiotes:
         elif self.settings['model'] == 'someone':
             return 1024, 0, 0
         else:
-            tokenizer = tiktoken.encoding_for_model('gpt-4')
+            tokenizer = tiktoken.encoding_for_model(self.settings['model'])
             encoded_tokens = tokenizer.encode(text, disallowed_special=())
 
         tokens = len(encoded_tokens)
@@ -302,7 +481,7 @@ class symbiotes:
         return tokens, encoded_tokens, tokenizer 
 
     def truncate_messages(self, conversation, flush=False):
-        ''' Truncate data to stay within token thresholds '''
+        ''' Truncate data to stay within token thresholds for openai '''
         max_length = int(self.remember * self.settings['conversation_percent'] - self.settings['max_tokens'])
         total_tokens = 0
         truncated_tokens = 0
@@ -384,7 +563,7 @@ class symbiotes:
 
     def interactWithModel(self, prompt):
         # Load the trained model and tokenizer
-        model_dir = self.settings['symbiote_path'] + "/learning/gpt2_finetuned"
+        model_dir = self.settings['symbiote_path'] + "learning/index_model"
         model = GPT2LMHeadModel.from_pretrained(model_dir)
         tokenizer = GPT2Tokenizer.from_pretrained(model_dir)
 

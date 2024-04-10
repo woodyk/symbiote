@@ -133,10 +133,10 @@ class utilities():
 
     def removeSpecial(self, values):
         if type(values) == str:
-            values = re.sub('[^\-\.,\#A-Za-z0-9 ]+', '', values)
+            values = re.sub(r'[^\-\.,\#A-Za-z0-9 ]+', '', values)
         elif type(values) == (str or list or tuple):
             for value in values:
-                values[index(value)] = re.sub('[^\-\.,\#A-Za-z0-9 ]+', '', value)
+                values[index(value)] = re.sub(r'[^\-\.,\#A-Za-z0-9 ]+', '', value)
 
         return values 
 
@@ -160,7 +160,7 @@ class utilities():
         return clean
 
     def extractAddress(self, text):
-        #from postal.parser import parse_address
+        from postal.parser import parse_address
         components = [ 'house_number', 'road', 'postcode', 'city', 'state' ]
         parsed_address = parse_address(text)
         addresses = []
@@ -233,6 +233,30 @@ class utilities():
         for ent in doc.ents:
             print(ent.label_, ent.text)
 
+    def analyze_file(self, path, reindex=False):
+        file_list = []
+        if os.path.isdir(path):
+            for root, _, files in os.walk(path):
+                for file in files:
+                    full_path = os.path.join(root, file)
+                    if not os.path.isdir(full_path):
+                        file_list.append(full_path)
+        elif os.path.isfile(path):
+            file_list.append(path)
+
+        fcount = 0
+        for file in file_list:
+            fcount += 1
+            if self.settings['debug']:
+                print(f'Processing file {file}. count:{fcount}')
+
+            doc_id = self.getSHA256(file)
+
+            content = json.dumps(self.summarizeFile(file),indent=4, sort_keys=True)
+            print(content)
+
+        return content
+
     def analyze_text(self, text, meta):
         import spacy
         from spacy.lang.en.stop_words import STOP_WORDS
@@ -297,8 +321,8 @@ class utilities():
         #content.update(meta)
         content['METADATA'] = meta
         content['SENTIMENT'] = sentiment
-        content['CONTENTS'] = text
-        #content['SUMMARY'] = main_idea
+        #content['CONTENTS'] = text
+        content['SUMMARY'] = main_idea
 
         if self.settings['perifious']:
             content['EMAILS'] = self.extractEmail(text)

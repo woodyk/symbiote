@@ -1001,21 +1001,21 @@ class symchat():
                 index = inquirer.confirm(message=f'Index {file_path}?').execute()
 
                 if index is True:
-                    result = self.symutils.createIndex(file_path, reindex=False)
+                    result = self.symutils.analyze_file(file_path)
 
                 return result
             elif not os.path.isfile(file_path):
                 print(f"File not found: {file_path}")
                 return None
 
-            result = self.symutils.createIndex(file_path, reindex=False)
+            summary = self.symutils.analyze_file(file_path)
 
             #summary = self.symutils.summarizeFile(file_path)
 
             #if self.symbiote_settings['debug']:
             #    print(json.dumps(summary, indent=4))
 
-            #user_input = user_input[:match.start()] + json.dumps(summary) + user_input[match.end():]
+            user_input = user_input[:match.start()] + json.dumps(summary) + user_input[match.end():]
 
             return None 
 
