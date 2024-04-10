@@ -56,6 +56,7 @@ import symbiote.webcrawler as webcrawler
 import symbiote.utils as utils
 import symbiote.core as core
 from symbiote.themes import ThemeManager
+import symbiote.openAiAssistant as oa
 
 os.environ['PYGAME_HIDE_SUPPORT_PROMPT'] = '1'
 
@@ -203,6 +204,8 @@ symbiote_settings = {
         "theme": 'default',
     }
 
+assistant_id = 'asst_cGS0oOCEuRqm0QPO9vVsPw1y'
+
 # Create a pretty printer
 pp = pprint.PrettyPrinter(indent=4)
 
@@ -237,6 +240,9 @@ class symchat():
             self.output = kwargs['output']
         else:
             self.output = True
+
+        # Load the openai assistant
+        self.mrblack = oa.MyAssistant(assistant_id)
        
         # Set symbiote home path parameters
         symbiote_dir = os.path.expanduser(self.symbiote_settings['symbiote_path'])
@@ -615,7 +621,8 @@ class symchat():
             if self.prompt_only:
                 self.chat_session.bottom_toolbar = None
             else:
-                self.chat_session.bottom_toolbar = f"Model: {self.symbiote_settings['model']}\nCurrent Conversation: {self.symbiote_settings['conversation']}\nLast Char Count: {self.token_track['last_char_count']}\nToken Usage:\nUser: {self.token_track['user_tokens']} Assistant: {self.token_track['completion_tokens']} Conversation: {self.token_track['truncated_tokens']} Total Used: {self.token_track['rolling_tokens']}\nCost: ${self.token_track['cost']:.2f}\ncwd: {current_path}"
+                #self.chat_session.bottom_toolbar = f"Model: {self.symbiote_settings['model']}\nCurrent Conversation: {self.symbiote_settings['conversation']}\nLast Char Count: {self.token_track['last_char_count']}\nToken Usage:\nUser: {self.token_track['user_tokens']} Assistant: {self.token_track['completion_tokens']} Conversation: {self.token_track['truncated_tokens']} Total Used: {self.token_track['rolling_tokens']}\nCost: ${self.token_track['cost']:.2f}\ncwd: {current_path}"
+                self.chat_session.bottom_toolbar = f"Model: Mr. Black Assistant API"
 
             if self.run is False:
                 self.user_input = self.chat_session.prompt(message="symchat> ",
@@ -658,10 +665,9 @@ class symchat():
             continue
 
     def send_message(self, user_input):
-        #if self.suppress and not self.run:
-        #    self.launch_animation(True)
-        #self.current_conversation = self.sym.load_conversation(self.conversations_file)
-
+        self.mrblack.add_message_to_thread(user_input)
+        result = self.mrblack.run_assistant()
+        '''
         if self.symbiote_settings['debug']:
             pp.pprint(self.current_conversation)
 
@@ -706,8 +712,8 @@ class symchat():
             speech_thread.start()
 
         self.suppress = False
-
-        return returned
+        '''
+        return result
 
     def symtokens(self):
         self.suppress = True

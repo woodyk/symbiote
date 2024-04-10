@@ -38,24 +38,24 @@ class MyAssistant:
         class EventHandler(AssistantEventHandler):
             @override
             def on_text_created(self, text) -> None:
-                print(f"\nassistant: ", end="", flush=True)
+                print(f"assistant: ", flush=True)
             
             @override
             def on_text_delta(self, delta, snapshot):
-                print(delta.value, end="", flush=True)
+                print(delta.value, flush=True)
             
             def on_tool_call_created(self, tool_call):
-                print(f"\nassistant: {tool_call.type}\n", flush=True)
+                print(f"assistant: {tool_call.type}\n", flush=True)
             
             def on_tool_call_delta(self, delta, snapshot):
                 if delta.type == 'code_interpreter':
                     if delta.code_interpreter.input:
                         print(delta.code_interpreter.input, end="", flush=True)
                     if delta.code_interpreter.outputs:
-                        print(f"\n\noutput >", flush=True)
+                        print(f"output >", flush=True)
                         for output in delta.code_interpreter.outputs:
                             if output.type == "logs":
-                                print(f"\n{output.logs}", flush=True)
+                                print(f"{output.logs}", flush=True)
                             elif output.type == "file":
                                 self.process_file(output.file)
 
@@ -69,6 +69,8 @@ class MyAssistant:
                 file_details = client.beta.files.retrieve(file_id=file_id)
                 print(f"\nFile details:\n{file_details}")
 
+        print("---")
+
         with client.beta.threads.runs.stream(
             thread_id=self.thread.id,
             assistant_id=self.assistant_id,
@@ -76,6 +78,11 @@ class MyAssistant:
             event_handler=EventHandler(),
         ) as stream:
             stream.until_done()
+
+        print("\n---")
+
+        return stream
+
 
     def upload_file(self, file_path):
         response = client.beta.files.create(
