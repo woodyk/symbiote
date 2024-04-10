@@ -667,6 +667,7 @@ class symchat():
     def send_message(self, user_input):
         self.mrblack.add_message_to_thread(user_input)
         result = self.mrblack.run_assistant()
+        print(result)
         '''
         if self.symbiote_settings['debug']:
             pp.pprint(self.current_conversation)

@@ -20,6 +20,7 @@ class MyAssistant:
         self.assistant_id = assistant_id
         self.assistant = self.get_assistant_by_id()
         self.thread = self.create_thread()
+        self.response_log = []  # Initialize a list to store responses
 
     def get_assistant_by_id(self):
         return client.beta.assistants.retrieve(assistant_id=self.assistant_id)
@@ -38,14 +39,14 @@ class MyAssistant:
         class EventHandler(AssistantEventHandler):
             @override
             def on_text_created(self, text) -> None:
-                print(f"assistant: ", flush=True)
+                print(f"assistant: ", end="", flush=True)
             
             @override
             def on_text_delta(self, delta, snapshot):
-                print(delta.value, flush=True)
+                print(delta.value, end="", flush=True)
             
             def on_tool_call_created(self, tool_call):
-                print(f"assistant: {tool_call.type}\n", flush=True)
+                print(f"assistant: {tool_call.type}\n", end="", flush=True)
             
             def on_tool_call_delta(self, delta, snapshot):
                 if delta.type == 'code_interpreter':
@@ -81,7 +82,15 @@ class MyAssistant:
 
         print("\n---")
 
-        return stream
+        # Compile the log into a single string
+        response_text = "\n".join(self.response_log)
+
+        # Optionally, clear the log if planning to reuse this instance for further interactions,
+        # to avoid accumulating logs from multiple runs
+        # self.response_log.clear()
+
+
+        return response_text 
 
 
     def upload_file(self, file_path):
