@@ -160,7 +160,7 @@ class utilities():
         return clean
 
     def extractAddress(self, text):
-        from postal.parser import parse_address
+        #from postal.parser import parse_address
         components = [ 'house_number', 'road', 'postcode', 'city', 'state' ]
         parsed_address = parse_address(text)
         addresses = []
@@ -317,7 +317,7 @@ class utilities():
         main_idea = " ".join(str(sentence) for sentence in summary)
 
         content['EPOCH'] = time.time()
-        content['ADDRESSES'] = self.extractAddress(text)
+        #content['ADDRESSES'] = self.extractAddress(text)
         #content.update(meta)
         content['METADATA'] = meta
         content['SENTIMENT'] = sentiment

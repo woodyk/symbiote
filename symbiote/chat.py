@@ -1024,7 +1024,9 @@ class symchat():
 
             user_input = user_input[:match.start()] + json.dumps(summary) + user_input[match.end():]
 
-            return None 
+            self.send_message(user_input)
+
+            return user_input 
 
         # Trigger to flush current running conversation from memory.
         flush_pattern = r'^flush::'
@@ -1441,20 +1443,20 @@ class symchat():
             return user_input 
 
         # Trigger for ls:path processing. List the content of the specified directory.
-        ls_pattern = r'ls:(.*):'
+        ls_pattern = r'ls:(.*):|ls::'
         match = re.search(ls_pattern, user_input)
         if match:
             self.suppress = True
             path = match.group(1)
             if os.path.isdir(path):
                 dir_content = os.listdir(path)
-                content = f"Directory content of {path}: \n" + "\n".join(dir_content)
-                insert_content = ' ``` {} ``` '.format(content)
-                user_input = re.sub(ls_pattern, insert_content, user_input)
-                print(user_input)
             else:
-                print("Directory not found. Please try again.")
-                return None
+                dir_content = os.listdir('./')
+
+            content = f"Directory content of {path}: \n" + "\n".join(dir_content)
+            insert_content = ' ``` {} ``` '.format(content)
+            user_input = re.sub(ls_pattern, insert_content, user_input)
+            print(user_input)
 
             return user_input 
 
