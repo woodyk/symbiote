@@ -53,7 +53,7 @@ class MyAssistant:
                     if delta.code_interpreter.input:
                         print(delta.code_interpreter.input, end="", flush=True)
                     if delta.code_interpreter.outputs:
-                        print(f"output >", flush=True)
+                        print(f"\n\033[32moutput >\033[0m\n", flush=True)
                         for output in delta.code_interpreter.outputs:
                             if output.type == "logs":
                                 print(f"{output.logs}", flush=True)

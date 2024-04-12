@@ -1,123 +1,157 @@
 #!/usr/bin/env python3
-#
-# GoogleKnowledgeGraph.py
 
 import requests
+import sys
 from bs4 import BeautifulSoup
-import networkx as nx
 import re
-from difflib import SequenceMatcher
 import spacy
 from transformers import pipeline
 import nltk
 from textblob import TextBlob
 import random
 import string
+import torch
+import networkx as nx
+from urllib.parse import quote_plus
+from transformers import T5Tokenizer, T5ForConditionalGeneration
 
-class GoogleKnowledgeGraph:
+class GoogleKnowledgeGraphChatbot:
     def __init__(self):
-        # Initialize a graph to represent the knowledge graph
         self.G = nx.Graph()
-
-        # Initialize NLP components
+        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        self.model = T5ForConditionalGeneration.from_pretrained('t5-base').to(self.device)
+        self.tokenizer = T5Tokenizer.from_pretrained('t5-base')
         self.nlp = spacy.load("en_core_web_sm")
-        self.summarizer = pipeline("summarization")
+        self.pegasus_pipeline = pipeline("summarization", model="google/pegasus-large", tokenizer="google/pegasus-large")
         nltk.download("punkt")
 
-    def fetch_google_search_results(self, query):
-        """
-        Fetch Google search results for the given query.
+    def summarize_text(self, text, max_length=512):
+        #summary = self.pegasus_pipeline(text, max_length=max_length, truncation=True)[0]['summary_text']
+        summary = self.pegasus_pipeline(text, truncation=True)[0]['summary_text']
+        return summary
 
-        Args:
-            query (str): The query to search for.
+    def cleanse_link(self, dirty_link):
+        cleaned_link = "https://www.google.com" + dirty_link.replace("/search?q=", "")
+        match = re.search(r'q=(.*?)&', cleaned_link)
+        if match:
+            # Decode URL encoding
+            extracted_url = re.sub(r'%3A', ':', match.group(1))
+            extracted_url = re.sub(r'%2F', '/', extracted_url)
+            return extracted_url
+        else:
+            return cleaned_link 
 
-        Returns:
-            list: A list of URLs corresponding to the search results.
-        """
-        url = f"https://www.google.com/search?q={query}"
-        response = requests.get(url)
-        soup = BeautifulSoup(response.text, "html.parser")
-        links = [link.get("href") for link in soup.select(".yuRUbf > a")]
-        return links
+    def fetch_google_search_results(self, keyword):
+        encoded_string = quote_plus(keyword)
+        base_url = "https://www.google.com/search?q={}&num=35".format(encoded_string)
+        req = requests.get(base_url)
+        soup = BeautifulSoup(req.text, "html.parser")
+        links = [a["href"] for a in soup.find_all("a")]
+        cleaned_links = [self.cleanse_link(link) for link in links]
+        return cleaned_links
 
-    def visit_and_extract_text(self, links):
-        """
-        Visit the specified links and extract their textual content.
-
-        Args:
-            links (list): A list of URLs to visit.
-
-        Returns:
-            list: A list of strings containing the extracted text from each link.
-        """
-        texts = []
-        for link in links:
+    def visit_and_extract_text(self, urls):
+        visited_urls = set()
+        scraped_text = ""
+        for url in urls:
+            if url in visited_urls:
+                continue
+            visited_urls.add(url)
             try:
-                response = requests.get(link)
-                soup = BeautifulSoup(response.text, "html.parser")
+                # Send a GET request to the URL
+                req = requests.get(url)
+                # Initialize BeautifulSoup
+                soup = BeautifulSoup(req.text, "html.parser")
+                # Extract textual content from the parsed HTML
                 text = soup.get_text()
-                texts.append(text)
+                # Optionally, further clean the text
+                # For example, remove excessive whitespaces
+                text = re.sub(r'\s+', ' ', text).strip()
+                print(text)
+                scraped_text += text + "\n\n"  # Add a double newline for separation between URLs' text
             except Exception as e:
-                print(f"Error visiting {link}: {e}")
-        return texts
+                print("Exception occurred:", e)
+                continue
+        return scraped_text
 
-    def compare_and_merge_text(self, texts):
-        """
-        Compare and merge the textual content from multiple sources into a single coherent document.
-
-        Args:
-            texts (list): A list of strings containing the extracted text from each source.
-
-        Returns:
-            str: A single string representing the merged text.
-        """
-        merged_text = ""
-        for text in texts:
-            merged_text += text
-        return merged_text
+    def define_term(self, keyword):
+        self.nlp.max_length = len(keyword) * 2
+        doc = self.nlp(keyword)
+        for ent in doc.ents:
+            if ent.label_ == "PERSON" or ent.label_ == "ORG" or ent.label_ == "GPE":
+                return f"{ent.text} is a {ent.label_}"
+        return self.summarize_text(keyword)
 
     def analyze_and_provide_answer(self, merged_text, query):
+        self.nlp.max_length = len(query) * 2
+        doc = self.nlp(query)
+        for ent in doc.ents:
+            if ent.label_ == "PERSON" or ent.label_ == "ORG" or ent.label_ == "GPE":
+                return self.define_term(ent.text)
+        return self.summarize_text(merged_text)
+
+    def summarize_with_t5(self, text, max_length=512, min_length=40):
+        inputs = self.tokenizer.encode("summarize: " + text, return_tensors="pt", max_length=max_length, truncation=True)
+        inputs = inputs.to(self.device)
+        summary_ids = self.model.generate(inputs, max_length=max_length, min_length=min_length, length_penalty=2.0, num_beams=4, early_stopping=True)
+        summary = self.tokenizer.decode(summary_ids[0], skip_special_tokens=True)
+        return summary
+
+
+if __name__ == "__main__":
+    chatbot = GoogleKnowledgeGraphChatbot()
+    print("Welcome to the Google Knowledge Graph Chatbot!")
+
+    while True:
+        user_input = input("Enter a question or statement (type 'exit' to quit): ")
+
+        if user_input.lower() == 'exit':
+            break
+
+        search_results = chatbot.fetch_google_search_results(user_input)
+
+        if not search_results:
+            print("No search results found.")
+            continue
+
+        top_links = search_results[:35]
+
+        for link in top_links:
+            print(link)
+
+        text_content = chatbot.visit_and_extract_text(top_links)
+
+        if not text_content:
+            print("No text content found among visited pages.")
+            continue
+
+        merged_text_content = text_content
+        new_prompt = user_input + merged_text_content
+
+        answer = chatbot.summarize_with_t5(new_prompt)
+        print("\nT5 Response:")
+        print(answer)
+
         """
-        Analyze the merged text and provide an appropriate response to the given query.
-
-        Args:
-            merged_text (str): The merged text from multiple sources.
-            query (str): The query to analyze.
-
-        Returns:
-            str: A string representing the chatbot's response.
+        answer = chatbot.analyze_and_provide_answer(merged_text_content, user_input)
+        print("\nChatbot's Response:")
+        print(answer)
         """
-        doc = self.nlp(merged_text)
-        entities = set([ent.text for ent in doc.ents])
-        keywords = set([token.text for token in doc if token.dep_ == "amod"])
 
-        if "question" in entities or "answering" in entities:
-            answer = self.summarize_text(merged_text)
-        elif "definition" in entities or "explanation" in entities:
-            answer = self.define_term(keywords)
-        elif "comparison" in entities or "contrast" in entities:
-            answer = self.compare_terms(keywords)
-        elif "description" in entities or "overview" in entities:
-            answer = self.describe_topic(entities)
+        summary = chatbot.summarize_text(new_prompt)
+        print("\nSummary:")
+        print(summary)
+
+        sentiment_score = TextBlob(new_prompt).sentiment.polarity
+        print(f"Sentiment score: {sentiment_score}")
+
+        if sentiment_score > 0:
+            sentiment_response = "The request has a positive sentiment."
+        elif sentiment_score < 0:
+            sentiment_response = "The request has a negative sentiment."
         else:
-            answer = "Sorry, I don't understand what you're asking."
+            sentiment_response = "The request is neutral."
 
-        return answer
-
-    def define_term(self, keywords):
-        """
-        Define a term by finding its synonyms and providing a concise definition.
-
-        Args:
-            keywords (set): A set of synonyms for the term to define.
-
-        Returns:
-            str: A string defining the term.
-        """
-        definitions = {}
-        for keyword in keywords:
-            synsets = self.nlp(keyword).synsets
-            if synsets:
-                definitions[keyword] = synsets[0].definitions[0].text
-
+        print("\nSentiment Analysis:")
+        print(sentiment_response)
 

@@ -77,6 +77,7 @@ command_list = {
         "cd::": "Change working directory.",
         "pwd::": "Show current working directory.",
         "file::": "Load a file for submission.",
+        "gbot::": "Do a google scrub for content related to a search term.",
         "summary::": "Pull nouns, summary, and metadata for a file.",
         "extract::": "Extract data features for a given file or directory and summarize.",
         "code::": "Extract code and write files.",
