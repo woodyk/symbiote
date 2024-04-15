@@ -1,108 +1,58 @@
 #!/usr/bin/env python3
 #
-# huggingface.py
+# tt.py
 
-from transformers import (
-    AutoModelForSequenceClassification,
-    TrainingArguments,
-    Trainer,
-    AutoConfig
-)
-from transformers import AutoModel, AutoTokenizer
-from datasets import load_dataset, list_datasets
+import re
+import time
+import requests
 
-class HuggingFaceManager:
+class huggingBot:
     def __init__(self):
-        self.available_datasets = list_datasets()
+        self.api_url = "https://api-inference.huggingface.co/models/mistralai/Mixtral-8x7B-Instruct-v0.1"
+        self.headers = {"Authorization": "Bearer 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"}
 
-    def download_model(self, model_name):
-        """
-        Downloads the specified model and tokenizer from Hugging Face.
-        """
-        try:
-            model = AutoModel.from_pretrained(model_name)
-            tokenizer = AutoTokenizer.from_pretrained(model_name)
-            print(f"Downloaded model and tokenizer for {model_name}.")
-            return model, tokenizer
-        except Exception as e:
-            print(f"An error occurred: {e}")
+    def query(self, payload):
+        response = requests.post(self.api_url, headers=self.headers, json=payload)
+        return response.json()
 
-    def download_dataset(self, dataset_name, **kwargs):
-        """
-        Downloads the specified dataset from Hugging Face.
-        """
-        if dataset_name in self.available_datasets:
-            try:
-                dataset = load_dataset(dataset_name, **kwargs)
-                print(f"Downloaded dataset: {dataset_name}.")
-                return dataset
-            except Exception as e:
-                print(f"An error occurred: {e}")
+    def get_response(self, user_input):
+        output = self.query({"inputs": user_input})
+        return output[0]['generated_text']
+
+    def strip_to_punctuation(self, text):
+        match = re.search(r"[^.,!?;:]*$", text)
+        if match:
+            # Subtract match length from total length to find the index of the last punctuation
+            return text[:len(text) - len(match.group(0))]
+        return text  # Return the original text if no punctuation is found
+
+    def trim(self, user_input, prev_text):
+        if prev_text:
+            uilen = len(user_input)
+            trimmed = prev_text[uilen:]
         else:
-            print(f"Dataset {dataset_name} not found in available datasets.")
+            trimmed = user_input
 
-    def list_available_datasets(self):
-        """
-        Lists all available datasets in Hugging Face.
-        """
-        return self.available_datasets
+        return trimmed
 
-    def create_model(self, model_name, num_labels, task='sequence_classification'):
-        """
-        Initializes a new model for a specific task.
-        """
-        config = AutoConfig.from_pretrained(model_name, num_labels=num_labels)
-        if task == 'sequence_classification':
-            model = AutoModelForSequenceClassification.from_config(config)
-        else:
-            raise ValueError("Task not supported")
-        return model
+    def run(self, user_input):
+        print("---")
+        #user_input = self.get_response(user_input)
+        #print(user_input)
+        #prev_text = user_input 
+        prev_text = False 
+        while True:
+            user_input = self.get_response(user_input)
+            if user_input == prev_text or len(user_input) >= 5000:
+                break
 
-    def train_model(self, model, tokenizer, train_dataset, eval_dataset, output_dir='./results', epochs=3):
-        """
-        Fine-tunes and trains the model with the given datasets.
-        """
-        # Tokenization of datasets
-        def tokenize_function(examples):
-            return tokenizer(examples['text'], padding='max_length', truncation=True)
+            prev_text = user_input
+            time.sleep(0.2)
 
-        tokenized_train = train_dataset.map(tokenize_function, batched=True)
-        tokenized_eval = eval_dataset.map(tokenize_function, batched=True)
+        print(user_input)
+        print("---")
 
-        # Training arguments
-        training_args = TrainingArguments(
-            output_dir=output_dir,
-            num_train_epochs=epochs,
-            per_device_train_batch_size=8,
-            per_device_eval_batch_size=8,
-            warmup_steps=500,
-            weight_decay=0.01,
-            logging_dir='./logs',
-        )
-
-        # Initialize Trainer
-        trainer = Trainer(
-            model=model,
-            args=training_args,
-            train_dataset=tokenized_train,
-            eval_dataset=tokenized_eval,
-        )
-
-        # Train the model
-        trainer.train()
-
-        return model
-
-# Assuming the dataset has 'train' and 'validation' splits
-train_dataset = dataset['train']
-eval_dataset = dataset['validation']
-tokenizer = AutoTokenizer.from_pretrained("bert-base-uncased")
-
-# Train the model
-trained_model = manager.train_model(model, tokenizer, train_dataset, eval_dataset)
-
-# Example usage
-manager = HuggingFaceManager()
-model, tokenizer = manager.download_model("bert-base-uncased")
-dataset = manager.download_dataset("glue", name="mrpc")
+if __name__ == "__main__":
+    chatbot = huggingBot()
+    chatbot.run("Write a script that counts from 1 to 10 using javascript.")
 

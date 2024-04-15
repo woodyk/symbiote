@@ -13,11 +13,11 @@ class symLogo():
     def __init__(self):
         # ASCII characters to use, ordered by brightness
         self.ASCII_CHARS = "@%#*+=-:. "
-        print(self.image_to_ascii("https://smallroom.com/symbiote-symbol.png")) 
+        print(self.image_to_ascii("https://smallroom.com/logo.png")) 
 
     def map_to_ascii(self, brightness):
         """Map a pixel's brightness to an ASCII character."""
-        if brightness > 128:
+        if brightness > 75:
             return "\033[93;40m" + self.ASCII_CHARS[brightness // 32] + "\033[0m"  # yellow for the symbol
         else:
             return "\033[30;40m" + self.ASCII_CHARS[brightness // 32] + "\033[0m"  # green for the background
@@ -43,3 +43,6 @@ class symLogo():
             ascii_str += "\n"
 
         return ascii_str
+
+if __name__ == "__main__":
+    symLogo()

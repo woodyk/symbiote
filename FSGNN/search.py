@@ -21,12 +21,19 @@ class BayesianSearcher:
     def load_index(self):
         """Load the indexed data from a GZIP-compressed JSONL file."""
         with gzip.open(self.index_file, 'rt', encoding='utf-8') as file:
-            return [json.loads(line) for line in file]
+            # Ensure all term frequencies keys are treated case insensitively
+            return [self.process_index_entry(json.loads(line)) for line in file]
+
+    def process_index_entry(self, entry):
+        """ Process each index entry to ensure term frequencies are case-insensitive """
+        entry['term_frequencies'] = {self.stemmer.stem(key.lower()): value for key, value in entry['term_frequencies'].items()}
+        return entry
 
     def calculate_match_score(self, file_index, search_terms):
         """Calculate how well the file matches the search terms."""
         score = 0
         for term in search_terms:
+            # Access term frequencies in a case-insensitive manner
             score += file_index['term_frequencies'].get(term, 0)
         return score
 

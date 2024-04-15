@@ -46,10 +46,10 @@ from rich.panel import Panel
 from rich.syntax import Syntax
 
 # Add these imports at the beginning of the file
-from symbiote.huggingface_integration import import_model, load_hf_dataset, fine_tune_model
 from symbiote.model_creator import create_model, train_model, evaluate_model
 
 import symbiote.roles as roles
+import symbiote.shell as shell
 import symbiote.speech as speech
 import symbiote.codeextract as codeextract
 import symbiote.webcrawler as webcrawler
@@ -157,19 +157,6 @@ prompt_style = Style.from_dict({
         'bottom-toolbar.off': f'bg:{prompt_colors["off_white"]} {prompt_colors["light_gray"]}',  # Bottom toolbar off style
     })
 '''
-
-pricing = {
-       "gpt-4": { "prompt": .03, "completion": .06 },
-       "gpt-4-32k": { "prompt": .06, "completion": .12},
-       "gpt-4-vision-preview": { "prompt": .01, "completion": .03},
-       "gpt-4-1106-preview": { "prompt": .01, "completion": .03},
-       "gpt-3.5-turbo": { "prompt": .002, "completion": .002},
-       "gpt-3.5-turbo-16k": { "prompt": .003, "completion": .004},
-       "gpt-3.5-turbo-instruct": { "prompt": 0, "completion": 0},
-       "dummy": { "prompt": 0, "completion": 0},
-       "someone": { "prompt": 0, "completion": 0},
-       "symbiote": { "prompt": 0, "completion": 0}
-   }
 
 # Default settings for openai and symbiote module.
 homedir = os.getenv('HOME')
@@ -745,8 +732,9 @@ class symchat():
                 user_input = 'setting:perifious:1:'
 
         if re.search(r'^shell::', user_input):
-            print("disabled needs work")
+            # needs to be fixed
             #shell.symBash().launch_shell()
+            print("Shell not currently available.")
             return None
 
         if re.search(r'^help::', user_input):
