@@ -18,7 +18,6 @@ from InquirerPy.base.control import Choice
 from InquirerPy.validator import PathValidator
 from InquirerPy.prompts.filepath import FilePathCompleter
 
-from pynput.keyboard import Controller, Key
 from prompt_toolkit import Application
 from prompt_toolkit.history import InMemoryHistory, FileHistory
 from prompt_toolkit.shortcuts import PromptSession, prompt, input_dialog, yes_no_dialog, progress_dialog, message_dialog
@@ -70,6 +69,7 @@ command_list = {
         "gbot::": "Do a google scrub for content related to a search term.",
         "summary::": "Pull nouns, summary, and metadata for a file.",
         "extract::": "Extract data features for a given file or directory and summarize.",
+        "links::": "Extract links from the given text.",
         "code::": "Extract code and write files.",
         "get::": "Get remote data based on uri http, ftp, ssh, etc...",
         "crawl::": "Crawl remote data based on uri http, ftp, ssh, etc...",
@@ -324,18 +324,6 @@ class symchat():
         stop = time.time()
         diff = stop - start
         print(start, stop, diff)
-
-    def keyboardContinue(self):
-        keyboard = Controller()
-
-        keyboard.press(Key.esc)
-        keyboard.press(Key.enter)
-
-        # Small delay for certain applications that might need it
-        time.sleep(0.1)
-
-        keyboard.release(Key.esc)
-        keyboard.release(Key.enter)
 
     def symhelp(self):
         self.suppress = True
@@ -1225,6 +1213,15 @@ class symchat():
 
             self.symutils.scrollContent(absolute_path)
 
+            return None
+
+        # Trigger for links
+        # Extract links from the given text
+        links_pattern = r'links::'
+        match = re.search(links_pattern, user_input)
+        if match:
+            user_input = f"Analzyze and extract web links and urls from the following {user_input}"
+            self.send_message(user_input)
             return None
 
         # Trigger for google search or dorking
