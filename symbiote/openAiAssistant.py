@@ -29,11 +29,16 @@ class MyAssistant:
         return client.beta.threads.create()
 
     def add_message_to_thread(self, content):
-        return client.beta.threads.messages.create(
-            thread_id=self.thread.id,
-            role="user",
-            content=content
-        )
+        try:
+            result =  client.beta.threads.messages.create(
+                thread_id=self.thread.id,
+                role="user",
+                content=content
+            )
+        except Exception as e:
+            result = e
+
+        return result
 
     def run_assistant(self, instructions=""):
         class EventHandler(AssistantEventHandler):
@@ -72,13 +77,17 @@ class MyAssistant:
 
         print("---")
 
-        with client.beta.threads.runs.stream(
-            thread_id=self.thread.id,
-            assistant_id=self.assistant_id,
-            instructions=instructions,
-            event_handler=EventHandler(),
-        ) as stream:
-            stream.until_done()
+        try:
+            with client.beta.threads.runs.stream(
+                thread_id=self.thread.id,
+                assistant_id=self.assistant_id,
+                instructions=instructions,
+                event_handler=EventHandler(),
+            ) as stream:
+                stream.until_done()
+        except Exception as e:
+            print(f"error: {e}")
+            pass
 
         print("\n---")
 

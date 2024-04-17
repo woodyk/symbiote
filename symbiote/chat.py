@@ -57,6 +57,7 @@ import symbiote.utils as utils
 import symbiote.core as core
 from symbiote.themes import ThemeManager
 import symbiote.openAiAssistant as oa
+import symbiote.huggingface as hf
 
 os.environ['PYGAME_HIDE_SUPPORT_PROMPT'] = '1'
 
@@ -105,6 +106,7 @@ command_list = {
         "view::": "View a file",
         "scroll::": "Scroll through the text of a given file a file",
         "read::": "Read through a directory path and out put the raw contents to the terminal",
+        "dork::": "Run a google search on your search term.",
     }
 
 
@@ -231,6 +233,9 @@ class symchat():
 
         # Load the openai assistant
         self.mrblack = oa.MyAssistant(assistant_id)
+
+        # Load huggingface serverless inference
+        self.mswhite = hf.huggingBot() 
        
         # Set symbiote home path parameters
         symbiote_dir = os.path.expanduser(self.symbiote_settings['symbiote_path'])
@@ -655,7 +660,7 @@ class symchat():
     def send_message(self, user_input):
         self.mrblack.add_message_to_thread(user_input)
         result = self.mrblack.run_assistant()
-        print(result)
+        #result = self.mswhite.run(user_input)
         '''
         if self.symbiote_settings['debug']:
             pp.pprint(self.current_conversation)
@@ -1233,11 +1238,21 @@ class symchat():
 
             return None
 
-        # Trigger for fine-tunning
-        # fine-tune:: - fine tune a model on specific
-             
-        # Trigger for train::
-        # train:: - train a new model on particular data or data sets.  Create special purpose models.
+        # Trigger for google search or dorking
+        dork_pattern = r'dork:(.*):'
+        match = re.search(dork_pattern, user_input)
+        if match:
+            if match.group(1):
+                import symbiote.googleSearch as gs
+                dork = gs.GoogleTextFetcher(num_results=10)
+                results = dork.perform_search_and_fetch_text(match.group(1))
+                content = f"google search {results}\n"
+                content += '\n```\n{}\n```\n'.format(content)
+                user_input = user_input[:match.start()] + content + user_input[match.end():]
+                return user_input
+            else:
+                print("No search term provided.")
+                return None
 
         # Trigger for file:: processing. Load file content into user_input for ai consumption.
         # file:: - opens file or directory to be pulled into the conversation
@@ -1322,10 +1337,11 @@ class symchat():
                 result = self.symutils.exec_command(command)
                 if result:
                     print(result)
+                self.send_message(result)
             else:
                 print(f"No command specified")
 
-            return result
+            return
 
         # Trigger to replay prior log data.
         replay_pattern = r'replay::|replay:(.*):'

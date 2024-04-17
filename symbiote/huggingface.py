@@ -37,10 +37,10 @@ class huggingBot:
 
     def run(self, user_input):
         print("---")
-        #user_input = self.get_response(user_input)
-        #print(user_input)
-        #prev_text = user_input 
-        prev_text = False 
+        user_input = self.get_response(user_input)
+        print(user_input)
+        prev_text = user_input 
+        #prev_text = False 
         while True:
             user_input = self.get_response(user_input)
             if user_input == prev_text or len(user_input) >= 5000:
@@ -51,6 +51,7 @@ class huggingBot:
 
         print(user_input)
         print("---")
+        return user_input
 
 if __name__ == "__main__":
     chatbot = huggingBot()

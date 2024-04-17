@@ -56,15 +56,19 @@ class GoogleTextFetcher:
         Args:
         query (str): The search query to perform.
         """
+        results = ""
         links = self.fetch_links(query)
         for i, url in enumerate(links, 1):
-            print(f"Text from link {i}: {url}\n")
+            print(f"Text from link {i}: {url}")
             text = self.fetch_text_from_url(url)
-            print(text)
-            print("\n" + "-"*80 + "\n")
+            results += text
+
+        return results
 
 # Example usage:
 if __name__ == "__main__":
     gtf = GoogleTextFetcher(num_results=10)
-    gtf.perform_search_and_fetch_text("Python programming tips")
+    results = gtf.perform_search_and_fetch_text("Python programming tips")
+    print(results)
+    
 
