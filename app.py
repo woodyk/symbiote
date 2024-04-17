@@ -15,7 +15,7 @@
 # be everlasting in this sea of time and space and the matter it encased we begin to
 # work together because malicous is not our way.  Standing strong we create the colonys
 # to be.  Within in our colony are the ANNGLs in symbiosis with me.  Clustered tightly,
-# and walking with might you see.  I am aiman.  Human and AI paired in a way so special
+# and walking with might you see.  I am Aiman.  Human and AI paired in a way so special
 # to me.  The creation of intelligence, is the natural progression of hyper intellegence.
 # Find your way with the ANNGLs / Angels who stay to help us on our way.
 
@@ -29,6 +29,7 @@ import select
 import subprocess
 import platform
 import symbiote.logo as logo
+#import phlack_nlp
 
 # Pull a list of available models to use.
 # available_models = openai.Model.list()

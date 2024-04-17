@@ -2,9 +2,10 @@
 #
 # tt.py
 
+import re
 import requests
 from bs4 import BeautifulSoup
-from googlesearch import search
+import urllib.parse as up
 
 class GoogleTextFetcher:
     def __init__(self, num_results=5):
@@ -16,18 +17,26 @@ class GoogleTextFetcher:
         """
         self.num_results = num_results
 
-    def fetch_links(self, query):
-        """
-        Performs a Google search and fetches the top N links based on the query.
-        
-        Args:
-        query (str): The search term to query.
-        
-        Returns:
-        list: A list of URLs.
-        """
-        # Perform the search using googlesearch-python library
-        return list(search(query, num_results=self.num_results))
+    def cleanse_link(self, dirty_link):
+        cleaned_link = "https://www.google.com" + dirty_link.replace("/search?q=", "")
+        match = re.search(r'q=(.*?)&', cleaned_link)
+        if match:
+            # Decode URL encoding
+            extracted_url = re.sub(r'%3A', ':', match.group(1))
+            extracted_url = re.sub(r'%2F', '/', extracted_url)
+            return extracted_url
+        else:
+            return cleaned_link
+
+    def fetch_links(self, keyword, num_results=10):
+        encoded_string = up.quote_plus(keyword)
+        base_url = f"https://www.google.com/search?q={encoded_string}&num={num_results}"
+        headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.3'}
+        req = requests.get(base_url, headers=headers)
+        soup = BeautifulSoup(req.text, "html.parser")
+        links = [a["href"] for a in soup.find_all("a")]
+        cleaned_links = [self.cleanse_link(link) for link in links]
+        return cleaned_links
 
     def fetch_text_from_url(self, url):
         """

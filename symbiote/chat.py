@@ -8,19 +8,10 @@ import os
 import io
 import re
 import signal
-#import requests
 import threading
-#import textract
-#import magic
-#import subprocess
-#import platform
 import clipboard
 import json
-#import queue
-#import webbrowser
 import pprint
-
-#from bs4 import BeautifulSoup
 
 from InquirerPy import inquirer
 from InquirerPy.base.control import Choice
@@ -58,8 +49,6 @@ import symbiote.core as core
 from symbiote.themes import ThemeManager
 import symbiote.openAiAssistant as oa
 import symbiote.huggingface as hf
-
-os.environ['PYGAME_HIDE_SUPPORT_PROMPT'] = '1'
 
 start = time.time() 
 
@@ -106,7 +95,7 @@ command_list = {
         "view::": "View a file",
         "scroll::": "Scroll through the text of a given file a file",
         "read::": "Read through a directory path and out put the raw contents to the terminal",
-        "dork::": "Run a google search on your search term.",
+        "google::": "Run a google search on your search term.",
     }
 
 
@@ -1239,8 +1228,8 @@ class symchat():
             return None
 
         # Trigger for google search or dorking
-        dork_pattern = r'dork:(.*):'
-        match = re.search(dork_pattern, user_input)
+        google_pattern = r'google:(.*):'
+        match = re.search(google_pattern, user_input)
         if match:
             if match.group(1):
                 import symbiote.googleSearch as gs
@@ -1397,7 +1386,6 @@ class symchat():
                 return None
 
             return user_input
-
 
         # Trigger for get:URL processing. Load website content into user_input for model consumption.
         get_pattern = r'get::|get:(https?://\S+):'
