@@ -15,7 +15,7 @@ from prompt_toolkit import print_formatted_text, ANSI
 from prompt_toolkit.utils import get_cwidth
 
 class WebCrawler:
-    def __init__(self, browser):
+    def __init__(self, browser="firefox"):
         self.visited_urls = set()
         self.pages = {}  # Store page details in a dictionary
         self.match_count = 0  # Count of matched pages
@@ -114,25 +114,25 @@ class WebCrawler:
                     self.pull_website_content(absolute_url, search_term=self.search_term, crawl=True, depth=None if depth is None else depth - 1)
 
         return self.pages
-'''
-# Usage
-# Initialize a WebCrawler object
-crawler = WebCrawler(browser='firefox')
 
-# Define the URL you want to crawl
-url = "https://books.toscrape.com"
+if __name__ == "__main__":
+    # Usage
+    # Initialize a WebCrawler object
+    crawler = WebCrawler(browser='firefox')
 
-# Define the search term you're looking for
-search_term = "Python"
+    # Define the URL you want to crawl
+    url = "https://books.toscrape.com"
 
-# Pull website content
-pages = crawler.pull_website_content(url, search_term=None, crawl=True, depth=None)
+    # Define the search term you're looking for
+    search_term = "Python"
 
-# Print the pages
-for md5, page in pages.items():
-    print(f"URL: {page['url']}")
-    print(f"Content Type: {page['content_type']}")
-    print(f"Content: {page['content']}")
-    print(f"Search Term Matched: {page['matched']}")
-    print("\n")
-'''
+    # Pull website content
+    pages = crawler.pull_website_content(url, search_term=None, crawl=False, depth=1)
+
+    # Print the pages
+    for md5, page in pages.items():
+        print(f"URL: {page['url']}")
+        print(f"Content Type: {page['content_type']}")
+        print(f"Content: {page['content']}")
+        print(f"Search Term Matched: {page['matched']}")
+        print("\n")

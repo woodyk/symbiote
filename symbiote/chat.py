@@ -95,7 +95,7 @@ command_list = {
         "view::": "View a file",
         "scroll::": "Scroll through the text of a given file a file",
         "read::": "Read through a directory path and out put the raw contents to the terminal",
-        "google::": "Run a google search on your search term.",
+        "dork::": "Run a google search on your search term.",
     }
 
 
@@ -1225,13 +1225,15 @@ class symchat():
             return None
 
         # Trigger for google search or dorking
-        google_pattern = r'google:(.*):'
+        google_pattern = r'dork:(.*):'
         match = re.search(google_pattern, user_input)
         if match:
             if match.group(1):
                 import symbiote.googleSearch as gs
-                dork = gs.GoogleTextFetcher(num_results=10)
-                results = dork.perform_search_and_fetch_text(match.group(1))
+                dork = gs.googleSearch()
+                links = dork.fetch_links(match.group(1))
+                results = dork.fetch_text_from_urls(links)
+
                 content = f"google search {results}\n"
                 content += '\n```\n{}\n```\n'.format(content)
                 user_input = user_input[:match.start()] + content + user_input[match.end():]

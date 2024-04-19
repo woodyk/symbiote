@@ -73,11 +73,13 @@ class utilities():
         ''' Take in a file path and return SHA256 value for the file '''
         file_path = os.path.expanduser(file_path)
         file_path = os.path.abspath(file_path)
+        sha256_hash = hashlib.sha256()
 
-        with open(file_path, "rb") as f:
-            digest = hashlib.file_digest(f, "sha256")
+        with open(file_path, "rb") as f:  # Open the file in binary mode
+            for byte_block in iter(lambda: f.read(4096), b""):
+                sha256_hash.update(byte_block)
     
-        return digest.hexdigest()
+        return sha256_hash.hexdigest()
 
     def extractMetadata(self, file_path):
         """Extracts metadata from a file using exiftool"""

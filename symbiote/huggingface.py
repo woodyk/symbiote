@@ -3,13 +3,16 @@
 # tt.py
 
 import re
+import os
 import time
 import requests
+
+API_KEY = os.getenv("HUGGINGFACE_API_KEY") 
 
 class huggingBot:
     def __init__(self):
         self.api_url = "https://api-inference.huggingface.co/models/mistralai/Mixtral-8x7B-Instruct-v0.1"
-        self.headers = {"Authorization": "Bearer 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"}
+        self.headers = {"Authorization": f"Bearer {API_KEY}"}
 
     def query(self, payload):
         response = requests.post(self.api_url, headers=self.headers, json=payload)

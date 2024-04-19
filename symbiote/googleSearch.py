@@ -1,83 +1,53 @@
 #!/usr/bin/env python3
 #
 # tt.py
-
-import re
+import os
 import requests
+import urllib
 from bs4 import BeautifulSoup
-import urllib.parse as up
 
-class GoogleTextFetcher:
-    def __init__(self, num_results=5):
-        """
-        Initializes the GoogleTextFetcher with a specified number of search results.
-        
-        Args:
-        num_results (int): Number of search results to fetch and extract text from.
-        """
-        self.num_results = num_results
+class googleSearch:
+    def __init__(self):
+        self.api_key = os.getenv("GOOGLE_API_KEY") 
+        self.cse_id = os.getenv("GOOGLE_CX")
 
-    def cleanse_link(self, dirty_link):
-        cleaned_link = "https://www.google.com" + dirty_link.replace("/search?q=", "")
-        match = re.search(r'q=(.*?)&', cleaned_link)
-        if match:
-            # Decode URL encoding
-            extracted_url = re.sub(r'%3A', ':', match.group(1))
-            extracted_url = re.sub(r'%2F', '/', extracted_url)
-            return extracted_url
-        else:
-            return cleaned_link
-
-    def fetch_links(self, keyword, num_results=10):
-        encoded_string = up.quote_plus(keyword)
-        base_url = f"https://www.google.com/search?q={encoded_string}&num={num_results}"
-        headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.3'}
-        req = requests.get(base_url, headers=headers)
-        soup = BeautifulSoup(req.text, "html.parser")
-        links = [a["href"] for a in soup.find_all("a")]
-        cleaned_links = [self.cleanse_link(link) for link in links]
-        return cleaned_links
-
-    def fetch_text_from_url(self, url):
-        """
-        Fetches the textual content of a webpage given its URL.
-        
-        Args:
-        url (str): URL of the webpage to fetch the text from.
-        
-        Returns:
-        str: Textual content of the webpage.
-        """
+    def fetch_links(self, query, num_results=10):
+        query = urllib.parse.quote(query)
+        search_url = f"https://www.googleapis.com/customsearch/v1?key={self.api_key}&cx={self.cse_id}&q={query}&num={num_results}"
         try:
-            response = requests.get(url)
-            response.raise_for_status()  # Raises an HTTPError for bad responses
-            soup = BeautifulSoup(response.text, 'html.parser')
-            # Extracts all text from paragraphs
-            text = ' '.join([p.get_text() for p in soup.find_all('p')])
-            return text
+            response = requests.get(search_url)
+            response.raise_for_status()
+            search_results = response.json()
+            links = [item['link'] for item in search_results.get('items', [])]
+            return links
         except requests.RequestException as e:
-            return f"Failed to retrieve content from {url}: {str(e)}"
+            print(f"Failed to fetch search results: {e}")
+            return []
 
-    def perform_search_and_fetch_text(self, query):
+    def fetch_text_from_urls(self, urls):
         """
-        Searches Google for the query and prints text from the top N links.
-        
+        Fetches and processes the text content from a list of URLs.
         Args:
-        query (str): The search query to perform.
+            urls (list): List of URLs to fetch the text from.
+        Returns:
+            str: Concatenated text content of all the webpages.
         """
-        results = ""
-        links = self.fetch_links(query)
-        for i, url in enumerate(links, 1):
-            print(f"Text from link {i}: {url}")
-            text = self.fetch_text_from_url(url)
-            results += text
+        all_text = ""
+        for url in urls:
+            try:
+                response = requests.get(url)
+                response.raise_for_status()
+                soup = BeautifulSoup(response.content, 'html.parser')
+                text = ' '.join(p.text for p in soup.find_all('p'))
+                all_text += text + " "  # Append text and add a space to separate content from different URLs
+            except requests.RequestException as e:
+                print(f"Failed to fetch page content from {url}: {e}")
+                continue
+        return all_text.strip()  # Remove any trailing whitespace
 
-        return results
-
-# Example usage:
 if __name__ == "__main__":
-    gtf = GoogleTextFetcher(num_results=10)
-    results = gtf.perform_search_and_fetch_text("Python programming tips")
-    print(results)
-    
-
+    # Usage example
+    search_engine = SearchEngine()
+    links = search_engine.fetch_links("site:w3schools.com python")
+    all_text = search_engine.fetch_text_from_urls(links)
+    print(all_text)
