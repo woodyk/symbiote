@@ -26,7 +26,8 @@ python -m nltk.downloader vader_lexicon
 # Ubuntu
 apt-get install portaudio19-dev libmagic1 tesseract-ocr
 virtualenv .venv
-pip3 install . 
+pip3 install -r requirements.txt
+./app.py -i
 ```
 
 For linux support on ubuntu be sure to add your user to the 'input' group.
