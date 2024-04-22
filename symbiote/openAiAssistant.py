@@ -30,7 +30,7 @@ class MyAssistant:
 
     def add_message_to_thread(self, content):
         try:
-            result =  client.beta.threads.messages.create(
+            result = client.beta.threads.messages.create(
                 thread_id=self.thread.id,
                 role="user",
                 content=content
@@ -40,7 +40,7 @@ class MyAssistant:
 
         return result
 
-    def run_assistant(self, instructions=""):
+    def run_assistant(self, instructions="", thread_id=""):
         class EventHandler(AssistantEventHandler):
             @override
             def on_text_created(self, text) -> None:
@@ -91,16 +91,13 @@ class MyAssistant:
 
         print("\n---")
 
-        # Compile the log into a single string
-        response_text = "\n".join(self.response_log)
+        if thread_id == "":
+            message = ""
+        else:
+            messages = client.beta.threads.messages.list(thread_id)
+            message = messages.data[0].content[0].text.value
 
-        # Optionally, clear the log if planning to reuse this instance for further interactions,
-        # to avoid accumulating logs from multiple runs
-        # self.response_log.clear()
-
-
-        return response_text 
-
+        return message
 
     def upload_file(self, file_path):
         response = client.beta.files.create(
@@ -148,6 +145,9 @@ if __name__ == "__main__":
             else:
                 print(f"\nFile deleted")
         else:
-            assistant.add_message_to_thread(user_input)
+            result = assistant.add_message_to_thread(user_input)
             assistant.run_assistant()
+            print(result)
+            messages = client.beta.threads.messages.list(result.thread_id)
+            print(messages.data[0].content[0].text.value)
 

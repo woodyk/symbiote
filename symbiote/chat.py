@@ -220,6 +220,8 @@ class symchat():
         else:
             self.output = True
 
+        self.conversation_history = []
+
         # Load the openai assistant
         self.mrblack = oa.MyAssistant(assistant_id)
 
@@ -634,9 +636,20 @@ class symchat():
 
             continue
 
+    def write_history(self, role, text):
+        hist_entry = {
+                "epoch": time.time(),
+                "role": role,
+                "content": text 
+                }
+        self.conversation_history.append(hist_entry)
+
     def send_message(self, user_input):
-        self.mrblack.add_message_to_thread(user_input)
-        result = self.mrblack.run_assistant()
+        self.write_history('user', user_input)
+        result = self.mrblack.add_message_to_thread(user_input)
+        response = self.mrblack.run_assistant(instructions="", thread_id=result.thread_id)
+        self.write_history('assistant', response)
+
         #result = self.mswhite.run(user_input)
         '''
         if self.symbiote_settings['debug']:
@@ -684,7 +697,7 @@ class symchat():
 
         self.suppress = False
         '''
-        return result
+        return response
 
     def symtokens(self):
         self.suppress = True
