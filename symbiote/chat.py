@@ -1678,14 +1678,35 @@ class symchat():
         except re.error:
             print("Invalid regex pattern!")
 
+    def load_conversation(self):
+        self.conversations_file = conversations_file
+        data = []
 
-    # Sample function to handle new commands
-    def handle_huggingface_commands(command, args):
-        if command == 'import_model':
-            model, tokenizer = import_model(args[0])
-            return f'Model {args[0]} imported successfully.'
-        elif command == 'load_dataset':
-            dataset = load_hf_dataset(args[0])
-            return f'Dataset {args[0]} loaded successfully.'
-        # Add more cases as needed
+        if os.path.exists(self.conversations_file):
+            try:
+                with open(conversations_file, 'r') as file:
+                    for line in file:
+                        data.append(json.loads(line))
+
+            except Exception as e:
+                pass
+                print("Error: opening %s: %s" % (conversations_file, e))
+                sys.exit(10)
+
+        return data
+
+    def save_conversation(self, role, text):
+        ''' Save conversation output to loaded conversation file '''
+        json_conv = {
+                "epoch": time.time(),
+                "role": role,
+                "content": text 
+                }
+
+        jsonl_string = json.dumps(json_conv)
+
+        with open(self.conversations_file, 'a+') as file:
+            #json.dump(data, file, indent=2)
+            file.write(jsonl_string + "\n")
+
 

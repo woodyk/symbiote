@@ -21,7 +21,7 @@ pydub
 pyfiglet
 pygame
 Pygments
-pynput
+#pynput
 python_dateutil
 python_magic
 pyttsx3
