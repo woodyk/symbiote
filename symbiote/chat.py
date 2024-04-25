@@ -647,8 +647,11 @@ class symchat():
     def send_message(self, user_input):
         self.write_history('user', user_input)
         result = self.mrblack.add_message_to_thread(user_input)
-        response = self.mrblack.run_assistant(instructions="", thread_id=result.thread_id)
-        self.write_history('assistant', response)
+        if 'thread_id' in result:
+            response = self.mrblack.run_assistant(instructions="", thread_id=result.thread_id)
+            self.write_history('assistant', response)
+        else:
+            response = self.mrblack.run_assistant(instructions="", thread_id="")
 
         #result = self.mswhite.run(user_input)
         '''
@@ -1250,6 +1253,7 @@ class symchat():
                 content = f"google search {results}\n"
                 content += '\n```\n{}\n```\n'.format(content)
                 user_input = user_input[:match.start()] + content + user_input[match.end():]
+                print()
                 return user_input
             else:
                 print("No search term provided.")
@@ -1421,6 +1425,7 @@ class symchat():
             for md5, page in pages.items():
                 website_content += page['content']
             user_input = user_input[:match.start()] + website_content + user_input[match.end():]
+            print()
             return user_input 
 
         # Trigger for crawl:URL processing. Load website content into user_input for model consumption.
@@ -1445,6 +1450,7 @@ class symchat():
             for md5, page in pages.items():
                 website_content += page['content']
             user_input = user_input[:match.start()] + website_content + user_input[match.end():]
+            print()
             return user_input 
 
         # Trigger for ls:path processing. List the content of the specified directory.
