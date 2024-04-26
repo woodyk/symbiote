@@ -96,6 +96,7 @@ command_list = {
         "scroll::": "Scroll through the text of a given file a file",
         "read::": "Read through a directory path and out put the raw contents to the terminal",
         "dork::": "Run a google search on your search term.",
+        "wiki::": "Run a wikipedia search on your search term.",
     }
 
 
@@ -1239,6 +1240,27 @@ class symchat():
             user_input = f"Analzyze and extract web links and urls from the following {user_input}"
             self.send_message(user_input)
             return None
+
+        # Trigger for wikipedia search wiki::
+        wiki_pattern = r'wiki:(.*):'
+        match = re.search(wiki_pattern, user_input)
+        if match:
+            if match.group(1):
+                import symbiote.wikipedia as w
+                wiki = w.WikipediaSearch()
+                results = wiki.search(match.group(1), 5)
+                results_str = ""
+                for result in results:
+                    results_str += result['text']
+
+                content = f"wikipedia search {results_str}\n"
+                content += '\n```\n{}\n```\n'.format(content)
+                user_input = user_input[:match.start()] + content + user_input[match.end():]
+                print()
+                return user_input
+            else:
+                print("No search term provided.")
+                return None
 
         # Trigger for google search or dorking
         google_pattern = r'dork:(.*):'
