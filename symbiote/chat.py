@@ -599,7 +599,7 @@ class symchat():
                 self.chat_session.bottom_toolbar = f"Model: Mr. Black Assistant API"
 
             if self.run is False:
-                self.user_input = self.chat_session.prompt(message="symchat> ",
+                self.user_input = self.chat_session.prompt(message="pathfinder> ",
                                                    multiline=True,
                                                    default=self.user_input,
                                                    vi_mode=self.symbiote_settings['vi_mode']
