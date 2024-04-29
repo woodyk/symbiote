@@ -29,6 +29,7 @@ apt-get install portaudio19-dev libmagic1 tesseract-ocr
 virtualenv .venv
 pip3 install -r requirements.txt
 ./app.py -i
+pip3 install six --upgrade
 ```
 
 Add the following with your API keys to your .bashrc
@@ -37,7 +38,6 @@ export GOOGLE_API_KEY="your_google_api_key_here"
 export GOOGLE_CX="your_google_search_code_here"
 export OPENAI_API_KEY="your_openai_api_key_here"
 ```
-
 For linux support on ubuntu be sure to add your user to the 'input' group.
 
 # ToDo
