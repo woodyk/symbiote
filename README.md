@@ -1,6 +1,7 @@
 # Project: Symbiote
 
 
+
 ## Vision
 Symbiote - an innovative personal data integration assistant that not only logs your life's milestones but also helps analyze your health, finances, personal behavior, and so much more. Symbiote creates a multi-generational legacy, allowing future generations to connect with their family's past like never before.
 
@@ -28,6 +29,13 @@ apt-get install portaudio19-dev libmagic1 tesseract-ocr
 virtualenv .venv
 pip3 install -r requirements.txt
 ./app.py -i
+```
+
+Add the following with your API keys to your .bashrc
+```
+export GOOGLE_API_KEY="your_google_api_key_here"
+export GOOGLE_CX="your_google_search_code_here"
+export OPENAI_API_KEY="your_openai_api_key_here"
 ```
 
 For linux support on ubuntu be sure to add your user to the 'input' group.

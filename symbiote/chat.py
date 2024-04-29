@@ -97,6 +97,7 @@ command_list = {
         "read::": "Read through a directory path and out put the raw contents to the terminal",
         "dork::": "Run a google search on your search term.",
         "wiki::": "Run a wikipedia search on your search term.",
+        "headline::": "Get headlines from major news agencies.",
     }
 
 

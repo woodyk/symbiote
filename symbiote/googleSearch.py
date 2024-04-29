@@ -47,7 +47,7 @@ class googleSearch:
 
 if __name__ == "__main__":
     # Usage example
-    search_engine = SearchEngine()
+    search_engine = googleSearch()
     links = search_engine.fetch_links("site:w3schools.com python")
     all_text = search_engine.fetch_text_from_urls(links)
     print(all_text)
