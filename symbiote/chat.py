@@ -690,18 +690,19 @@ class symchat():
 
         self.sym.change_max_tokens(self.symbiote_settings['default_max_tokens'])
         self.role = "user"
+        '''
 
         if self.symbiote_settings['speech'] and self.suppress is False:
+            print(response)
+            self.symspeech = speech.SymSpeech()
             if not hasattr(self, 'symspeech'):
+                pass
                 #self.symspeech = speech.SymSpeech(debug=self.symbiote_settings['debug'])
-                self.symspeech = speech.SymSpeech()
 
-            last_message = self.current_conversation[-1]
-            speech_thread = threading.Thread(target=self.symspeech.say, args=(last_message['content'],))
+            speech_thread = threading.Thread(target=self.symspeech.say, args=(response,))
             speech_thread.start()
 
         self.suppress = False
-        '''
         return response
 
     def symtokens(self):

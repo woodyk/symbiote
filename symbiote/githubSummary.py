@@ -56,11 +56,35 @@ class GitHubRepository:
         else:
             print("Failed to fetch repository details. Please check the owner and repository name.")
 
+    def search_github_repositories(self, search_term):
+        # Prepare the request to GitHub API
+        url = f"https://api.github.com/search/repositories?q={search_term}"
+        response = requests.get(url)
+        data = response.json()
+
+        # Check if the response contains items
+        if 'items' not in data:
+            print("No data found or there was an error with the request.")
+            return
+
+        # Display the repositories
+        repositories = data['items']
+        if not repositories:
+            print("No repositories found for your search.")
+        else:
+            print(f"Found {len(repositories)} repositories:")
+            for repo in repositories:
+                print(f"- {repo['name']} by {repo['owner']['login']}")
+                print(f"  URL: {repo['html_url']}")
+                print(f"  Description: {repo['description'] if repo['description'] else 'No description provided.'}")
+                print(f"  Stars: {repo['stargazers_count']}")
+
 def main():
     owner = input("Enter the GitHub owner name: ")
     repo = input("Enter the repository name: ")
     github_repo = GitHubRepository(owner, repo)
     github_repo.print_repo_details()
+    github_repo.search_github_repositories("google")
 
 if __name__ == "__main__":
     main()
