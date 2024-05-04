@@ -48,6 +48,7 @@ import symbiote.core as core
 from symbiote.themes import ThemeManager
 import symbiote.openAiAssistant as oa
 import symbiote.huggingface as hf
+import symbiote.headlines as hl
 
 start = time.time() 
 
@@ -86,15 +87,12 @@ command_list = {
         "render::": "Render an image from the provided text.",
         "replay::": "Replay the current conversation to the current model.",
         "prompter::": "Create prompts matched to datasets.",
-        "reinforce::": "Reinforce the chat log.",
         "purge::": "Purge the last response given. eg. thumbs down",
         "note::": "Create a note that is tracked in a separate conversation",
         "whisper::": "Process audio file to text using whipser.",
         "theme::": "Change the theme for the symbiote cli.",
-        "order::": "Issue an order",
         "view::": "View a file",
         "scroll::": "Scroll through the text of a given file a file",
-        "read::": "Read through a directory path and out put the raw contents to the terminal",
         "dork::": "Run a google search on your search term.",
         "wiki::": "Run a wikipedia search on your search term.",
         "headline::": "Get headlines from major news agencies.",
@@ -649,13 +647,17 @@ class symchat():
     def send_message(self, user_input):
         self.write_history('user', user_input)
         result = self.mrblack.add_message_to_thread(user_input)
-        if 'thread_id' in result:
-            response = self.mrblack.run_assistant(instructions="", thread_id=result.thread_id)
-            self.write_history('assistant', response)
-        else:
-            response = self.mrblack.run_assistant(instructions="", thread_id="")
+        response = self.mrblack.run_assistant(instructions="", thread_id=result.thread_id)
+        self.write_history('assistant', response)
 
         #result = self.mswhite.run(user_input)
+
+
+        if self.symbiote_settings['speech'] and self.suppress is False:
+            self.symspeech = speech.SymSpeech()
+            speech_thread = threading.Thread(target=self.symspeech.say, args=(response,))
+            speech_thread.start()
+
         '''
         if self.symbiote_settings['debug']:
             pp.pprint(self.current_conversation)
@@ -691,17 +693,6 @@ class symchat():
         self.sym.change_max_tokens(self.symbiote_settings['default_max_tokens'])
         self.role = "user"
         '''
-
-        if self.symbiote_settings['speech'] and self.suppress is False:
-            print(response)
-            self.symspeech = speech.SymSpeech()
-            if not hasattr(self, 'symspeech'):
-                pass
-                #self.symspeech = speech.SymSpeech(debug=self.symbiote_settings['debug'])
-
-            speech_thread = threading.Thread(target=self.symspeech.say, args=(response,))
-            speech_thread.start()
-
         self.suppress = False
         return response
 
@@ -1157,6 +1148,8 @@ class symchat():
 
             return None
 
+
+
         # Trigger menu for cli theme change
         theme_pattern = r'theme::|theme:(.*):'
         match = re.search(theme_pattern, user_input)
@@ -1264,6 +1257,20 @@ class symchat():
                 print("No search term provided.")
                 return None
 
+        # Trigger for headline analysis
+        news_pattern = r'news::|headlines::'
+        match = re.search(news_pattern, user_input)
+        if match:
+            gh = hl.getHeadlines()
+            result = gh.scrape()
+            print(result)
+
+            content = f"news headlines {result}\n"
+            content += '\n```\n{}\n```\n'.format(content)
+            user_input = user_input[:match.start()] + content + user_input[match.end():]
+
+            return user_input
+
         # Trigger for google search or dorking
         google_pattern = r'dork:(.*):'
         match = re.search(google_pattern, user_input)
@@ -1285,7 +1292,7 @@ class symchat():
 
         # Trigger for file:: processing. Load file content into user_input for ai consumption.
         # file:: - opens file or directory to be pulled into the conversation
-        file_pattern = r'file::|file:(.*):|train:(.*):|fine-tune:(.*):'
+        file_pattern = r'file::|file:(.*):|learn:(.*):'
         match = re.search(file_pattern, user_input)
         if match: 
             file_path = None
@@ -1294,11 +1301,8 @@ class symchat():
             scroll = False
             if re.search(r'^file', user_input):
                 self.suppress = True
-            elif re.search(r'^fine-tune', user_input):
+            elif re.search(r'^learn', user_input):
                 learn = True
-            elif re.search(r'^scroll', user_input):
-                self.suppress = True
-                scroll = True
             else:
                 self.suppress = False
 
