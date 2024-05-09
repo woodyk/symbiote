@@ -32,8 +32,11 @@ from prompt_toolkit.layout.containers import Window, VSplit, Float, FloatContain
 from prompt_toolkit.layout.controls import FormattedTextControl
 
 from rich.console import Console
+from rich.markdown import Markdown
 from rich.panel import Panel
 from rich.syntax import Syntax
+
+console = Console()
 
 # Add these imports at the beginning of the file
 from symbiote.model_creator import create_model, train_model, evaluate_model
@@ -95,7 +98,7 @@ command_list = {
         "scroll::": "Scroll through the text of a given file a file",
         "dork::": "Run a google search on your search term.",
         "wiki::": "Run a wikipedia search on your search term.",
-        "headline::": "Get headlines from major news agencies.",
+        "headlines::|news::": "Get headlines from major news agencies.",
     }
 
 
@@ -597,7 +600,7 @@ class symchat():
                 self.chat_session.bottom_toolbar = f"Model: Mr. Black Assistant API"
 
             if self.run is False:
-                self.user_input = self.chat_session.prompt(message="pathfinder> ",
+                self.user_input = self.chat_session.prompt(message="symbiote> ",
                                                    multiline=True,
                                                    default=self.user_input,
                                                    vi_mode=self.symbiote_settings['vi_mode']
@@ -647,7 +650,11 @@ class symchat():
     def send_message(self, user_input):
         self.write_history('user', user_input)
         result = self.mrblack.add_message_to_thread(user_input)
-        response = self.mrblack.run_assistant(instructions="", thread_id=result.thread_id)
+        try:
+            response = self.mrblack.run_assistant(instructions="", thread_id=result.thread_id)
+        except:
+            response = self.mrblack.run_assistant(instructions="")
+
         self.write_history('assistant', response)
 
         #result = self.mswhite.run(user_input)
@@ -1248,10 +1255,11 @@ class symchat():
                 for result in results:
                     results_str += result['text']
 
+                print(results_str)
                 content = f"wikipedia search {results_str}\n"
                 content += '\n```\n{}\n```\n'.format(content)
                 user_input = user_input[:match.start()] + content + user_input[match.end():]
-                print()
+
                 return user_input
             else:
                 print("No search term provided.")

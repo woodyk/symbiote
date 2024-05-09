@@ -150,8 +150,8 @@ def main():
         time.sleep(3)
         os.system('reset')
         figlet = pyfiglet.Figlet(font='ansi_regular')
-        text = figlet.renderText('PathFinder')
-        print("\033[91m" + text + "\033[0m")
+        text = figlet.renderText('Symbiote')
+        print("\033[0;32m" + text + "\033[0m")
         schat.chat(user_input="", prompt_only=args.prompt_only)
 
 def check_libmagic():
