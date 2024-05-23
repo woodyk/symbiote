@@ -1,8 +1,6 @@
 #!/usr/bin/env python3
 #
-# ai.py
-
-#!/usr/bin/env python3
+# commands 
 
 import sys
 import openai

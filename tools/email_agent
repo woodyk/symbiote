@@ -1,8 +1,6 @@
 #!/usr/bin/env python3
 #
-# ai.py
-
-#!/usr/bin/env python3
+# email_agent 
 
 import sys
 import openai
@@ -137,8 +135,8 @@ def printmd(text):
 
 if __name__ == "__main__":
     # Replace these with your own credentials
-    username = 'YOUR GMAIL E-MAIL HERE'
-    password = 'YOUR GMAIL PASSWORD HERE'
+    username = 'YOUR EMAIL'
+    password = 'YOUR PASSWORD'
 
     # Call the function to list recent emails
     messages = list_recent_emails(username, password)
