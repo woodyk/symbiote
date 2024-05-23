@@ -99,6 +99,7 @@ command_list = {
         "dork::": "Run a google search on your search term.",
         "wiki::": "Run a wikipedia search on your search term.",
         "headlines::|news::": "Get headlines from major news agencies.",
+        "agents::": "Run an iterative agents request specifying the number of iterations.",
     }
 
 
@@ -649,13 +650,23 @@ class symchat():
 
     def send_message(self, user_input):
         self.write_history('user', user_input)
+        """
         result = self.mrblack.add_message_to_thread(user_input)
         try:
             response = self.mrblack.run_assistant(instructions="", thread_id=result.thread_id)
         except:
             response = self.mrblack.run_assistant(instructions="")
+        """
 
+        response = self.mrblack.standard(user_input)
         self.write_history('assistant', response)
+        """
+        for i in range(len(response)):
+            print("\b", end="")
+
+        console.print(Markdown(response))
+        """
+
 
         #result = self.mswhite.run(user_input)
 
@@ -1297,6 +1308,13 @@ class symchat():
             else:
                 print("No search term provided.")
                 return None
+
+        # Trigger for agents::
+        agents_pattern = r'agents::|agents:(.*):'
+        match = re.search(agents_pattern, user_input)
+        if match:
+            print("Not available yet")
+            return None
 
         # Trigger for file:: processing. Load file content into user_input for ai consumption.
         # file:: - opens file or directory to be pulled into the conversation

@@ -21,6 +21,7 @@ class MyAssistant:
         self.assistant = self.get_assistant_by_id()
         self.thread = self.create_thread()
         self.response_log = []  # Initialize a list to store responses
+        self.chat_history = []
 
     def get_assistant_by_id(self):
         return client.beta.assistants.retrieve(assistant_id=self.assistant_id)
@@ -116,6 +117,30 @@ class MyAssistant:
     def delete_file(self, file_id):
         response = client.beta.files.delete(file_id=file_id)
         return response
+
+    def standard(self, user_input):
+        self.chat_history.append({"role": "user", "content": user_input})
+
+        try:
+            response = client.chat.completions.create(
+                model="gpt-4o",
+                messages=self.chat_history,
+                stream=True
+            )
+        except Exception as e:
+            print(e)
+
+        response_content = ""
+
+        for chunk in response:
+            if chunk.choices[0].delta.content is not None:
+                print(chunk.choices[0].delta.content, end="")
+                response_content += chunk.choices[0].delta.content
+
+        self.chat_history.append({"role": "assistant", "content": response_content})
+        print()
+
+        return response_content
 
 if __name__ == "__main__":
     assistant = MyAssistant(assistant_id)
