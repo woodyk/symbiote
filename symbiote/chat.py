@@ -658,8 +658,6 @@ class symchat():
             response = self.mrblack.run_assistant(instructions="")
         """
 
-        response = self.mrblack.standard(user_input)
-        self.write_history('assistant', response)
         """
         for i in range(len(response)):
             print("\b", end="")
@@ -667,9 +665,10 @@ class symchat():
         console.print(Markdown(response))
         """
 
+        response = self.mrblack.standard(user_input)
+        self.write_history('assistant', response)
 
         #result = self.mswhite.run(user_input)
-
 
         if self.symbiote_settings['speech'] and self.suppress is False:
             self.symspeech = speech.SymSpeech()

@@ -1,0 +1,182 @@
+#!/usr/bin/env python3
+#
+# ai.py
+
+#!/usr/bin/env python3
+
+import sys
+import openai
+from openai import OpenAI
+import os
+import subprocess
+import imaplib
+import email
+from email.header import decode_header
+from datetime import datetime, timedelta
+from rich.markdown import Markdown
+from rich.console import Console
+from prompt_toolkit import PromptSession
+from prompt_toolkit.shortcuts import CompleteStyle
+from prompt_toolkit.key_binding import KeyBindings
+from prompt_toolkit.lexers import PygmentsLexer
+from prompt_toolkit.styles import Style
+from pygments.lexers.markup import MarkdownLexer
+
+# Initialize OpenAI client and console
+client = OpenAI()
+console = Console()
+
+# Read API key from an environment variable or secure storage
+openai.api_key = os.getenv('OPENAI_API_KEY')
+
+role = """You are an e-mail assistant. You read in a list of e-mails containing from, subject and body and converse about those messages. Your job is as follows.
+1. Identify messages that may be of importance and highlight details about those messages.
+2. Identify messages that may be considered spam.
+3. Analyze the pattern of all the messages and look for common messages that may represent a larger message all together.
+4. Provide a brief summary of the messages found.
+5. Provide further analaysis upon request.
+All output will be in markdown .md format. If a "check::" is issued then only analyze the changes in the difference of the last summary and the current one you will provide. You will be intelligent on the differences between repeated summaries of message listing and only look for the differenc when "check::" is used.
+"""
+
+chat_history = []
+
+def ai(input_text):
+    global chat_history
+
+    chat_history.append({"role": "user", "content": input_text})
+
+    messages = [
+        {"role": "system", "content": role},
+    ] + chat_history
+
+    try:
+        response = client.chat.completions.create(
+            model="gpt-4o",
+            messages=messages,
+        )
+    except Exception as e:
+        console.print(f"[red]Error: {str(e)}[/red]", file=sys.stderr)
+        return
+
+    response_content = response.choices[0].message.content.strip()
+    chat_history.append({"role": "assistant", "content": response_content})
+    return response_content
+
+# Function to decode email subject and sender
+def decode_str(s, encoding):
+    if isinstance(s, bytes):
+        return s.decode(encoding if encoding else "utf-8")
+    return s
+
+# Function to extract the body from the email message
+def get_body(msg):
+    if msg.is_multipart():
+        for part in msg.walk():
+            content_type = part.get_content_type()
+            content_disposition = str(part.get("Content-Disposition"))
+            if "attachment" not in content_disposition:
+                if content_type == "text/plain":
+                    return part.get_payload(decode=True).decode()
+                elif content_type == "text/html":
+                    return part.get_payload(decode=True).decode()
+    else:
+        content_type = msg.get_content_type()
+        if content_type == "text/plain" or content_type == "text/html":
+            return msg.get_payload(decode=True).decode()
+
+# Function to list emails from the last 2 days
+def list_recent_emails(username, password, imap_server='imap.gmail.com', imap_port=993):
+    # Connect to the server
+    mail = imaplib.IMAP4_SSL(imap_server, imap_port)
+
+    # Login to your account
+    mail.login(username, password)
+
+    # Select the mailbox you want to check (in this case, the inbox)
+    mail.select("inbox")
+
+    # Calculate the date for 2 days ago
+    date_2_days_ago = (datetime.now() - timedelta(3)).strftime("%d-%b-%Y")
+    
+    # Search for emails since 2 days ago
+    status, messages = mail.search(None, f'SINCE {date_2_days_ago}')
+
+    # Convert messages to a list of email IDs
+    email_ids = messages[0].split()
+
+    # Fetch and print email details
+    messages = ""
+    for email_id in email_ids:
+        # Fetch the email by ID
+        status, msg_data = mail.fetch(email_id, '(RFC822)')
+        
+        for response_part in msg_data:
+            if isinstance(response_part, tuple):
+                msg = email.message_from_bytes(response_part[1])
+                # Decode the email subject
+                subject, encoding = decode_header(msg["Subject"])[0]
+                subject = decode_str(subject, encoding)
+                
+                # Decode the sender's email address
+                from_ = msg.get("From")
+                
+                # Get the body of the email
+                body = get_body(msg)
+                
+                messages += f"Subject: {subject}"
+                messages += f"From: {from_}"
+                messages += f"Body:\n{body}"
+
+    # Logout and close the connection
+    mail.logout()
+    return messages
+
+def printmd(text):
+    markdown = Markdown(text)
+    console.print(markdown)
+
+if __name__ == "__main__":
+    # Replace these with your own credentials
+    username = 'YOUR GMAIL E-MAIL HERE'
+    password = 'YOUR GMAIL PASSWORD HERE'
+
+    # Call the function to list recent emails
+    messages = list_recent_emails(username, password)
+
+    # Configure prompt_toolkit for vi mode, multiline input, and history
+    bindings = KeyBindings()
+    session = PromptSession(
+        multiline=True,
+        vi_mode=True,
+        complete_style=CompleteStyle.READLINE_LIKE,
+        key_bindings=bindings,
+        lexer=PygmentsLexer(MarkdownLexer),
+        history=None,  # Add history here if needed
+    )
+
+    style = Style.from_dict({
+        '': 'bg:#f5f5f5 #000000',
+        'prompt': 'bg:#ffffff #000000 bold',
+    })
+
+    response = ai(messages)
+    printmd(response)
+
+    while True:
+        try:
+            input_text = session.prompt(
+                '>> ',
+                style=style,
+                include_default_pygments_style=False,
+            )
+            if input_text.strip().lower() in ["exit::", "quit::"]:
+                break
+            elif input_text.strip().lower() in ["check::"]:
+                messages = list_recent_emails(username, password)
+                response = ai("check::\n" + messages)
+                printmd(response)
+            else:
+                response = ai(input_text)
+                printmd(response)
+        except (EOFError, KeyboardInterrupt):
+            break
