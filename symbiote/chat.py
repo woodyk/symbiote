@@ -48,6 +48,7 @@ import symbiote.codeextract as codeextract
 import symbiote.webcrawler as webcrawler
 import symbiote.utils as utils
 import symbiote.core as core
+import symbiote.imap_agent as ia
 from symbiote.themes import ThemeManager
 import symbiote.openAiAssistant as oa
 import symbiote.huggingface as hf
@@ -185,6 +186,8 @@ symbiote_settings = {
         "notes": os.path.join(homedir, ".symbiote") + "/notes.jsonl",
         "syntax_highlight": False,
         "theme": 'default',
+        "imap_username": '',
+        "imap_password": '',
     }
 
 assistant_id = 'asst_cGS0oOCEuRqm0QPO9vVsPw1y'
