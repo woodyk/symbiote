@@ -48,7 +48,7 @@ import symbiote.codeextract as codeextract
 import symbiote.webcrawler as webcrawler
 import symbiote.utils as utils
 import symbiote.core as core
-import symbiote.imap_agent as ia
+import symbiote.imap_agent as mail
 from symbiote.themes import ThemeManager
 import symbiote.openAiAssistant as oa
 import symbiote.huggingface as hf
@@ -678,41 +678,6 @@ class symchat():
             speech_thread = threading.Thread(target=self.symspeech.say, args=(response,))
             speech_thread.start()
 
-        '''
-        if self.symbiote_settings['debug']:
-            pp.pprint(self.current_conversation)
-
-        returned = self.sym.send_request(user_input, self.current_conversation, completion=self.symbiote_settings['completion'], suppress=self.suppress, role=self.role, flush=self.flush, logging=self.logging, timeout=self.timeout, output=self.output)
-
-        #if self.suppress and not self.run:
-        #    self.launch_animation(False)
-        #    pass
-
-        self.current_conversation = returned[0]
-
-        self.token_track['truncated_tokens'] = returned[1]
-        self.token_track['user_tokens'] = returned[2]
-        self.token_track['total_user_tokens'] += returned[2]
-        self.token_track['completion_tokens'] = returned[3]
-        self.token_track['total_completion_tokens'] += returned[3]
-        self.token_track['rolling_tokens'] += self.token_track['truncated_tokens']
-        self.token_track['last_char_count'] = returned[4]
-        self.token_track['model_tokens'] = returned[5]
-
-        self.token_track['system_count'] = returned[2] + returned[3]
-
-        if pricing[self.symbiote_settings['model']] is not None:
-            prompt_cost = (self.token_track['user_tokens'] / 1000 * pricing[self.symbiote_settings['model']]['prompt'])
-            completion_cost = (self.token_track['completion_tokens'] / 1000 * pricing[self.symbiote_settings['model']]['completion'])
-            self.token_track['cost'] += (prompt_cost + completion_cost) 
-        else:
-            prompt_cost = 0
-            completion_cost = 0
-            self.token_track['cost'] = "unknown"
-
-        self.sym.change_max_tokens(self.symbiote_settings['default_max_tokens'])
-        self.role = "user"
-        '''
         self.suppress = False
         return response
 
@@ -1317,6 +1282,18 @@ class symchat():
         if match:
             print("Not available yet")
             return None
+
+        # Trigger for imap mail checker mail::
+        mail_pattern = r'mail::'
+        match = re.search(mail_pattern, user_input)
+        if match:
+            check_mail = mail.get_mail(username=self.symbiote_settings['imap_username'], password=self.symbiote_settings['imap_password'])
+            email = check_mail.list_recent_emails()
+
+            content = f"email results {email}\n"
+            content += '\n```\n{}\n```\n'.format(content)
+            user_input = user_input[:match.start()] + content + user_input[match.end():]
+            return user_input
 
         # Trigger for file:: processing. Load file content into user_input for ai consumption.
         # file:: - opens file or directory to be pulled into the conversation
