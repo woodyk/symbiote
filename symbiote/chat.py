@@ -48,7 +48,7 @@ import symbiote.codeextract as codeextract
 import symbiote.webcrawler as webcrawler
 import symbiote.utils as utils
 import symbiote.core as core
-import symbiote.imap_agent as mail
+import symbiote.email as mail
 from symbiote.themes import ThemeManager
 import symbiote.openAiAssistant as oa
 import symbiote.huggingface as hf
@@ -1287,8 +1287,14 @@ class symchat():
         mail_pattern = r'mail::'
         match = re.search(mail_pattern, user_input)
         if match:
-            check_mail = mail.get_mail(username=self.symbiote_settings['imap_username'], password=self.symbiote_settings['imap_password'])
-            email = check_mail.list_recent_emails()
+            mail_checker = mail.MailChecker(
+                    username=self.symbiote_settings['imap_username'],
+                    password=self.symbiote_settings['imap_password'],
+                    mail_type='imap',
+                    days=3,
+                    unread=False
+                    )
+            email = mail_checker.check_mail()
 
             content = f"email results {email}\n"
             content += '\n```\n{}\n```\n'.format(content)
