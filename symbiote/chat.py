@@ -48,7 +48,7 @@ import symbiote.codeextract as codeextract
 import symbiote.webcrawler as webcrawler
 import symbiote.utils as utils
 import symbiote.core as core
-import symbiote.email as mail
+import symbiote.get_email as mail
 from symbiote.themes import ThemeManager
 import symbiote.openAiAssistant as oa
 import symbiote.huggingface as hf
@@ -101,6 +101,7 @@ command_list = {
         "wiki::": "Run a wikipedia search on your search term.",
         "headlines::|news::": "Get headlines from major news agencies.",
         "agents::": "Run an iterative agents request specifying the number of iterations.",
+        "mail::": "Load e-mail messages from gmail.",
     }
 
 
