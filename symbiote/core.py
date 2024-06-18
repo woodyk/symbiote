@@ -42,7 +42,7 @@ class symbiotes:
           }
 
         self.settings = settings
-        self.remember = self.models[self.settings['model']]
+        #self.remember = self.models[self.settings['model']]
 
         self.ce = codeextract.CodeBlockIdentifier()
 

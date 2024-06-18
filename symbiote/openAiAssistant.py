@@ -118,12 +118,12 @@ class MyAssistant:
         response = client.beta.files.delete(file_id=file_id)
         return response
 
-    def standard(self, user_input):
+    def standard(self, user_input, model="gpt-4o"):
         self.chat_history.append({"role": "user", "content": user_input})
 
         try:
             response = client.chat.completions.create(
-                model="gpt-4o",
+                model=model,
                 messages=self.chat_history,
                 stream=True
             )

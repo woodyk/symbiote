@@ -51,8 +51,9 @@ import symbiote.core as core
 import symbiote.get_email as mail
 from symbiote.themes import ThemeManager
 import symbiote.openAiAssistant as oa
-import symbiote.huggingface as hf
 import symbiote.headlines as hl
+import symbiote.huggingface as hf
+import symbiote.ollama as ol
 
 start = time.time() 
 
@@ -71,8 +72,6 @@ command_list = {
         "cd::": "Change working directory.",
         "pwd::": "Show current working directory.",
         "file::": "Load a file for submission.",
-        "gbot::": "Do a google scrub for content related to a search term.",
-        "summary::": "Pull nouns, summary, and metadata for a file.",
         "extract::": "Extract data features for a given file or directory and summarize.",
         "links::": "Extract links from the given text.",
         "code::": "Extract code and write files.",
@@ -131,6 +130,15 @@ audio_triggers = {
         'perifious': [r'(i cast|icast) periph', 'perifious::'],
         'scroll': [r'keyword scroll file', 'scroll::'],
     }
+
+models = {
+        "gpt-4o",
+        "gpt-4",
+        "gpt-3.5-turbo",
+        "ollama:llama3",
+        "ollama:phi3",
+        "ollama:qwen2",
+        }
 
 # Define prompt_toolkig keybindings
 global kb
@@ -235,6 +243,9 @@ class symchat():
 
         # Load huggingface serverless inference
         self.mswhite = hf.huggingBot() 
+
+        # Load the ollama api
+        self.ollama = ol.Llama3API(base_url="http://localhost:11434")
        
         # Set symbiote home path parameters
         symbiote_dir = os.path.expanduser(self.symbiote_settings['symbiote_path'])
@@ -486,7 +497,8 @@ class symchat():
 
     def symmodel(self, *args):
         # Handle model functionality
-        model_list = self.sym.get_models()
+        #model_list = self.sym.get_models()
+        model_list = models
         try:
             model_name = args[0]
             if model_name in model_list:
@@ -498,7 +510,7 @@ class symchat():
             selected_model = self.listSelector("Select a model:", sorted(model_list))
 
         self.symbiote_settings['model'] = selected_model
-        self.sym.update_symbiote_settings(settings=self.symbiote_settings)
+        #self.sym.update_symbiote_settings(settings=self.symbiote_settings)
 
         return None
 
@@ -654,6 +666,8 @@ class symchat():
 
     def send_message(self, user_input):
         self.write_history('user', user_input)
+
+        # OpenAI Assistant
         """
         result = self.mrblack.add_message_to_thread(user_input)
         try:
@@ -669,10 +683,20 @@ class symchat():
         console.print(Markdown(response))
         """
 
-        response = self.mrblack.standard(user_input)
-        self.write_history('assistant', response)
+        if self.symbiote_settings['model'].startswith("gpt"):
+            # OpenAI Chat Completion
+            response = self.mrblack.standard(user_input, self.symbiote_settings['model'])
+        elif self.symbiote_settings['model'].startswith("ollama"):
+            model_name = self.symbiote_settings['model'].split(":")
 
-        #result = self.mswhite.run(user_input)
+            # Ollama
+            response = self.ollama.chat_completion(
+                    model=model_name[1],
+                    prompt=user_input,
+                    stream=True,
+                    )
+
+        self.write_history('assistant', response)
 
         if self.symbiote_settings['speech'] and self.suppress is False:
             self.symspeech = speech.SymSpeech()
@@ -681,11 +705,6 @@ class symchat():
 
         self.suppress = False
         return response
-
-    def symtokens(self):
-        self.suppress = True
-        print(f"\nToken Details:\n\tLast User: {self.token_track['user_tokens']}\n\tTotal User: {self.token_track['total_user_tokens']}\n\tLast Completion: {self.token_track['completion_tokens']}\n\tTotal Completion: {self.token_track['total_completion_tokens']}\n\tLast Conversation: {self.token_track['truncated_tokens']}\n\tTotal Used Tokens: {self.token_track['rolling_tokens']}\n\tToken Cost: ${self.token_track['cost']:.2f}\n")
-        return self.token_track
 
     def process_commands(self, user_input):
         # Audio keyword triggers
@@ -721,10 +740,6 @@ class symchat():
 
         if re.search(r"^clear::|^reset::", user_input):
             os.system('reset')
-            return None
-
-        if re.search(r"^tokens::", user_input):
-            output = self.symtokens()
             return None
 
         if re.search(r"^save::", user_input):
@@ -1250,10 +1265,9 @@ class symchat():
         if match:
             gh = hl.getHeadlines()
             result = gh.scrape()
-            print(result)
 
-            content = f"news headlines {result}\n"
-            content += '\n```\n{}\n```\n'.format(content)
+            content = f"Consolidate and summarize the following.\n"
+            content += '\n```\n{}\n```\n'.format(result)
             user_input = user_input[:match.start()] + content + user_input[match.end():]
 
             return user_input
@@ -1268,7 +1282,7 @@ class symchat():
                 links = dork.fetch_links(match.group(1))
                 results = dork.fetch_text_from_urls(links)
 
-                content = f"google search {results}\n"
+                content = f"Analyze and summarize the following google results. {results}\n"
                 content += '\n```\n{}\n```\n'.format(content)
                 user_input = user_input[:match.start()] + content + user_input[match.end():]
                 print()
@@ -1292,13 +1306,13 @@ class symchat():
                     username=self.symbiote_settings['imap_username'],
                     password=self.symbiote_settings['imap_password'],
                     mail_type='imap',
-                    days=3,
+                    days=2,
                     unread=False
                     )
             email = mail_checker.check_mail()
 
-            content = f"email results {email}\n"
-            content += '\n```\n{}\n```\n'.format(content)
+            content = f"Analyze the following e-mails and consolidate into a report.\n"
+            content += '\n```\n{}\n```\n'.format(email)
             user_input = user_input[:match.start()] + content + user_input[match.end():]
             return user_input
 
@@ -1352,7 +1366,7 @@ class symchat():
                     print(f"Unknown sub command: {sub_command}")
                     return None
 
-                meta_content = f"File name: {absolute_path}\n"
+                meta_content = f"Analyze the contents of the following.\n"
                 meta_content += '\n```\n{}\n```\n'.format(content)
                 user_input = user_input[:match.start()] + meta_content + user_input[match.end():]
 
@@ -1382,7 +1396,8 @@ class symchat():
                 result = self.symutils.exec_command(command)
                 if result:
                     print(result)
-                self.send_message(result)
+                    content = f"Summarize the results of the command {command}\n{result}"
+                self.send_message(content)
             else:
                 print(f"No command specified")
 
