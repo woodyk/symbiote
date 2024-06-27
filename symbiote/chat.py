@@ -47,7 +47,7 @@ import symbiote.speech as speech
 import symbiote.codeextract as codeextract
 import symbiote.webcrawler as webcrawler
 import symbiote.utils as utils
-import symbiote.core as core
+#import symbiote.core as core
 import symbiote.get_email as mail
 from symbiote.themes import ThemeManager
 import symbiote.openAiAssistant as oa
@@ -138,6 +138,8 @@ models = {
         "ollama:llama3",
         "ollama:phi3",
         "ollama:qwen2",
+        "ollama:mistral",
+        "ollama:gemma",
         }
 
 # Define prompt_toolkig keybindings
@@ -267,8 +269,7 @@ class symchat():
             self.symbiote_settings['stream'] = kwargs['stream']
 
         # Load symbiote core 
-        self.sym = core.symbiotes(settings=self.symbiote_settings)
-        signal.signal(signal.SIGINT, self.sym.handle_control_c)
+        signal.signal(signal.SIGINT, self.handle_control_c)
 
         # Get hash for current settings
         self.settings_hash = hash(json.dumps(self.symbiote_settings, sort_keys=True))
@@ -297,7 +298,8 @@ class symchat():
         self.history = FileHistory(history_file)
 
         # Load the default conversation
-        self.current_conversation = self.sym.load_conversation(self.conversations_file)
+        #self.current_conversation = self.load_conversation(self.conversations_file)
+        self.current_conversation = []
 
         # Load utils object
         self.symutils = utils.utilities(settings=self.symbiote_settings)
@@ -499,6 +501,7 @@ class symchat():
         # Handle model functionality
         #model_list = self.sym.get_models()
         model_list = models
+        print(f"Current Model: {self.symbiote_settings['model']}")
         try:
             model_name = args[0]
             if model_name in model_list:
@@ -1149,8 +1152,6 @@ class symchat():
 
             return None
 
-
-
         # Trigger menu for cli theme change
         theme_pattern = r'theme::|theme:(.*):'
         match = re.search(theme_pattern, user_input)
@@ -1233,7 +1234,7 @@ class symchat():
         links_pattern = r'links::'
         match = re.search(links_pattern, user_input)
         if match:
-            user_input = f"Analzyze and extract web links and urls from the following {user_input}"
+            user_input = f"Analzyze and extract web links and urls from the following\n\n{user_input}"
             self.send_message(user_input)
             return None
 
@@ -1249,9 +1250,8 @@ class symchat():
                 for result in results:
                     results_str += result['text']
 
-                print(results_str)
-                content = f"wikipedia search {results_str}\n"
-                content += '\n```\n{}\n```\n'.format(content)
+                content = f"wikipedia search\n"
+                content += '\n```\n{}\n```\n'.format(results_str)
                 user_input = user_input[:match.start()] + content + user_input[match.end():]
 
                 return user_input
@@ -1282,10 +1282,9 @@ class symchat():
                 links = dork.fetch_links(match.group(1))
                 results = dork.fetch_text_from_urls(links)
 
-                content = f"Analyze and summarize the following google results. {results}\n"
-                content += '\n```\n{}\n```\n'.format(content)
+                content = f"Analyze and summarize the following google results.\n"
+                content += '\n```\n{}\n```\n'.format(results)
                 user_input = user_input[:match.start()] + content + user_input[match.end():]
-                print()
                 return user_input
             else:
                 print("No search term provided.")
@@ -1311,7 +1310,16 @@ class symchat():
                     )
             email = mail_checker.check_mail()
 
-            content = f"Analyze the following e-mails and consolidate into a report.\n"
+            content = """You read in a list of e-mails containing from, to, subject, received date, and body and converse about those messages. Your job is as follows.
+1. Identify messages that may be of importance and highlight details about those messages.
+2. Identify messages that may be considered spam.
+3. Analyze the pattern of all the messages and look for common messages that may represent a larger message all together.
+4. Provide a brief summary of the messages found.
+5. Provide further analysis upon request.
+All output will be in markdown .md format.
+d.
+"""
+ 
             content += '\n```\n{}\n```\n'.format(email)
             user_input = user_input[:match.start()] + content + user_input[match.end():]
             return user_input
@@ -1366,8 +1374,7 @@ class symchat():
                     print(f"Unknown sub command: {sub_command}")
                     return None
 
-                meta_content = f"Analyze the contents of the following.\n"
-                meta_content += '\n```\n{}\n```\n'.format(content)
+                meta_content = '\n```\n{}\n```\n'.format(content)
                 user_input = user_input[:match.start()] + meta_content + user_input[match.end():]
 
             elif os.path.isfile(file_path):
@@ -1771,3 +1778,6 @@ class symchat():
             file.write(jsonl_string + "\n")
 
 
+    def handle_control_c(self, signum, frame):
+        print("\nControl-C detected.")
+        sys.exit(0)
