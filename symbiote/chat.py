@@ -55,8 +55,11 @@ import symbiote.headlines as hl
 import symbiote.huggingface as hf
 
 from ollama import Client
-
 olclient = Client(host='http://localhost:11434')
+
+import openai
+oaiclient = openai.OpenAI()
+
 start = time.time() 
 
 command_list = {
@@ -688,14 +691,31 @@ class symchat():
         console.print(Markdown(response))
         """
 
+        response = ''
+
         if self.symbiote_settings['model'].startswith("gpt"):
             # OpenAI Chat Completion
-            response = self.mrblack.standard(user_input, self.symbiote_settings['model'])
+            try:
+                stream = oaiclient.chat.completions.create(
+                        model = self.symbiote_settings['model'],
+                        messages = self.conversation_history,
+                        stream = True,
+                        )
+            except Exception as e:
+                print(e)
+
+            for chunk in stream:
+                if chunk.choices[0].delta.content is not None:
+                    print(chunk.choices[0].delta.content, end="", flush=True)
+                    response += chunk.choices[0].delta.content
+
+            print()
+
         elif self.symbiote_settings['model'].startswith("ollama"):
+            # Ollama Chat Completion
             model_name = self.symbiote_settings['model'].split(":")
 
             model = model_name[1] + ":" + model_name[2]
-            self.write_history("user", user_input)
 
             stream = olclient.chat(
                     model = model,
@@ -703,7 +723,6 @@ class symchat():
                     stream = True,
                     )
 
-            response = ''
             for chunk in stream:
                 print(chunk['message']['content'], end='', flush=True)
                 response += chunk['message']['content']
@@ -866,7 +885,7 @@ class symchat():
                         set_value = get_type(set_value) 
 
                     self.symbiote_settings[setting] = set_value
-                    self.sym.update_symbiote_settings(settings=self.symbiote_settings)
+                    #self.sym.update_symbiote_settings(settings=self.symbiote_settings)
                     self.symutils = utils.utilities(settings=self.symbiote_settings)
                     self.save_settings(settings=self.symbiote_settings)
             else:
