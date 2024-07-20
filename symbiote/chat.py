@@ -132,14 +132,13 @@ audio_triggers = {
     }
 
 models = {
+        "gpt-4o-mini",
         "gpt-4o",
         "gpt-4",
-        "gpt-3.5-turbo",
         "ollama:llama3",
         "ollama:phi3",
         "ollama:qwen2",
         "ollama:mistral",
-        "ollama:gemma",
         }
 
 # Define prompt_toolkig keybindings
