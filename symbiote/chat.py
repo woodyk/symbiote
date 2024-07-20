@@ -143,9 +143,12 @@ models = [
         "gpt-4",
         ] 
 
-response = olclient.list()
-for model in response['models']:
-    models.append("ollama:" + model['name'])
+try:
+    response = olclient.list()
+    for model in response['models']:
+        models.append("ollama:" + model['name'])
+except Exception as e:
+    pass
 
 # Define prompt_toolkig keybindings
 global kb
