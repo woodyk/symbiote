@@ -49,3 +49,4 @@ OpenAI
 datasets
 tensorflow
 keras
+ollama

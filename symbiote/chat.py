@@ -53,8 +53,10 @@ from symbiote.themes import ThemeManager
 import symbiote.openAiAssistant as oa
 import symbiote.headlines as hl
 import symbiote.huggingface as hf
-import symbiote.ollama as ol
 
+from ollama import Client
+
+olclient = Client(host='http://localhost:11434')
 start = time.time() 
 
 command_list = {
@@ -131,15 +133,16 @@ audio_triggers = {
         'scroll': [r'keyword scroll file', 'scroll::'],
     }
 
-models = {
+
+models = [ 
         "gpt-4o-mini",
         "gpt-4o",
         "gpt-4",
-        "ollama:llama3",
-        "ollama:phi3",
-        "ollama:qwen2",
-        "ollama:mistral",
-        }
+        ] 
+
+response = olclient.list()
+for model in response['models']:
+    models.append("ollama:" + model['name'])
 
 # Define prompt_toolkig keybindings
 global kb
@@ -246,7 +249,7 @@ class symchat():
         self.mswhite = hf.huggingBot() 
 
         # Load the ollama api
-        self.ollama = ol.Llama3API(base_url="http://localhost:11434")
+        #self.ollama = ol.Llama3API(base_url="http://localhost:11434")
        
         # Set symbiote home path parameters
         symbiote_dir = os.path.expanduser(self.symbiote_settings['symbiote_path'])
@@ -691,12 +694,22 @@ class symchat():
         elif self.symbiote_settings['model'].startswith("ollama"):
             model_name = self.symbiote_settings['model'].split(":")
 
-            # Ollama
-            response = self.ollama.chat_completion(
-                    model=model_name[1],
-                    prompt=user_input,
-                    stream=True,
+            model = model_name[1] + ":" + model_name[2]
+            self.write_history("user", user_input)
+
+            stream = olclient.chat(
+                    model = model,
+                    messages = self.conversation_history,
+                    stream = True,
                     )
+
+            response = ''
+            for chunk in stream:
+                print(chunk['message']['content'], end='', flush=True)
+                response += chunk['message']['content']
+
+            print()
+
 
         self.write_history('assistant', response)
 
