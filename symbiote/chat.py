@@ -97,7 +97,9 @@ command_list = {
         "prompter::": "Create prompts matched to datasets.",
         "purge::": "Purge the last response given. eg. thumbs down",
         "note::": "Create a note that is tracked in a separate conversation",
+        "index::": "Index files into Elasticsearch.",
         "whisper::": "Process audio file to text using whipser.",
+        "define::": "Request definition on keyword or terms.",
         "theme::": "Change the theme for the symbiote cli.",
         "view::": "View a file",
         "scroll::": "Scroll through the text of a given file a file",
@@ -1316,13 +1318,28 @@ class symchat():
                 links = dork.fetch_links(match.group(1))
                 results = dork.fetch_text_from_urls(links)
 
-                content = f"Analyze and summarize the following google results.\n"
+                content = f"Analyze and summarize the following google results. After your summary provide a list of 5 related search terms based on the information found that would further research.\n"
                 content += '\n```\n{}\n```\n'.format(results)
                 user_input = user_input[:match.start()] + content + user_input[match.end():]
                 return user_input
             else:
                 print("No search term provided.")
                 return None
+
+        # Trigger for define::
+        define_pattern = r'define:(.*):'
+        match = re.search(define_pattern, user_input)
+        if match:
+            if match.group(1):
+                term = match.group(1)
+                content = f"""Provide the definition and details of "{term}". The response must be in markdown, .md format. The response should incude the following fields.
+
+"term": {term} 
+"definition": A brief definition of the {term}.
+"examples": A list of 3 facts related to "{term}".
+"related_terms": A list of 5 terms related to the searched term.
+"""
+                user_input = content
 
         # Trigger for agents::
         agents_pattern = r'agents::|agents:(.*):'
