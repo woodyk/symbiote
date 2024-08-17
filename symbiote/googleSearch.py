@@ -25,13 +25,6 @@ class googleSearch:
             return []
 
     def fetch_text_from_urls(self, urls):
-        """
-        Fetches and processes the text content from a list of URLs.
-        Args:
-            urls (list): List of URLs to fetch the text from.
-        Returns:
-            str: Concatenated text content of all the webpages.
-        """
         all_text = ""
         for url in urls:
             try:

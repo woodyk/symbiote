@@ -60,6 +60,9 @@ olclient = Client(host='http://localhost:11434')
 import openai
 oaiclient = openai.OpenAI()
 
+from groq import Groq
+grclient = Groq()
+
 start = time.time() 
 
 command_list = {
@@ -139,10 +142,12 @@ audio_triggers = {
     }
 
 
-models = [ 
+models = [
         "gpt-4o-mini",
         "gpt-4o",
         "gpt-4",
+        "groq:llama-3.1-70b-versatile",
+        "groq:mixtral-8x7b-32768",
         ] 
 
 try:
@@ -228,6 +233,8 @@ class symchat():
         self.orig_stdout = sys.stdout
 
         self.symbiote_settings = symbiote_settings 
+        self.conversation_history = []
+        self.estimated_tokens = self.estimate_token_count(json.dumps(self.conversation_history))
         self.audio_triggers = audio_triggers
         self.flush = False
         self.logging = True
@@ -247,8 +254,6 @@ class symchat():
             self.output = kwargs['output']
         else:
             self.output = True
-
-        self.conversation_history = []
 
         # Load the openai assistant
         self.mrblack = oa.MyAssistant(assistant_id)
@@ -598,6 +603,8 @@ class symchat():
             # Chack for a change in settings and write them
             check_settings = hash(json.dumps(self.symbiote_settings, sort_keys=True)) 
 
+            self.estimated_tokens = self.estimate_token_count(json.dumps(self.conversation_history))
+
             if self.token_track['system_count'] > self.token_track['model_tokens']:
                 self.symrole(self.symbiote_settings['role'])
                 self.token_track['system_count'] = 0
@@ -627,7 +634,7 @@ class symchat():
                 self.chat_session.bottom_toolbar = None
             else:
                 #self.chat_session.bottom_toolbar = f"Model: {self.symbiote_settings['model']}\nCurrent Conversation: {self.symbiote_settings['conversation']}\nLast Char Count: {self.token_track['last_char_count']}\nToken Usage:\nUser: {self.token_track['user_tokens']} Assistant: {self.token_track['completion_tokens']} Conversation: {self.token_track['truncated_tokens']} Total Used: {self.token_track['rolling_tokens']}\nCost: ${self.token_track['cost']:.2f}\ncwd: {current_path}"
-                self.chat_session.bottom_toolbar = f"Model: Mr. Black Assistant API"
+                self.chat_session.bottom_toolbar = f"Model: {self.symbiote_settings['model']} Estimated Tokens: {self.estimated_tokens}"
 
             if self.run is False:
                 self.user_input = self.chat_session.prompt(message="symbiote> ",
@@ -671,7 +678,7 @@ class symchat():
 
     def write_history(self, role, text):
         hist_entry = {
-                "epoch": time.time(),
+                #"epoch": time.time(),
                 "role": role,
                 "content": text 
                 }
@@ -695,6 +702,13 @@ class symchat():
 
         console.print(Markdown(response))
         """
+
+        self.estimated_tokens = self.estimate_token_count(json.dumps(self.conversation_history))
+        num_ctx = self.estimated_tokens + 8192
+        if self.estimated_tokens > self.symbiote_settings['max_tokens']:
+            self.conversation_history = self.truncate_history(self.conversation_history, self.symbiote_settings['max_tokens'])
+            self.estimated_tokens = self.estimate_token_count(json.dumps(self.conversation_history))
+            num_ctx = self.estimated_tokens + 8192
 
         response = ''
 
@@ -726,6 +740,8 @@ class symchat():
                     model = model,
                     messages = self.conversation_history,
                     stream = True,
+                    #format = "json",
+                    options = { "num_ctx": num_ctx },
                     )
 
             for chunk in stream:
@@ -733,7 +749,22 @@ class symchat():
                 response += chunk['message']['content']
 
             print()
+        elif self.symbiote_settings['model'].startswith("groq"):
+            model_name = self.symbiote_settings['model'].split(":")
+            model = model_name[1]
 
+            stream = grclient.chat.completions.create(
+                    model = model,
+                    messages = self.conversation_history,
+                    stream = True,
+                    )
+
+            for chunk in stream:
+                if chunk.choices[0].delta.content is not None:
+                    print(chunk.choices[0].delta.content, end='', flush=True)
+                    response += chunk.choices[0].delta.content
+
+            print()
 
         self.write_history('assistant', response)
 
@@ -744,6 +775,17 @@ class symchat():
 
         self.suppress = False
         return response
+
+    def truncate_history(self, history, size):
+        tokens = self.estimate_token_count(json.dumps(history))
+        while tokens > size:
+            history.pop(0)
+            tokens = self.estimate_token_count(json.dumps(history))
+
+        return history
+
+
+
 
     def process_commands(self, user_input):
         # Audio keyword triggers
@@ -1055,6 +1097,7 @@ class symchat():
         if match:
             self.suppress = True
             self.exit = True
+            self.conversation_history = []
             self.current_conversation = []
 
             return None 
@@ -1317,6 +1360,7 @@ class symchat():
                 dork = gs.googleSearch()
                 links = dork.fetch_links(match.group(1))
                 results = dork.fetch_text_from_urls(links)
+                results = self.clean_text(results)
 
                 content = f"Analyze and summarize the following google results. After your summary provide a list of 5 related search terms based on the information found that would further research.\n"
                 content += '\n```\n{}\n```\n'.format(results)
@@ -1357,18 +1401,18 @@ class symchat():
                     password=self.symbiote_settings['imap_password'],
                     mail_type='imap',
                     days=2,
-                    unread=False
+                    unread=False,
+                    model="mistral-nemo",
                     )
             email = mail_checker.check_mail()
 
-            content = """You read in a list of e-mails containing from, to, subject, received date, and body and converse about those messages. Your job is as follows.
+            content = """You read in a JSON document of e-mails containing from, to, subject, received date, and body and converse about those messages. Your job is as follows.
 1. Identify messages that may be of importance and highlight details about those messages.
 2. Identify messages that may be considered spam.
 3. Analyze the pattern of all the messages and look for common messages that may represent a larger message all together.
 4. Provide a brief summary of the messages found.
 5. Provide further analysis upon request.
-All output will be in markdown .md format.
-d.
+
 """
  
             content += '\n```\n{}\n```\n'.format(email)
@@ -1832,3 +1876,96 @@ d.
     def handle_control_c(self, signum, frame):
         print("\nControl-C detected.")
         sys.exit(0)
+
+    def estimate_token_count(self, text):
+        # Estimate tokens based on the average number of characters per token
+        average_chars_per_token = 4
+
+        # Calculate the number of tokens
+        token_count = len(text) / average_chars_per_token
+
+        # Return the rounded token count
+        return round(token_count)
+
+    def clean_text(self, text):
+        # Remove leading and trailing whitespace
+        text = text.strip()
+
+        # Replace multiple spaces with a single space
+        text = re.sub(r'\s+', ' ', text)
+
+        # Remove any non-ASCII characters (optional, based on your needs)
+        text = re.sub(r'[^\x00-\x7F]+', '', text)
+
+        # Normalize dashes and remove unnecessary punctuation
+        text = re.sub(r'[–—]', '-', text)  # Normalize dashes
+        text = re.sub(r'[“”]', '"', text)  # Normalize quotes
+        text = re.sub(r"[‘’]", "'", text)  # Normalize apostrophes
+
+        # Optionally remove or replace other special characters
+        # You can customize this step according to your needs
+        # For example, remove non-alphanumeric except common punctuation
+        text = re.sub(r'[^\w\s.,!?\'"-]', '', text)
+
+        # Further replace double punctuation (optional)
+        text = re.sub(r'\.{2,}', '.', text)  # Replace multiple dots with a single dot
+
+        # Convert to lowercase (optional, depending on your use case)
+        text = text.lower()
+
+        return text
+
+
+    def python_tool(self, code):
+        # Start the Python subprocess in interactive mode
+        python_interpreter = '/Users/kato/.venv/bin/python3'
+        child = pexpect.spawn(python_interpreter, ['-i'], encoding='utf-8')
+
+        # Wait for the initial prompt
+        child.expect('>>> ')
+
+        # Initialize a string to store the interaction log
+        interaction_log = ""
+
+        # Split the code into lines
+        lines = code.strip().split('\n')
+
+        # Iterate through each line of code and send it to the subprocess
+        for i, line in enumerate(lines):
+            try:
+                # Send the line to the Python interpreter
+                child.sendline(line)
+
+                # Log the input line
+                interaction_log += f">>> {line}\n"
+
+                # Expect and capture all outputs until the next primary prompt
+                while True:
+                    index = child.expect([r'>>> ', r'\.\.\. ', pexpect.EOF])
+                    interaction_log += child.before.strip() + "\n"
+                    if index == 0:  # '>>> ' prompt indicates primary prompt
+                        print(child.before.strip())
+                        break
+                    elif index == 1:  # '... ' prompt indicates continuation
+                        print(child.before.strip())
+                        # If this is the last line, send an empty line to execute the block
+                        if i == len(lines) - 1:
+                            child.sendline('')
+                    elif index == 2:  # EOF indicates the end of the output
+                        print(child.before.strip())
+                        return interaction_log.strip()
+            except pexpect.EOF:
+                print(child.before.strip())
+                interaction_log += child.before.strip() + "\n"
+                break
+            except pexpect.ExceptionPexpect as e:
+                print(f"Error executing line '{line}': {e}")
+                interaction_log += f"Error executing line '{line}': {e}\n"
+                break
+       
+        # Close the child process
+        child.close()
+
+        return interaction_log.strip()
+
+

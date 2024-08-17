@@ -30,6 +30,7 @@ virtualenv .venv
 pip3 install -r requirements.txt
 ./app.py -i
 pip3 install six --upgrade
+./app.py
 ```
 
 Add the following with your API keys to your .bashrc

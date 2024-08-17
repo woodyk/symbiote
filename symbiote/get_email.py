@@ -11,9 +11,11 @@ from bs4 import BeautifulSoup
 import json
 import time
 import re
+from ollama import Client
+olclient = Client(host='http://localhost:11434')
 
 class MailChecker:
-    def __init__(self, username, password, mail_type='imap', days=None, unread=False):
+    def __init__(self, username, password, mail_type='imap', days=None, unread=False, model="llama3.1"):
         self.username = username
         self.password = password
         self.mail_type = mail_type.lower()
@@ -21,6 +23,7 @@ class MailChecker:
         self.unread = unread
         self.imap_server = 'imap.gmail.com'
         self.pop_server = 'pop.gmail.com'
+        self.model = model
 
     def check_mail(self):
         if self.mail_type == 'imap':
@@ -47,11 +50,16 @@ class MailChecker:
             mail_ids = data[0].split()
 
             emails = []
+            count = 0
             for mail_id in mail_ids:
+                count += 1
+                print(f"\rProcessing {count} of {len(mail_ids)} e-mails.", end="", flush=True)
                 result, msg_data = mail.fetch(mail_id, '(RFC822)')
                 raw_email = msg_data[0][1]
                 msg = email.message_from_bytes(raw_email)
                 emails.append(self._get_email_content(msg))
+
+            print()
             
             return json.dumps(emails, indent=4)
 
@@ -84,6 +92,38 @@ class MailChecker:
         date = msg.get('Date', '').strip()
         date_unix = int(time.mktime(email.utils.parsedate(date)))
         body = self._get_body(msg).strip()
+
+        # Summarize e-mail body
+        system_prompt = """You are an expert in summarizing emails. Your task is to transform the body of an email into a concise, structured summary. This summary should accurately capture the key details and essence of the original email and include a summary of any attachments. Follow these guidelines:
+
+Identify the Purpose: Determine the primary purpose of the email (e.g., request, update, notification, inquiry, etc.).
+
+Extract Key Information: Include essential details such as names, dates, actions required, and any other critical information.
+
+Maintain Objectivity: Present the information without adding personal interpretations or opinions.
+
+Structure the Summary:
+
+Subject: [Brief description of the main topic]
+Summary: [Detailed summary capturing the main points and context of the email]
+Key Details: [Highlight specific details such as names, dates, deadlines, locations, etc.]
+Action Items (if applicable): [List of actions required, responsibilities, and deadlines]
+Attachment Summary: If any attachments are present, provide a brief summary of each attachment, including the type, content, and key details or purpose of the document.
+
+Length: The summary should be concise yet comprehensive, extracting and detailing all important points from the email body and attachments.
+
+Use this format for all email summaries, ensuring clarity and precision while thoroughly capturing the email's content and attachments."""
+        messages = []
+        messages.append({"role": "system", "content": system_prompt})
+        messages.append({"role": "user", "content": body})
+        response = olclient.chat(
+                model=self.model,
+                messages=messages,
+                #options={ "num_ctx": 8192 },
+                stream=False,
+                )
+
+        body = response['message']['content']
         
         email_content = {
             "from": from_,
@@ -144,7 +184,8 @@ if __name__ == "__main__":
         password='PASSWORD',
         mail_type='imap',  # or 'pop'
         days=7,  # Check emails from the last 7 days
-        unread=False  # Check only unread emails
+        unread=False,  # Check only unread emails
+        model='phi3',
     )
 
     # Check emails
