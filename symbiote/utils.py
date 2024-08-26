@@ -13,18 +13,22 @@ import magic
 import textract
 import hashlib
 import requests 
-from urllib.parse import urlparse
 import piexif
 import hashlib
-
-from mss import mss
+import webbrowser
+import html2text
 import climage
-from climage import color_to_flags, color_types, convert
-from PIL import Image, ImageEnhance
-from ascii_magic import AsciiArt, Back
 import numpy as np
 import pandas as pd
 import speech_recognition as sr
+
+from mss import mss
+from urllib.parse import urlparse
+from bs4 import BeautifulSoup
+from io import BytesIO
+from climage import color_to_flags, color_types, convert
+from PIL import Image, ImageEnhance
+from ascii_magic import AsciiArt, Back
 from pydub import AudioSegment
 from thefuzz import fuzz
 from sumy.parsers.plaintext import PlaintextParser
@@ -877,48 +881,83 @@ class utilities():
 
             return save_path
 
-    
-
     def viewFile(self, file_path):
         if self.is_image(file_path):
             img_path = self.getImage(file_path)
             self.imageToAscii(img_path)
-            return
+        elif content := self.is_url(file_path):
+            self.render_text(file_path, content)
+        else:
+            # Open the file and read its content
+            with open(file_path, "r") as file:
+                content = file.read()
 
+            self.render_text(file_path, content)
+
+        return
+
+    def is_image(self, file_path_or_url):
+        try:
+            if os.path.exists(file_path_or_url):  # Check if it's a local file
+                with Image.open(file_path_or_url) as img:
+                    img.verify()  # Verify if the opened file is an image
+                    img = Image.open(file_path_or_url)  # Re-open to display (verify closes the file)
+                    img.show()  # Show the image
+            else:  # Otherwise, assume it's a URL
+                response = requests.get(file_path_or_url)
+                response.raise_for_status()  # Check that the request was successful
+                img = Image.open(BytesIO(response.content))
+                img.verify()  # Verify if the downloaded content is an image
+                img = Image.open(BytesIO(response.content))  # Re-open to display
+                img.show()  # Show the image
+            return True
+        except (requests.HTTPError, IOError, SyntaxError, FileNotFoundError) as e:
+            return False
+
+    def is_url(self, path):
+        # Regex pattern to check if the path is a URL
+        url_pattern = re.compile(
+            r'^(?:http|ftp)s?://',
+            re.IGNORECASE)
+
+        # Check if the path matches the URL pattern
+        if re.match(url_pattern, path):
+            # Open the URL in the default web browser
+            webbrowser.open(path)
+
+            # Fetch and print the contents of the URL in a readable format
+            try:
+                response = requests.get(path)
+                response.raise_for_status()  # Check that the request was successful
+
+                # Parse the HTML content using BeautifulSoup
+                soup = BeautifulSoup(response.content, 'html.parser')
+
+                # Convert HTML to readable text using html2text
+                text_maker = html2text.HTML2Text()
+                text_maker.ignore_links = True  # Optionally ignore links in the output
+                text_maker.ignore_images = True  # Optionally ignore images in the output
+                readable_text = text_maker.handle(str(soup))
+
+            except requests.HTTPError as e:
+                print(f"HTTP error occurred: {e}")
+            except Exception as e:
+                print(f"An error occurred: {e}")
+
+            return readable_text
+        else:
+            return False
+
+
+    def render_text(self, file_path, text):
         # Create a console object
         console = Console()
 
-        # Open the file and read its content
-        with open(file_path, "r") as file:
-            code = file.read()
-
         # Create a Syntax object to highlight the code
-        syntax = Syntax(code, "python", line_numbers=True)
+        syntax = Syntax(text, "python", line_numbers=True)
 
         # Create a Panel to display the code
         panel = Panel(syntax, title=file_path, expand=True)
 
         # Print the panel to the console, centered
         console.print(panel, justify="center")
-
-    def is_image(self, path):
-        image_extensions = [".jpg", ".jpeg", ".png", ".gif", ".bmp", ".tiff", ".webp", ".ico"]
-
-        if any(path.lower().endswith(ext) for ext in image_extensions):
-            return True
-        else:
-            return False
-
-    import urllib.parse
-
-    def google_search_url(search_terms):
-        """
-        Constructs a Google search URL with the given search terms.
-
-        :param search_terms: A string containing the search terms and Google Dorking operators.
-        :return: A string containing the Google search URL.
-        """
-        base_url = "https://www.google.com/search?q="
-        query_string = urllib.parse.quote_plus(search_terms)
-        search_url = base_url + query_string
-        return search_url

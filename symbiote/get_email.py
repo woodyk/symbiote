@@ -185,7 +185,7 @@ if __name__ == "__main__":
         mail_type='imap',  # or 'pop'
         days=7,  # Check emails from the last 7 days
         unread=False,  # Check only unread emails
-        model='phi3',
+        model='phi3.5',
     )
 
     # Check emails

@@ -12,6 +12,10 @@ import threading
 import clipboard
 import json
 import pprint
+import base64
+import requests
+
+from PIL import Image
 
 from InquirerPy import inquirer
 from InquirerPy.base.control import Choice
@@ -95,7 +99,7 @@ command_list = {
         "structure::": "Data structure builder.",
         "exec::": "Execute a local cli command and learn from the execution fo the command.",
         "fine-tune::": "Fine-tune a model on a given data in a file or directory.",
-        "render::": "Render an image from the provided text.",
+        "image::": "Render an image from the provided text.",
         "replay::": "Replay the current conversation to the current model.",
         "prompter::": "Create prompts matched to datasets.",
         "purge::": "Purge the last response given. eg. thumbs down",
@@ -1152,21 +1156,6 @@ class symchat():
 
             return history
 
-        # Trigger for rendering images from text input
-        render_pattern = r'^render:(.*):'
-        match = re.search(render_pattern, user_input)
-        if match:
-            self.suppress = True
-            self.exit = True
-            if match.group(1):
-                query = match.group(1)
-                result = self.sym.process_openaiImage(query)
-                if result is not None:
-                    command = f"open {self.symbiote_settings['image_dir']}"
-                    self.symutils.exec_command(command)
-
-            return result
-
         # Trigger for code:: extraction from provided text
         ''' Add options for running, extracting and editing code on the fly '''
         code_pattern = r'code::|code:(.*):'
@@ -1250,7 +1239,7 @@ class symchat():
 
             return theme_name
 
-        # trigger terminal image rendering image::
+        # trigger terminal image rendering view:: 
         view_pattern = r'view::|^view:(.*):|^view:(https?:\/\/\S+):'
         match = re.search(view_pattern, user_input)
         file_path = None
@@ -1486,6 +1475,19 @@ class symchat():
                 user_input = user_input[:match.start()] + dir_content + user_input[match.end():]
 
             return user_input
+
+        # Trigger image:: execution for AI image generation
+        exec_pattern = r'image:(.*):'
+        match = re.search(exec_pattern, user_input)
+        if match:
+            if match.group(1):
+                query = match.group(1)
+                self.flux_image(query)
+            else:
+                print(f"No image description provided.")
+
+            return None
+
 
         # Trigger system execution of a command
         exec_pattern = r'exec:(.*):'
@@ -1915,10 +1917,50 @@ class symchat():
 
         return text
 
+    def image_to_png_base64(self, image_path):
+        # Open the image
+        try:
+            with Image.open(image_path) as img:
+                # Convert to PNG format if not already in JPEG, JPG, or PNG
+                if img.format not in ['JPEG', 'JPG', 'PNG']:
+                    with io.BytesIO() as output:
+                        img.save(output, format="PNG")
+                        png_data = output.getvalue()
+                else:
+                    with io.BytesIO() as output:
+                        img.save(output, format=img.format)
+                        png_data = output.getvalue()
+
+            # Encode the PNG image to base64
+            png_base64 = base64.b64encode(png_data).decode('utf-8')
+        except Exception as e:
+            print(f"Error processing image: {e}")
+            return None
+
+    def describe_image(self, image_path):
+        try:
+            encoded_image = self.image_to_png_base64(image_path)
+        except:
+            return None
+
+        # Call the Ollama API with the LLaVA model
+        try:
+            response = ollama.generate(
+                model='llava:13b',
+                prompt=prompt,
+                images=[encoded_image]
+            )
+
+            # Extract the generated text from the response
+            detected_objects = response['response']
+            return detected_objects
+        except Exception as e:
+            print(f"Error processing image: {e}")
+            return None
 
     def python_tool(self, code):
         # Start the Python subprocess in interactive mode
-        python_interpreter = '/Users/kato/.venv/bin/python3'
+        python_interpreter = sys.executable 
         child = pexpect.spawn(python_interpreter, ['-i'], encoding='utf-8')
 
         # Wait for the initial prompt
@@ -1967,5 +2009,29 @@ class symchat():
         child.close()
 
         return interaction_log.strip()
+
+    def flux_image(self, query_text):
+        self.launch_animation(True)
+        # Get the API key from environment variables
+        api_key = os.getenv("HUGGINGFACE_API_KEY")
+
+        # Set up the API URL and headers
+        API_URL = "https://api-inference.huggingface.co/models/black-forest-labs/FLUX.1-schnell"
+        headers = {"Authorization": f"Bearer {api_key}"}
+
+        def query(payload):
+            response = requests.post(API_URL, headers=headers, json=payload)
+            return response.content
+
+        image_bytes = query({
+            "inputs": query_text,
+        })
+
+        # You can access the image with PIL.Image for example
+        image = Image.open(io.BytesIO(image_bytes))
+        self.launch_animation(False)
+
+        # Open the image for viewing
+        image.show()
 
 

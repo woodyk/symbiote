@@ -51,3 +51,7 @@ tensorflow
 keras
 ollama
 groq
+deepface
+ultralytics
+pyheif
+html2text
