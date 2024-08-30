@@ -55,3 +55,4 @@ deepface
 ultralytics
 pyheif
 html2text
+qrcode

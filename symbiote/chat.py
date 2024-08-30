@@ -14,8 +14,16 @@ import json
 import pprint
 import base64
 import requests
+import qrcode
+import subprocess
+import tempfile
+import webbrowser
 
-from PIL import Image
+from PIL import Image, ImageDraw, ImageColor
+
+from io import BytesIO
+
+from bs4 import BeautifulSoup
 
 from InquirerPy import inquirer
 from InquirerPy.base.control import Choice
@@ -57,6 +65,7 @@ from symbiote.themes import ThemeManager
 import symbiote.openAiAssistant as oa
 import symbiote.headlines as hl
 import symbiote.huggingface as hf
+import symbiote.ImageAnalysis as ia
 
 from ollama import Client
 olclient = Client(host='http://localhost:11434')
@@ -84,6 +93,10 @@ command_list = {
         "cd::": "Change working directory.",
         "pwd::": "Show current working directory.",
         "file::": "Load a file for submission.",
+        "image_extract::": "Extract images from a given URL and display them.",
+        "analyze_image::": "Analyze an image or images from a website or file.",
+        "browser::": "Open a URL in w3m terminal web browser.",
+        "qr::": "Generate a QR code from the given text.",
         "extract::": "Extract data features for a given file or directory and summarize.",
         "links::": "Extract links from the given text.",
         "code::": "Extract code and write files.",
@@ -1040,7 +1053,7 @@ class symchat():
             return self.working_directory 
 
         # Trigger for extract:: processing. Load file content and generate a json object about the file.
-        summary_pattern = r'extract::|extract:(.*):(.*):|extract:(.*):'
+        summary_pattern = r'^extract::|^extract:(.*):(.*):|^extract:(.*):'
         match = re.search(summary_pattern, user_input)
         file_path = None
         
@@ -1261,6 +1274,29 @@ class symchat():
 
             return None
 
+        # Trigger image analysis and reporting analyse_image::
+        analyze_image_pattern = r'^analyse_image::|^analyze_image:(.*):'
+        match = re.search(analyze_image_pattern, user_input)
+
+        if match:
+            if match.group(1):
+                image_path = match.group(1)
+            else:
+                image_path = self.fileSelector('Image path:')
+                image_path = os.path.expanduser(image_path)
+                image_path = os.path.abspath(image_path)
+
+            extractor = ia.ImageAnalyzer(detection=True, extract_text=True, backend='mtcnn') 
+            self.launch_animation(True)
+            results = extractor.analyze_images(image_path, mode='none')
+            human_readable = extractor.render_human_readable(results)
+            self.launch_animation(False)
+            print(human_readable)
+
+            content = f"Analyze the following details collected about the image or images and summarize the details.\n{human_readable}\n"
+
+            return content
+
         # Trigger to find files by search find::
         find_pattern = r'^find::|^find:(.*):'
         match = re.search(find_pattern, user_input)
@@ -1407,6 +1443,42 @@ class symchat():
             content += '\n```\n{}\n```\n'.format(email)
             user_input = user_input[:match.start()] + content + user_input[match.end():]
             return user_input
+
+        # Trigger for w3m web browser functionality browser::
+        browser_pattern = r'browser:(.*):'
+        match = re.search(browser_pattern, user_input)
+        if match:
+            if match.group(1):
+                url = match.group(1)
+                self.open_w3m(url)
+            else:
+                self.open_w3m()
+
+            return None
+
+        # Trigger to extract images from a url image_extract::
+        image_extract_pattern = r'^image_extract:(.*)'
+        match = re.search(image_extract_pattern, user_input)
+        if match:
+            if match.group(1):
+                url = match.group(1)
+                self.url_image_extract(url, mode='html')
+            else:
+                print('No url specified.')
+
+            return None
+
+        # Trigger for qr code generation qr::
+        qr_pattern = r'qr:(.*):'
+        match = re.search(qr_pattern, user_input)
+        if match:
+            if match.group(1):
+                content = match.group(1)
+                self.generate_qr(content)
+            else:
+                print("No content provided for the qr.")
+
+            return None
 
         # Trigger for file:: processing. Load file content into user_input for ai consumption.
         # file:: - opens file or directory to be pulled into the conversation
@@ -2034,4 +2106,197 @@ class symchat():
         # Open the image for viewing
         image.show()
 
+
+    def generate_qr(
+        self,
+        text: str,
+        center_color: str = "#00FF00",  # Lime color in hex
+        outer_color: str = "#0000FF",   # Blue color in hex
+        back_color: str = "black",
+        dot_size: int = 10,
+        border_size: int = 10
+    ):
+        # Create a QR code object
+        qr = qrcode.QRCode(
+            version=1,
+            error_correction=qrcode.constants.ERROR_CORRECT_H,  # Higher error correction
+            box_size=dot_size,
+            border=4,
+        )
+
+        # Add data to the QR code
+        qr.add_data(text)
+        qr.make(fit=True)
+
+        # Get the QR code matrix
+        qr_matrix = qr.get_matrix()
+        qr_size = len(qr_matrix)
+
+        # Create a new image with a background color
+        img_size = qr_size * dot_size + 2 * border_size
+        img = Image.new("RGBA", (img_size, img_size), back_color)
+        draw = ImageDraw.Draw(img)
+
+        # Calculate the gradient
+        def get_gradient_color(x, y, center_x, center_y, inner_color, outer_color, max_dist):
+            # Distance from the center
+            dist = ((x - center_x) ** 2 + (y - center_y) ** 2) ** 0.5
+            ratio = min(dist / max_dist, 1)
+
+            # Interpolating the color
+            r1, g1, b1 = inner_color
+            r2, g2, b2 = outer_color
+
+            r = int(r1 + (r2 - r1) * ratio)
+            g = int(g1 + (g2 - g1) * ratio)
+            b = int(b1 + (b2 - b1) * ratio)
+
+            return (r, g, b)
+
+        # Center of the QR code
+        center_x = img_size // 2
+        center_y = img_size // 2
+        max_dist = ((center_x) ** 2 + (center_y) ** 2) ** 0.5
+
+        # Convert hex colors to RGB
+        center_color_rgb = ImageColor.getrgb(center_color)
+        outer_color_rgb = ImageColor.getrgb(outer_color)
+
+        # Draw the QR code with gradient dots
+        for y in range(qr_size):
+            for x in range(qr_size):
+                if qr_matrix[y][x]:
+                    x1 = x * dot_size + border_size
+                    y1 = y * dot_size + border_size
+                    fill_color = get_gradient_color(x1, y1, center_x, center_y, center_color_rgb, outer_color_rgb, max_dist)
+                    draw.ellipse([x1, y1, x1 + dot_size, y1 + dot_size], fill=fill_color)
+
+        # Display the image
+        img.show()
+
+    def open_w3m(self, website_url='https://google.com'):
+        try:
+            subprocess.run(['w3m', website_url])
+        except FileNotFoundError:
+            print("Error: w3m is not installed on your system. Please install it and try again.")
+        except Exception as e:
+            print(f"An error occurred: {e}")
+
+
+    def url_image_extract(self, url, mode='merged', images_per_row=3):
+        # Send a request to the URL
+        response = requests.get(url)
+
+        # Check if the request was successful
+        if response.status_code != 200:
+            raise Exception(f"Failed to fetch the webpage: {response.status_code}")
+
+        # Parse the HTML content using BeautifulSoup
+        soup = BeautifulSoup(response.content, 'html.parser')
+
+        # Find all image tags
+        img_tags = soup.find_all('img')
+        images = []
+        img_sources = []
+
+        # Loop through all the image tags and open them
+        for img_tag in img_tags:
+            img_url = img_tag.get('src')
+
+            # Handle relative URLs
+            if img_url and not img_url.startswith(('http://', 'https://')):
+                img_url = requests.compat.urljoin(url, img_url)
+
+            try:
+                # Get the image content
+                img_response = requests.get(img_url)
+
+                # Check the content type to ensure it's an image
+                content_type = img_response.headers.get('Content-Type')
+                if 'image' in content_type:
+                    img = Image.open(BytesIO(img_response.content))
+                    images.append(img)
+                    img_sources.append(img_url)
+                else:
+                    print(f"Skipped non-image content at {img_url}")
+            except Exception as e:
+                print(f"Failed to open image: {img_url} - {e}")
+
+        if not images:
+            print("No images found.")
+            return
+
+        if mode == 'merged':
+            # Determine the size of the resulting image
+            max_width = max(img.width for img in images)
+            max_height = max(img.height for img in images)
+            total_width = images_per_row * max_width
+            total_height = (len(images) + images_per_row - 1) // images_per_row * max_height
+
+            # Create a new blank image
+            combined_image = Image.new('RGB', (total_width, total_height), (255, 255, 255))
+
+            # Paste each image into the combined image
+            for index, img in enumerate(images):
+                x = (index % images_per_row) * max_width
+                y = (index // images_per_row) * max_height
+                combined_image.paste(img, (x, y))
+
+            # Display the combined image
+            combined_image.show()
+
+        elif mode == 'individual':
+            # Show each image individually
+            for img in images:
+                img.show()
+
+        elif mode == 'html':
+            # Create a dark-themed HTML page with a table of images
+            html_content = """
+            <html>
+            <head>
+            <style>
+                body { background-color: #121212; color: #FFFFFF; font-family: 'Courier New', monospace; }
+                .container { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 20px; padding: 20px; }
+                .card { background-color: #1E1E1E; border-radius: 10px; padding: 20px; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2); text-align: center; }
+                .card img { max-width: 100%; height: auto; border-radius: 10px; display: block; margin-left: auto; margin-right: auto; }
+                .card a { color: #BB86FC; text-decoration: none; }
+                .card a:hover { text-decoration: underline; }
+                h1 { text-align: center; color: #ff8c00; } /* Hacker orange color */
+            </style>
+            </head>
+            <body>
+            <h1>Extracted Images</h1>
+            <div class="container">
+            """
+
+            for img_src in img_sources:
+                html_content += f"""
+                <div class="card">
+                    <a href="{img_src}" target="_blank">
+                        <img src="{img_src}" alt="Image" />
+                    </a>
+                </div>
+                """
+
+            html_content += """
+            </div>
+            </body>
+            </html>
+            """
+
+            # Write the HTML content to a temporary file and open it in the default browser
+            try:
+                with tempfile.NamedTemporaryFile('w', delete=False, suffix='.html', dir='/tmp') as f:
+                    f.write(html_content)
+                    temp_file_path = f.name
+
+                webbrowser.open(f'file://{os.path.realpath(temp_file_path)}')
+
+                time.sleep(2)
+
+            finally:
+                # Remove the temporary file after use
+                if os.path.exists(temp_file_path):
+                    os.remove(temp_file_path)
 
