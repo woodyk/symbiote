@@ -343,7 +343,6 @@ if __name__ == "__main__":
     extractor = ImageAnalyzer(detection=True, extract_text=True, backend='mtcnn')
     path = 'https://www.google.com/search?num=10&newwindow=1&sca_esv=019edcabf1e12258&sca_upv=1&q=text&udm=2&fbs=AEQNm0A2upiO_GHeTz6R89sNEjTHXSUfB8x3gweQ77S5CBNH1qkT9yo9p8LiN9Ph7QzgeH30iP61xKdhHkWU-Ava8l8nz9PkGePjGF8Xy5hRILCU_i0WJtOhvdQtLcJTjKD65-XLl9jT4l6cw86Jk_hwDRHHDS8CHxrc85H5U7_MQxCP3a_KWAcZPuVhBaxiP-PKqs6uCp1N4n6aTDbog6fOLFt_TfQI4A&sa=X&ved=2ahUKEwiW87bNo5uIAxU5r4QIHSz0CFoQtKgLegQIExAB&biw=1728&bih=958&dpr=2#imgrc=YrwwLQ0P_highM&imgdii=OzNsao3_-WQiwM'
     path = 'https://www.google.com/search?num=10&newwindow=1&sca_esv=019edcabf1e12258&sca_upv=1&q=faces&udm=2&fbs=AEQNm0DfIOrc-JVK7JSIXTRypzh1d0Xgc-Qx-MWluXtsBh8oLqezDGS-GBRoVhGkujFN9L89G8OpQ_4dZf-PrNf_f2qsBtQmtLqsm6yxAHTedliasJBB9FQSsYwZnyPqqc5ldCsnkGqLbFClqXddPoG99GG8FOnDSp-qlZzIkKjMKkP9CcmcXuDZxiWgaR1I6cT030OuyH9GGaehPhQtpHoYO4976gklqg&sa=X&ved=2ahUKEwiIz7qOpZuIAxXen4QIHRucJ2gQtKgLegQIERAB&biw=1728&bih=958&dpr=2'
-    path = "/tmp/jkdfkj.jpg"
     #results = extractor.analyze_images(path, mode='html')
     results = extractor.analyze_images(path, mode='none')
     human_readable = extractor.render_human_readable(results)

@@ -66,6 +66,7 @@ import symbiote.openAiAssistant as oa
 import symbiote.headlines as hl
 import symbiote.huggingface as hf
 import symbiote.ImageAnalysis as ia
+import symbiote.YoutubeUtility as ytutil
 
 from ollama import Client
 olclient = Client(host='http://localhost:11434')
@@ -93,6 +94,7 @@ command_list = {
         "cd::": "Change working directory.",
         "pwd::": "Show current working directory.",
         "file::": "Load a file for submission.",
+        "yt_transcript::": "Download the transcripts from youtube url for processing.",
         "image_extract::": "Extract images from a given URL and display them.",
         "analyze_image::": "Analyze an image or images from a website or file.",
         "browser::": "Open a URL in w3m terminal web browser.",
@@ -651,10 +653,10 @@ class symchat():
                 self.chat_session.bottom_toolbar = None
             else:
                 #self.chat_session.bottom_toolbar = f"Model: {self.symbiote_settings['model']}\nCurrent Conversation: {self.symbiote_settings['conversation']}\nLast Char Count: {self.token_track['last_char_count']}\nToken Usage:\nUser: {self.token_track['user_tokens']} Assistant: {self.token_track['completion_tokens']} Conversation: {self.token_track['truncated_tokens']} Total Used: {self.token_track['rolling_tokens']}\nCost: ${self.token_track['cost']:.2f}\ncwd: {current_path}"
-                self.chat_session.bottom_toolbar = f"Model: {self.symbiote_settings['model']} Estimated Tokens: {self.estimated_tokens}"
+                self.chat_session.bottom_toolbar = f"Model: {self.symbiote_settings['model']} Role: {self.symbiote_settings['role']} Estimated Tokens: {self.estimated_tokens}"
 
             if self.run is False:
-                self.user_input = self.chat_session.prompt(message="symbiote> ",
+                self.user_input = self.chat_session.prompt(message=f"{self.symbiote_settings['role']}>\n",
                                                    multiline=True,
                                                    default=self.user_input,
                                                    vi_mode=self.symbiote_settings['vi_mode']
@@ -702,6 +704,8 @@ class symchat():
         self.conversation_history.append(hist_entry)
 
     def send_message(self, user_input):
+        available_roles = roles.get_roles()
+        self.write_history('system', available_roles[self.symbiote_settings['role']])
         self.write_history('user', user_input)
 
         # OpenAI Assistant
@@ -726,6 +730,9 @@ class symchat():
             self.conversation_history = self.truncate_history(self.conversation_history, self.symbiote_settings['max_tokens'])
             self.estimated_tokens = self.estimate_token_count(json.dumps(self.conversation_history))
             num_ctx = self.estimated_tokens + 8192
+
+        if len(self.conversation_history) == 0:
+            print(f"Message contents too large: >{self.symbiote_settings['max_tokens']}")
 
         response = ''
 
@@ -801,9 +808,6 @@ class symchat():
 
         return history
 
-
-
-
     def process_commands(self, user_input):
         # Audio keyword triggers
         for keyword in self.audio_triggers:
@@ -850,7 +854,7 @@ class symchat():
             sys.exit(0)
 
         # Trigger prompter:: on a directory of files to have prompts created that explain the file
-        prompter_pattern = r'prompter::|prompter:(.*):'
+        prompter_pattern = r'prompter::|prompter:([\s\S]*?):'
         match = re.search(prompter_pattern, user_input)
         if match:
             self.exit = True
@@ -917,10 +921,10 @@ class symchat():
             self.role = "system"
             self.symbiote_settings['role'] = selected_role 
 
-            return available_roles[selected_role] 
+            return None
 
         # Trigger to apply a system role
-        system_pattern = r'^system:(.*):'
+        system_pattern = r'^system:([\s\S]*?):'
         match = re.search(system_pattern, user_input)
         if match:
             self.suppress = True
@@ -1134,7 +1138,7 @@ class symchat():
                 print(query)
                 del obj
             else:
-                query = textPrompt("Search Terms:")
+                query = self.textPrompt("Search Terms:")
             
             if query is not None:
                 results = self.symutils.searchIndex(query)
@@ -1219,7 +1223,7 @@ class symchat():
 
         # Trigger for note:: taking.  Take the note provided and query the current model but place the note and results
         # in a special file for future tracking.
-        note_pattern = r'^note::|^note:(.*):'
+        note_pattern = r'^note::|^note:([\s\S]*?):'
         match = re.search(note_pattern, user_input)
         if match:
             self.suppress = True
@@ -1387,9 +1391,7 @@ class symchat():
                 results = dork.fetch_text_from_urls(links)
                 results = self.clean_text(results)
 
-                content = f"Analyze and summarize the following google results. After your summary provide a list of 5 related search terms based on the information found that would further research.\n"
-                content += '\n```\n{}\n```\n'.format(results)
-                user_input = user_input[:match.start()] + content + user_input[match.end():]
+                user_input = user_input[:match.start()] + results + user_input[match.end():]
                 return user_input
             else:
                 print("No search term provided.")
@@ -1427,18 +1429,18 @@ class symchat():
                     mail_type='imap',
                     days=2,
                     unread=False,
-                    model="mistral-nemo",
+                    model=None,
                     )
             email = mail_checker.check_mail()
 
-            content = """You read in a JSON document of e-mails containing from, to, subject, received date, and body and converse about those messages. Your job is as follows.
+            content = f"""You read in a JSON document of e-mails containing from, to, subject, received date, and body and converse about those messages. Your job is as follows.
 1. Identify messages that may be of importance and highlight details about those messages.
 2. Identify messages that may be considered spam.
 3. Analyze the pattern of all the messages and look for common messages that may represent a larger message all together.
 4. Provide a brief summary of the messages found.
 5. Provide further analysis upon request.
-
 """
+
  
             content += '\n```\n{}\n```\n'.format(email)
             user_input = user_input[:match.start()] + content + user_input[match.end():]
@@ -1469,7 +1471,7 @@ class symchat():
             return None
 
         # Trigger for qr code generation qr::
-        qr_pattern = r'qr:(.*):'
+        qr_pattern = r'qr:([\s\S]*?):'
         match = re.search(qr_pattern, user_input)
         if match:
             if match.group(1):
@@ -1549,8 +1551,8 @@ class symchat():
             return user_input
 
         # Trigger image:: execution for AI image generation
-        exec_pattern = r'image:(.*):'
-        match = re.search(exec_pattern, user_input)
+        image_pattern = r'^image:([\s\S]*?):'
+        match = re.search(image_pattern, user_input)
         if match:
             if match.group(1):
                 query = match.group(1)
@@ -1559,7 +1561,6 @@ class symchat():
                 print(f"No image description provided.")
 
             return None
-
 
         # Trigger system execution of a command
         exec_pattern = r'exec:(.*):'
@@ -1644,7 +1645,7 @@ class symchat():
             if match.group(1):
                 url = match.group(1)
             else:
-                url = textPrompt("URL to load:")
+                url = self.textPrompt("URL to load:")
             
             if url == None:
                 return None 
@@ -1659,6 +1660,28 @@ class symchat():
             print()
             return user_input 
 
+        # Trigger for downloading youtube transcripts yt_transcript::
+        yt_transcript_pattern = r'yt_transcript::|yt_transcript:(.*):'
+        match = re.search(yt_transcript_pattern, user_input)
+        if match:
+            if match.group(1):
+                yt_url = match.group(1)
+            else:
+                yt_url = self.textPrompt("Youtube URL:")
+
+            if yt_url == None:
+                return None
+
+            print(f"Fetching youtube transcript from: {yt_url}")
+            yt = ytutil.YouTubeUtility(yt_url)
+            transcript = yt.get_transcript()
+            if transcript:
+                user_input = user_input[:match.start()] + transcript + user_input[match.end():]
+            else:
+                user_input = None
+
+            return user_input
+
         # Trigger for crawl:URL processing. Load website content into user_input for model consumption.
         get_pattern = r'crawl::|crawl:(https?://\S+):'
         match = re.search(get_pattern, user_input)
@@ -1669,7 +1692,7 @@ class symchat():
             if match.group(1):
                 url = match.group(1)
             else:
-                url = textPrompt("URL to load:")
+                url = self.textPrompt("URL to load:")
             
             if url == None:
                 return None 

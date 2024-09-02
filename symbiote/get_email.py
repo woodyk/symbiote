@@ -15,7 +15,7 @@ from ollama import Client
 olclient = Client(host='http://localhost:11434')
 
 class MailChecker:
-    def __init__(self, username, password, mail_type='imap', days=None, unread=False, model="llama3.1"):
+    def __init__(self, username, password, mail_type='imap', days=None, unread=False, model=None):
         self.username = username
         self.password = password
         self.mail_type = mail_type.lower()
@@ -93,37 +93,38 @@ class MailChecker:
         date_unix = int(time.mktime(email.utils.parsedate(date)))
         body = self._get_body(msg).strip()
 
-        # Summarize e-mail body
-        system_prompt = """You are an expert in summarizing emails. Your task is to transform the body of an email into a concise, structured summary. This summary should accurately capture the key details and essence of the original email and include a summary of any attachments. Follow these guidelines:
+        if self.model is not None: 
+            # Summarize e-mail body
+            system_prompt = """You are an expert in summarizing emails. Your task is to transform the body of an email into a concise, structured summary. This summary should accurately capture the key details and essence of the original email and include a summary of any attachments. Follow these guidelines:
 
-Identify the Purpose: Determine the primary purpose of the email (e.g., request, update, notification, inquiry, etc.).
+    Identify the Purpose: Determine the primary purpose of the email (e.g., request, update, notification, inquiry, etc.).
 
-Extract Key Information: Include essential details such as names, dates, actions required, and any other critical information.
+    Extract Key Information: Include essential details such as names, dates, actions required, and any other critical information.
 
-Maintain Objectivity: Present the information without adding personal interpretations or opinions.
+    Maintain Objectivity: Present the information without adding personal interpretations or opinions.
 
-Structure the Summary:
+    Structure the Summary:
 
-Subject: [Brief description of the main topic]
-Summary: [Detailed summary capturing the main points and context of the email]
-Key Details: [Highlight specific details such as names, dates, deadlines, locations, etc.]
-Action Items (if applicable): [List of actions required, responsibilities, and deadlines]
-Attachment Summary: If any attachments are present, provide a brief summary of each attachment, including the type, content, and key details or purpose of the document.
+    Subject: [Brief description of the main topic]
+    Summary: [Detailed summary capturing the main points and context of the email]
+    Key Details: [Highlight specific details such as names, dates, deadlines, locations, etc.]
+    Action Items (if applicable): [List of actions required, responsibilities, and deadlines]
+    Attachment Summary: If any attachments are present, provide a brief summary of each attachment, including the type, content, and key details or purpose of the document.
 
-Length: The summary should be concise yet comprehensive, extracting and detailing all important points from the email body and attachments.
+    Length: The summary should be concise yet comprehensive, extracting and detailing all important points from the email body and attachments.
 
-Use this format for all email summaries, ensuring clarity and precision while thoroughly capturing the email's content and attachments."""
-        messages = []
-        messages.append({"role": "system", "content": system_prompt})
-        messages.append({"role": "user", "content": body})
-        response = olclient.chat(
-                model=self.model,
-                messages=messages,
-                #options={ "num_ctx": 8192 },
-                stream=False,
-                )
+    Use this format for all email summaries, ensuring clarity and precision while thoroughly capturing the email's content and attachments."""
+            messages = []
+            messages.append({"role": "system", "content": system_prompt})
+            messages.append({"role": "user", "content": body})
+            response = olclient.chat(
+                    model=self.model,
+                    messages=messages,
+                    #options={ "num_ctx": 8192 },
+                    stream=False,
+                    )
 
-        body = response['message']['content']
+            body = response['message']['content']
         
         email_content = {
             "from": from_,
