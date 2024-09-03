@@ -12,11 +12,22 @@ class SymbioteAPI:
         self.debug = debug
 
         @self.app.route('/chat', methods=['POST'])
-        def receive_input():
+        def receive_input_post():
             user_input = request.json.get('user_input')
             # Call the chat method from your existing codebase with user_input
             # Return the response as a JSON object
             response = self.schat.chat(user_input=user_input, run=True, enable=False)
+            return {'response': response}
+
+        @self.app.route('/chat', methods=['GET'])
+        def receive_input_get():
+            user_input = request.args.get('user_input')
+            # Call the chat method from your existing codebase with user_input
+            # Return the response as a JSON object
+            response = self.schat.chat(user_input=user_input, run=True, enable=False)
+            if response is None:
+                response = "OK"
+
             return {'response': response}
 
     def start(self):
@@ -24,6 +35,7 @@ class SymbioteAPI:
             self.app.run()
         else:
             # Start the API server in a new thread
-            api_thread = Thread(target=self.app.run)
-            api_thread.start()
+            #api_thread = Thread(target=self.app.run)
+            #api_thread.start()
+            self.app.run()
 

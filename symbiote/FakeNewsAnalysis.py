@@ -334,9 +334,10 @@ if __name__ == "__main__":
     # Use environment variable if no API key is provided explicitly
     detector = FakeNewsDetector()
 
-    url = "https://theonion.com/dozens-of-pregnant-women-caught-in-hanging-snare-nets-above-texas-hospital-entrance/"
     url = "https://www.cnn.com/2024/08/31/politics/harris-slams-trump-arlington-national-cemetery/index.html"
     url = "https://www.cnn.com/2024/08/31/politics/fact-check-trump-ad-harris-immigration/index.html"
+    url = "https://theonion.com/dozens-of-pregnant-women-caught-in-hanging-snare-nets-above-texas-hospital-entrance/"
+    url = "https://www.foxnews.com/transcript/fox-news-sunday-july-21-2024"
     text = detector.download_text_from_url(url)
 
     if text:

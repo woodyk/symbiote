@@ -229,12 +229,18 @@ class DeceptionDetector:
         """Detect emotional anomalies within the emotional pattern of the text."""
         emotional_scores = np.array(emotional_scores).reshape(-1, 1)
         n_samples = len(emotional_scores)
+        
+        # If there's only one or too few sentences, return 0 as anomaly score
+        if n_samples < 2:
+            return 0  # or some other default value indicating no anomalies detected
+        
         n_neighbors = min(20, n_samples - 1)
         lof = LocalOutlierFactor(n_neighbors=n_neighbors, contamination=0.1)
         outlier_labels = lof.fit_predict(emotional_scores)
         anomaly_score = np.mean(outlier_labels == -1)
         clipped_anomaly_score = np.clip(anomaly_score, 0, 1)
         return clipped_anomaly_score
+
 
     def _normalize_counts(self, *counts, total):
         """Normalize counts by the total number of sentences."""
@@ -330,6 +336,7 @@ if __name__ == "__main__":
     # Example with a URL
     input_text_or_url = "https://www.msnbc.com/opinion/msnbc-opinion/trump-trading-cards-nft-america-first-rcna168999"
     input_text_or_url = "https://theonion.com/dozens-of-pregnant-women-caught-in-hanging-snare-nets-above-texas-hospital-entrance/"
+    input_text_or_url = "https://www.foxnews.com/transcript/fox-news-sunday-july-21-2024"
     result = detector.analyze_text(input_text_or_url)
     print(json.dumps(result, indent=4))
 

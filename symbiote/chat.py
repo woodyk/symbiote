@@ -67,6 +67,8 @@ import symbiote.headlines as hl
 import symbiote.huggingface as hf
 import symbiote.ImageAnalysis as ia
 import symbiote.YoutubeUtility as ytutil
+import symbiote.DeceptionDetection as deception
+import symbiote.FakeNewsAnalysis as fake_news
 
 from ollama import Client
 olclient = Client(host='http://localhost:11434')
@@ -94,6 +96,8 @@ command_list = {
         "cd::": "Change working directory.",
         "pwd::": "Show current working directory.",
         "file::": "Load a file for submission.",
+        "deception::": "Run deception analysis on the given text",
+        "fake_news::": "Run fake news analysis on the given text",
         "yt_transcript::": "Download the transcripts from youtube url for processing.",
         "image_extract::": "Extract images from a given URL and display them.",
         "analyze_image::": "Analyze an image or images from a website or file.",
@@ -1440,7 +1444,6 @@ class symchat():
 4. Provide a brief summary of the messages found.
 5. Provide further analysis upon request.
 """
-
  
             content += '\n```\n{}\n```\n'.format(email)
             user_input = user_input[:match.start()] + content + user_input[match.end():]
@@ -1679,6 +1682,32 @@ class symchat():
                 user_input = user_input[:match.start()] + transcript + user_input[match.end():]
             else:
                 user_input = None
+
+            return user_input
+
+        # Trigger for textual deception analysis deception::
+        deception_pattern = r'deception::|deception:(.*):'
+        match = re.search(deception_pattern, user_input)
+        if match:
+            if match.group(1):
+                analysis_content = match.group(1)
+            else:
+                analysis_content = self.textPrompt("Text or URL:")
+
+            if analysis_content == None:
+                print("No content to analyze.")
+                return None
+
+            detector = deception.DeceptionDetector()
+            self.launch_animation(True)
+            results = detector.analyze_text(analysis_content)
+            self.launch_animation(False)
+            if results:
+                #print(json.dumps(results, indent=4))
+                user_input = f"Review the following JSON and create a report on the deceptive findings.\n{results}"
+            else:
+                user_input = None
+                print("No results returned.")
 
             return user_input
 
