@@ -23,8 +23,6 @@ import warnings
 with warnings.catch_warnings():
     warnings.simplefilter("ignore", category=FutureWarning)
     warnings.simplefilter("ignore", category=UserWarning)
-    nltk.download('punkt', quiet=True)
-    nltk.download('stopwords', quiet=True)
 
 # Set the environment variable to suppress the Hugging Face tokenizers warning
 os.environ["TOKENIZERS_PARALLELISM"] = "false"
