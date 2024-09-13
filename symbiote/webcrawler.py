@@ -13,6 +13,7 @@ import hashlib
 import re
 from prompt_toolkit import print_formatted_text, ANSI
 from prompt_toolkit.utils import get_cwidth
+import time  # For managing scroll intervals
 
 class WebCrawler:
     def __init__(self, browser="firefox"):
@@ -22,7 +23,7 @@ class WebCrawler:
         self.crawl_count = 0  # Count of crawled pages
         self.discarded_count = 0 # Count discarded pages
         self.browser = browser
-        self.base_url = None 
+        self.base_url = None
 
         # Set up the WebDriver and make it run headlessly
         if self.browser.lower() == "chrome":
@@ -39,6 +40,24 @@ class WebCrawler:
             print(f"Unsupported browser: {self.browser}")
             return ""
 
+    def scroll_down_page(self, pause_time=2, max_scrolls=10):
+        """Scroll down the webpage progressively to load all dynamic content."""
+        last_height = self.driver.execute_script("return document.body.scrollHeight")
+
+        for _ in range(max_scrolls):
+            # Scroll down to the bottom
+            self.driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
+
+            # Wait for new content to load
+            time.sleep(pause_time)
+
+            # Calculate new scroll height and compare with the last scroll height
+            new_height = self.driver.execute_script("return document.body.scrollHeight")
+            if new_height == last_height:
+                # If no new content is loaded, break the loop
+                break
+            last_height = new_height
+
     def pull_website_content(self, url, search_term=None, crawl=False, depth=None):
         if self.base_url is None:
             self.base_url = url
@@ -46,17 +65,15 @@ class WebCrawler:
         self.search_term = search_term
         self.crawl = crawl
 
-        try: 
+        try:
             self.driver.get(url)
+            self.scroll_down_page()  # Ensure full scroll before scraping
         except Exception as e:
             print(f"Error fetching the website content: {e}")
             return ""
-        
 
+        # Parse the fully scrolled page content with BeautifulSoup
         soup = BeautifulSoup(self.driver.page_source, 'html.parser')
-
-        # Close the WebDriver 
-        #self.driver.quit()
 
         # Remove all script and style elements
         for script in soup(["script", "style"]):
@@ -89,14 +106,7 @@ class WebCrawler:
             'content_type': self.driver.execute_script("return document.contentType"),
             'content': text,
             'matched': matched,
-            # Add any other details you want to store
         }
-
-        '''
-        # Encapsulate the extracted text and its md5 sum within triple backticks
-        text = f"URL / Website: {url}.\n\nMD5 Sum: {md5_sum}\n\n```{text}```\n\n"
-        text = str(text)
-        '''
 
         # Display a progress update
         self.crawl_count += 1
@@ -127,7 +137,7 @@ if __name__ == "__main__":
     search_term = "Python"
 
     # Pull website content
-    pages = crawler.pull_website_content(url, search_term=None, crawl=False, depth=1)
+    pages = crawler.pull_website_content(url, search_term=None, crawl=False, depth=5)
 
     # Print the pages
     for md5, page in pages.items():
@@ -136,3 +146,4 @@ if __name__ == "__main__":
         print(f"Content: {page['content']}")
         print(f"Search Term Matched: {page['matched']}")
         print("\n")
+

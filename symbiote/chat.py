@@ -57,7 +57,7 @@ import symbiote.roles as roles
 import symbiote.shell as shell
 import symbiote.speech as speech
 import symbiote.codeextract as codeextract
-import symbiote.webcrawler as webcrawler
+import symbiote.WebCrawler as webcrawler
 import symbiote.utils as utils
 #import symbiote.core as core
 import symbiote.get_email as mail
@@ -1559,7 +1559,7 @@ class symchat():
         if match:
             if match.group(1):
                 query = match.group(1)
-                self.flux_image(query)
+                self.flux_image_generate(query)
             else:
                 print(f"No image description provided.")
 
@@ -1653,10 +1653,10 @@ class symchat():
             if url == None:
                 return None 
 
-            print(f"Fetching web page content from: {url}")
-
             crawler = webcrawler.WebCrawler(browser='firefox')
+            self.launch_animation(True)
             pages = crawler.pull_website_content(url, search_term=None, crawl=crawl, depth=None)
+            self.launch_animation(False)
             for md5, page in pages.items():
                 website_content += page['content']
             user_input = user_input[:match.start()] + website_content + user_input[match.end():]
@@ -1726,10 +1726,10 @@ class symchat():
             if url == None:
                 return None 
 
-            print(f"Crawling content from: {url}")
-
             crawler = webcrawler.WebCrawler(browser='firefox')
+            self.launch_animation(True)
             pages = crawler.pull_website_content(url, search_term=None, crawl=crawl, depth=None)
+            self.launch_animation(False)
             for md5, page in pages.items():
                 website_content += page['content']
             user_input = user_input[:match.start()] + website_content + user_input[match.end():]
@@ -2134,7 +2134,7 @@ class symchat():
 
         return interaction_log.strip()
 
-    def flux_image(self, query_text):
+    def flux_image_generate(self, query_text):
         self.launch_animation(True)
         # Get the API key from environment variables
         api_key = os.getenv("HUGGINGFACE_API_KEY")

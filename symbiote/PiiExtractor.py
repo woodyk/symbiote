@@ -7,13 +7,11 @@ import datetime
 import json
 
 class PIIExtractor:
-
     def _unique(self, items):
-        # Helper method to return unique items in a list, maintaining the order
         seen = set()
         unique_items = []
         for item in items:
-            identifier = item["match"]  # Use the 'match' value as the identifier for uniqueness
+            identifier = item["match"]
             if identifier not in seen:
                 unique_items.append(item)
                 seen.add(identifier)
@@ -47,19 +45,58 @@ class PIIExtractor:
         if keyword_count == 0:
             return default_score  # No keywords found, return lowest confidence
 
-        # Calculate the average distance of all found keywords
         average_distance = sum(keyword_distances) / len(keyword_distances)
-
-        # Ensure average_distance does not exceed proximity to avoid negative proximity_score
         average_distance = min(average_distance, proximity)
-
-        # Confidence score: the more keywords and the closer they are, the higher the score
         keyword_coverage = keyword_count / len(keywords)
         proximity_score = (proximity - average_distance) / proximity
         confidence = max(0.0, min(1.0, keyword_coverage * proximity_score))
         confidence = default_score + confidence
 
         return confidence
+
+    def extract_address(self, text):
+        default_score = 0.5
+        address_pattern = r'\b\d{1,5} [A-Za-z0-9 ]+ (?:Street|St|Avenue|Ave|Boulevard|Blvd|Road|Rd|Lane|Ln|Drive|Dr|Court|Ct|Square|Sq|Place|Pl|Terrace|Ter|Parkway|Pkwy)\b(?:, [A-Za-z ]+)*, [A-Z]{2} \d{5}\b'
+        matches = re.findall(address_pattern, text)
+        keywords = ["address", "location", "headquarters", "office"]
+
+        results = []
+        for match in matches:
+            confidence = self._is_near_keywords(match, text, keywords, default_score)
+            results.append({"match": match, "confidence": confidence})
+
+        return self._unique(results)
+
+    def extract_geo_coordinates(self, text):
+        default_score = 0.5
+        
+        # Comprehensive pattern to match various geo-coordinate formats
+        geo_pattern = r'\b[-+]?([1-8]?\d(\.\d+)?|90(\.0+)?)[,\s]*[-+]?(180(\.0+)?|(1[0-7]\d|\d{1,2})(\.\d+)?)\b|\b([1-8]?\d)°\s*([1-5]?\d)\'\s*([1-5]?\d(\.\d+)?)"\s*[NnSs],\s*(180|([1-7]?\d))°\s*([1-5]?\d)\'\s*([1-5]?\d(\.\d+)?)"\s*[EeWw]\b|\b([1-8]?\d)°\s*([1-5]?\d(\.\d+)?)\'\s*[NnSs],\s*(180|([1-7]?\d))°\s*([1-5]?\d(\.\d+)?)\'\s*[EeWw]\b|\b([1-8]?\d(\.\d+)?)[NnSs]\s*[, ]\s*(180|([1-7]?\d(\.\d+)?))[EeWw]\b'
+        
+        matches = re.findall(geo_pattern, text)
+        keywords = ["location", "coordinates", "latitude", "longitude", "geo"]
+
+        results = []
+        for match in matches:
+            # Each match will have multiple capturing groups due to the complexity of the regex
+            if isinstance(match, tuple):
+                # Handle different capture groups to form a consistent geo-coordinate representation
+                latitude = match[0] if match[0] else match[17]
+                longitude = match[4] if match[4] else match[21]
+                
+                if not latitude:  # Fallback to other capture groups if necessary
+                    latitude = match[8] or match[13]
+                if not longitude:
+                    longitude = match[12] or match[20]
+                
+                match_str = f"{latitude}, {longitude}".strip()  # Combine latitude and longitude parts
+            else:
+                match_str = match  # If not a tuple, use the match as is
+            
+            confidence = self._is_near_keywords(match_str, text, keywords, default_score)
+            results.append({"match": match_str, "confidence": confidence})
+
+        return self._unique(results)
 
     def _is_valid_bank_account(self, account):
         # A placeholder for complex validation logic, such as checksums or country-specific rules.
@@ -645,7 +682,17 @@ Usernames are unique identifiers in digital platforms, such as john_doe_1985.
 
 social security 584-89-0092 ssn number identifier taxpayer
 
-The routing number is 123456789. You can also write it as 123-456-789 or 123 456 789. The routing number 021000021 is for JPMorgan Chase Bank in Florida, and 111000038 is for the Federal Reserve Bank in Minneapolis."""
+The routing number is 123456789. You can also write it as 123-456-789 or 123 456 789. The routing number 021000021 is for JPMorgan Chase Bank in Florida, and 111000038 is for the Federal Reserve Bank in Minneapolis.
+    John Doe's email is john.doe@example.com and his phone number is +1-555-555-5555.
+    His SSN is 123-45-6789. He often shops online using his credit card number 1234 5678 9101 1121.
+    His bank account number is 12345678901, and the routing number is 021000021.
+    He drives a vehicle with VIN 1HGCM82633A123456 and holds a driver's license number D12345678.
+    He has a meeting scheduled on 15th July 2023 at 10:30 AM.
+    Visit https://example.com for more details.
+    His server's IP addresses are 192.168.1.1/24 and 2001:db8::/32.
+    Another IPv6 address is 2001:0db8:85a3:0000:0000:8a2e:0370:7334.
+    The headquarters is located at 1600 Pennsylvania Ave NW, Washington, DC 20500.
+    His current location is at coordinates 37.7749, -122.4194.
+"""
     extractor = PIIExtractor()
     print(json.dumps(extractor.extract_all(text), indent=4))
-
