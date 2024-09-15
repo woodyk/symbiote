@@ -19,7 +19,10 @@ import subprocess
 import tempfile
 import webbrowser
 
+from halo import Halo
 from PIL import Image, ImageDraw, ImageColor
+
+from urllib.parse import urlparse
 
 from io import BytesIO
 
@@ -51,7 +54,7 @@ from rich.syntax import Syntax
 console = Console()
 
 # Add these imports at the beginning of the file
-from symbiote.model_creator import create_model, train_model, evaluate_model
+#from symbiote.model_creator import create_model, train_model, evaluate_model
 
 import symbiote.roles as roles
 import symbiote.shell as shell
@@ -69,6 +72,7 @@ import symbiote.ImageAnalysis as ia
 import symbiote.YoutubeUtility as ytutil
 import symbiote.DeceptionDetection as deception
 import symbiote.FakeNewsAnalysis as fake_news
+import symbiote.WebVulnerabilityScan as web_vuln
 
 from ollama import Client
 olclient = Client(host='http://localhost:11434')
@@ -96,12 +100,14 @@ command_list = {
         "cd::": "Change working directory.",
         "pwd::": "Show current working directory.",
         "file::": "Load a file for submission.",
+        "webvuln::": "Run and summarize a web vulnerability scan on a given URL.",
         "deception::": "Run deception analysis on the given text",
         "fake_news::": "Run fake news analysis on the given text",
         "yt_transcript::": "Download the transcripts from youtube url for processing.",
         "image_extract::": "Extract images from a given URL and display them.",
         "analyze_image::": "Analyze an image or images from a website or file.",
-        "browser::": "Open a URL in w3m terminal web browser.",
+        "w3m::|browser::": "Open a URL in w3m terminal web browser.",
+        "nuclei::": "Run a nuclei scan on a given domain and analyze the results.",
         "qr::": "Generate a QR code from the given text.",
         "extract::": "Extract data features for a given file or directory and summarize.",
         "links::": "Extract links from the given text.",
@@ -169,6 +175,8 @@ models = [
         "gpt-4o-mini",
         "gpt-4o",
         "gpt-4",
+        "o1-mini",
+        "o1-preview",
         "groq:llama-3.1-70b-versatile",
         "groq:mixtral-8x7b-32768",
         ] 
@@ -206,7 +214,7 @@ prompt_style = Style.from_dict({
 # Default settings for openai and symbiote module.
 homedir = os.getenv('HOME')
 symbiote_settings = {
-        "model": "gpt-3.5-turbo",
+        "model": "",
         "max_tokens": 512,
         "temperature": 0.6,
         "top_p": 1,
@@ -262,6 +270,7 @@ class symchat():
         self.flush = False
         self.logging = True
         self.timeout = 30
+        self.spinner = Halo(text='Processing ', spinner='dots')
 
         if 'debug' in kwargs:
             self.symbiote_settings['debug'] = kwargs['debug']
@@ -637,9 +646,9 @@ class symchat():
                     self.symspeech = speech.SymSpeech(settings=self.symbiote_settings)
                     self.speechQueue = self.symspeech.start_keyword_listen()
 
-                self.launch_animation(True)
+                self.spinner.start()
                 self.user_input = self.symspeech.keyword_listen()
-                self.launch_animation(False)
+                self.spinner.succeed('Completed')
                 self.enable = True
                 self.run = True
 
@@ -740,7 +749,7 @@ class symchat():
 
         response = ''
 
-        if self.symbiote_settings['model'].startswith("gpt"):
+        if self.symbiote_settings['model'].startswith(("gpt", "o1-")):
             # OpenAI Chat Completion
             try:
                 stream = oaiclient.chat.completions.create(
@@ -750,6 +759,7 @@ class symchat():
                         )
             except Exception as e:
                 print(e)
+                return response
 
             for chunk in stream:
                 if chunk.choices[0].delta.content is not None:
@@ -1295,10 +1305,10 @@ class symchat():
                 image_path = os.path.abspath(image_path)
 
             extractor = ia.ImageAnalyzer(detection=True, extract_text=True, backend='mtcnn') 
-            self.launch_animation(True)
+            self.spinner.start()
             results = extractor.analyze_images(image_path, mode='none')
+            self.spinner.succeed('Completed')
             human_readable = extractor.render_human_readable(results)
-            self.launch_animation(False)
             print(human_readable)
 
             content = f"Analyze the following details collected about the image or images and summarize the details.\n{human_readable}\n"
@@ -1450,7 +1460,7 @@ class symchat():
             return user_input
 
         # Trigger for w3m web browser functionality browser::
-        browser_pattern = r'browser:(.*):'
+        browser_pattern = r'w3m:(.*):|browser:(.*):'
         match = re.search(browser_pattern, user_input)
         if match:
             if match.group(1):
@@ -1654,9 +1664,9 @@ class symchat():
                 return None 
 
             crawler = webcrawler.WebCrawler(browser='firefox')
-            self.launch_animation(True)
+            self.spinner.start()
             pages = crawler.pull_website_content(url, search_term=None, crawl=crawl, depth=None)
-            self.launch_animation(False)
+            self.spinner.succeed('Completed')
             for md5, page in pages.items():
                 website_content += page['content']
             user_input = user_input[:match.start()] + website_content + user_input[match.end():]
@@ -1685,6 +1695,44 @@ class symchat():
 
             return user_input
 
+        # Trigger web vulnerability scan webvuln::
+        webvuln_pattern = r'webvuln::|webvuln:(.*):'
+        match = re.search(webvuln_pattern, user_input)
+        if match:
+            if match.group(1):
+                url = match.group(1)
+            else:
+                url = self.textPrompt("URL to scan:")
+
+            if self.is_valid_url(url):
+                self.spinner.start()
+                scanner = web_vuln.SecurityScanner(headless=True, browser='firefox')
+                json_result = scanner.scan(url)
+                report = scanner.generate_report()
+                self.spinner.succeed('Completed')
+                user_input = f"Review the following web vulnerability scan and provide details and action items.\n{report}"
+                return user_input
+            else:
+                return None
+
+        # Trigger nuclei scan nuclei::
+        nuclei_pattern = r'nuclei::|nuclei:(.*):'
+        match = re.search(nuclei_pattern, user_input)
+        if match:
+            if match.group(1):
+                url = match.group(1)
+            else:
+                url = self.textPrompt("URL to scan:")
+
+            if self.is_valid_url(url):
+                self.spinner.start()
+                scan_result = self.run_nuclei_scan(url)
+                self.spinner.succeed('Completed')
+                user_input = f"Review the following nuclei vulnerability scan and provide a report on the findings and action items.\n{scan_result}"
+                return user_input
+            else:
+                return None
+
         # Trigger for textual deception analysis deception::
         deception_pattern = r'deception::|deception:(.*):'
         match = re.search(deception_pattern, user_input)
@@ -1699,9 +1747,9 @@ class symchat():
                 return None
 
             detector = deception.DeceptionDetector()
-            self.launch_animation(True)
+            self.spinner.start()
             results = detector.analyze_text(analysis_content)
-            self.launch_animation(False)
+            self.spinner.succeed('Completed')
             if results:
                 #print(json.dumps(results, indent=4))
                 user_input = f"Review the following JSON and create a report on the deceptive findings.\n{results}"
@@ -1727,9 +1775,9 @@ class symchat():
                 return None 
 
             crawler = webcrawler.WebCrawler(browser='firefox')
-            self.launch_animation(True)
+            self.spinner.start()
             pages = crawler.pull_website_content(url, search_term=None, crawl=crawl, depth=None)
-            self.launch_animation(False)
+            self.spinner.succeed('Completed')
             for md5, page in pages.items():
                 website_content += page['content']
             user_input = user_input[:match.start()] + website_content + user_input[match.end():]
@@ -2135,7 +2183,7 @@ class symchat():
         return interaction_log.strip()
 
     def flux_image_generate(self, query_text):
-        self.launch_animation(True)
+        self.spinner.start()
         # Get the API key from environment variables
         api_key = os.getenv("HUGGINGFACE_API_KEY")
 
@@ -2153,7 +2201,7 @@ class symchat():
 
         # You can access the image with PIL.Image for example
         image = Image.open(io.BytesIO(image_bytes))
-        self.launch_animation(False)
+        self.spinner.succeed('Completed')
 
         # Open the image for viewing
         image.show()
@@ -2233,6 +2281,41 @@ class symchat():
             print("Error: w3m is not installed on your system. Please install it and try again.")
         except Exception as e:
             print(f"An error occurred: {e}")
+
+    def run_nuclei_scan(self, domain: str) -> str:
+        # Check if nuclei is installed
+        try:
+            subprocess.run(['nuclei', '-version'], capture_output=True, text=True, check=True)
+        except FileNotFoundError:
+            print("Error: nuclei is not installed or not in the system's PATH.")
+            return None
+        except subprocess.CalledProcessError:
+            print("Error: failed to check nuclei version.")
+            return None
+
+        # Run the nuclei scan
+        try:
+            # Construct the command to run nuclei with the target domain
+            command = ['nuclei', '-u', domain, '-j', '-c', '100']
+
+            # Run the command using subprocess and capture the output
+            result = subprocess.run(command, capture_output=True, text=True)
+
+            # Check if the command was successful (non-zero return code means error)
+            if result.returncode != 0:
+                print(f"Error: Nuclei scan failed with code {result.returncode}.")
+                print(result.stderr)
+                return None
+
+            # Return the output if successful
+            return result.stdout
+
+        except Exception as e:
+            # In case any other unexpected error occurs, print the error
+            print(f"An unexpected error occurred: {str(e)}")
+            return None
+
+
 
 
     def url_image_extract(self, url, mode='merged', images_per_row=3):
@@ -2352,3 +2435,10 @@ class symchat():
                 if os.path.exists(temp_file_path):
                     os.remove(temp_file_path)
 
+    def is_valid_url(self, url):
+        try:
+            result = urlparse(url)
+            return True
+        except Exception as e:
+            print(f"Invalid url: {e}")
+            return False

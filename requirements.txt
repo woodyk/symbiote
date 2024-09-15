@@ -60,3 +60,4 @@ youtube_dl
 youtube_transcript_api
 yt_dlp
 textstat
+halo

@@ -9,7 +9,7 @@ from bs4 import BeautifulSoup
 class googleSearch:
     def __init__(self):
         self.api_key = os.getenv("GOOGLE_API_KEY") 
-        self.cse_id = os.getenv("GOOGLE_CX")
+        self.cse_id = os.getenv("GOOGLE_API_CX")
 
     def fetch_links(self, query, num_results=10):
         query = urllib.parse.quote(query)
