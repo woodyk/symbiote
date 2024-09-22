@@ -206,6 +206,7 @@ def check_nl_packages():
         subprocess.call(['python3', '-m', 'nltk.downloader', 'averaged_perceptron_tagger'])
         subprocess.call(['python3', '-m', 'nltk.downloader', 'averaged_perceptron_tagger_eng'])
         subprocess.call(['python3', '-m', 'nltk.downloader', 'punkt_tab'])
+        subprocess.call(['python3', '-m', 'nltk.downloader', 'maxent_ne_chunker'])
     except Exception as e:
         print(f"Error installing nltk vader_lexicon: {e}")
 

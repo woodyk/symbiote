@@ -24,10 +24,10 @@ from nltk import pos_tag
 from nltk.tokenize import word_tokenize
 
 # Download necessary NLTK data
-nltk.download('punkt')
-nltk.download('averaged_perceptron_tagger')
-nltk.download('maxent_ne_chunker')
-nltk.download('words')
+#nltk.download('punkt')
+#nltk.download('averaged_perceptron_tagger')
+#nltk.download('maxent_ne_chunker')
+#nltk.download('words')
 
 # Suppress all warnings and set logging to ERROR level
 warnings.filterwarnings("ignore")
@@ -261,7 +261,7 @@ class FakeNewsDetector:
 
     def apply_final_adjustments(self, intent_score, analysis_results):
         sentiment_stats = self.calculate_aggregated_sentiment_stats(analysis_results)
-        if sentiment_stats['positive']['average'] > 0.7 and sentiment_stats['negative']['average'] > 0.7:
+        if sentiment_stats.get('positive', {}).get('average', 0) > 0.7 and sentiment_stats.get('negative', {}).get('average', 0) > 0.7:
             intent_score -= 0.5
 
         aggregated_emotions = self.aggregate_emotion_scores(analysis_results)
@@ -1049,10 +1049,8 @@ if __name__ == "__main__":
     # Use environment variable if no API key is provided explicitly
     detector = FakeNewsDetector()
 
-    url = "https://www.cnn.com/2024/08/31/politics/fact-check-trump-ad-harris-immigration/index.html"
-    url = "https://www.foxnews.com/transcript/fox-news-sunday-july-21-2024"
-    url = "https://www.cnn.com/2024/08/31/politics/harris-slams-trump-arlington-national-cemetery/index.html"
     url = "https://theonion.com/dozens-of-pregnant-women-caught-in-hanging-snare-nets-above-texas-hospital-entrance/"
+    url = "https://www.cnn.com/politics/live-news/trump-harris-election-09-15-24/index.html"
     url = "https://www.npr.org/2024/09/11/g-s1-22023/debate-harris-trump-takeaways"
     text = detector.download_text_from_url(url)
 

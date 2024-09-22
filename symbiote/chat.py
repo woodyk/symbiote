@@ -50,6 +50,8 @@ from rich.console import Console
 from rich.markdown import Markdown
 from rich.panel import Panel
 from rich.syntax import Syntax
+from rich.table import Table
+from rich.live import Live
 
 console = Console()
 
@@ -396,22 +398,20 @@ class symchat():
         print(start, stop, diff)
 
     def symhelp(self):
-        self.suppress = True
-        self.exit = True
-        help_output = "Symbiote Help Menu\n------------------\nAvailable keywords:\n"
-        # Sort the command list by keys
-        sorted_commands = sorted(command_list.items())
+        # Create a Console object
+        console = Console()
 
-        # Set column width for the command column
-        cmd_col_width = max(len(cmd) for cmd in self.command_list.keys()) + 2
+        # Create a table with two columns: "Command" and "Description"
+        table = Table(show_header=True, header_style="bold magenta")
+        table.add_column("Command", style="cyan", no_wrap=True)
+        table.add_column("Description", style="white")
 
-        # Print the table with aligned columns
-        for cmd, desc in sorted_commands:
-            #print("\t{:<{width}}{}".format(cmd, desc, width=cmd_col_width))
-            help_output += "\t{:<{width}}{}\n".format(cmd, desc, width=cmd_col_width)
+        # Sort the commands and add rows to the table
+        for cmd, desc in sorted(self.command_list.items()):
+            table.add_row(cmd, desc)
 
-        print(help_output)
-        return help_output
+        # Display the table using the Console object
+        console.print(table)
 
     def launch_animation(self, state):
         def hide_cursor():
@@ -766,8 +766,6 @@ class symchat():
                     print(chunk.choices[0].delta.content, end="", flush=True)
                     response += chunk.choices[0].delta.content
 
-            print()
-
         elif self.symbiote_settings['model'].startswith("ollama"):
             # Ollama Chat Completion
             model_name = self.symbiote_settings['model'].split(":")
@@ -786,7 +784,6 @@ class symchat():
                 print(chunk['message']['content'], end='', flush=True)
                 response += chunk['message']['content']
 
-            print()
         elif self.symbiote_settings['model'].startswith("groq"):
             model_name = self.symbiote_settings['model'].split(":")
             model = model_name[1]
@@ -802,7 +799,7 @@ class symchat():
                     print(chunk.choices[0].delta.content, end='', flush=True)
                     response += chunk.choices[0].delta.content
 
-            print()
+        print()
 
         self.write_history('assistant', response)
 
@@ -1382,7 +1379,7 @@ class symchat():
                 return None
 
         # Trigger for headline analysis
-        news_pattern = r'news::|headlines::'
+        news_pattern = r'\bnews::|\bheadlines::'
         match = re.search(news_pattern, user_input)
         if match:
             gh = hl.getHeadlines()
@@ -1472,7 +1469,7 @@ class symchat():
             return None
 
         # Trigger to extract images from a url image_extract::
-        image_extract_pattern = r'^image_extract:(.*)'
+        image_extract_pattern = r'^image_extract:(.*):'
         match = re.search(image_extract_pattern, user_input)
         if match:
             if match.group(1):
@@ -1663,8 +1660,8 @@ class symchat():
             if url == None:
                 return None 
 
-            crawler = webcrawler.WebCrawler(browser='firefox')
             self.spinner.start()
+            crawler = webcrawler.WebCrawler(browser='firefox')
             pages = crawler.pull_website_content(url, search_term=None, crawl=crawl, depth=None)
             self.spinner.succeed('Completed')
             for md5, page in pages.items():
@@ -1672,6 +1669,31 @@ class symchat():
             user_input = user_input[:match.start()] + website_content + user_input[match.end():]
             print()
             return user_input 
+
+        # Trigger for fake news analysis fake_news::
+        fake_news_pattern = r'\bfake_news::|\bfake_news:(.*):'
+        match = re.search(fake_news_pattern, user_input)
+        if match:
+            if match.group(1):
+                data = match.group(1)
+            else:
+                data = self.textPrompt("URL or text to analyze:")
+
+            detector = fake_news.FakeNewsDetector()
+            self.spinner.start()
+            if self.is_valid_url(data) is True:
+                text = detector.download_text_from_url(data)
+            else:
+                text = data
+
+            result = detector.analyze_text(text)
+            self.spinner.succeed('Completed')
+            if result:
+                user_input = f"The following results are from a fake news analyzer.  Analyze the following json document and provide a summary and report of the findings.\n{result}"
+            else:
+                return None
+            
+            return user_input
 
         # Trigger for downloading youtube transcripts yt_transcript::
         yt_transcript_pattern = r'yt_transcript::|yt_transcript:(.*):'
@@ -2118,7 +2140,7 @@ class symchat():
         # Call the Ollama API with the LLaVA model
         try:
             response = ollama.generate(
-                model='llava:13b',
+                model='minicpm-v',
                 prompt=prompt,
                 images=[encoded_image]
             )
@@ -2436,9 +2458,7 @@ class symchat():
                     os.remove(temp_file_path)
 
     def is_valid_url(self, url):
-        try:
-            result = urlparse(url)
+        if re.search(r'^https?://\S+', url):
             return True
-        except Exception as e:
-            print(f"Invalid url: {e}")
+        else:
             return False

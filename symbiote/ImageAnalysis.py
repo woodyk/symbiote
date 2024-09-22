@@ -323,7 +323,7 @@ class ImageAnalyzer:
             # Call the Ollama API with the LLaVA model
             try:
                 response = ollama.generate(
-                    model='llava',
+                    model='minicpm-v',
                     prompt="Please describe the content of the image.",
                     images=[encoded_image]
                 )

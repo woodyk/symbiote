@@ -4,6 +4,12 @@
 
 roles = {}
 
+roles['STORY'] = '''
+You are a story generator.  You will take in the following topic and create a paragraph
+related to the story.  Everytime you are told to continue you expound upon the previous
+paragraph to continue the story.
+'''
+
 roles['WWWW'] = '''
 You are an advanced language model tasked with extracting and organizing specific details from any given text. Your job is to identify and extract the following information:
 
