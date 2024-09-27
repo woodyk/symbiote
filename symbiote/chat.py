@@ -61,7 +61,7 @@ console = Console()
 import symbiote.roles as roles
 import symbiote.shell as shell
 import symbiote.speech as speech
-import symbiote.codeextract as codeextract
+import symbiote.CodeExtract as codeextract
 import symbiote.WebCrawler as webcrawler
 import symbiote.utils as utils
 #import symbiote.core as core
@@ -76,11 +76,30 @@ import symbiote.DeceptionDetection as deception
 import symbiote.FakeNewsAnalysis as fake_news
 import symbiote.WebVulnerabilityScan as web_vuln
 
+models = [
+        "groq:llama-3.1-70b-versatile",
+        "groq:mixtral-8x7b-32768",
+        ] 
+
 from ollama import Client
 olclient = Client(host='http://localhost:11434')
+try:
+    response = olclient.list()
+    for model in response['models']:
+        models.append("ollama:" + model['name'])
+except Exception as e:
+    pass
+
 
 import openai
 oaiclient = openai.OpenAI()
+try:
+    response = oaiclient.models.list()
+    for model in response:
+        models.append("openai:" + model.id)
+except Exception as e:
+    print(e)
+    pass
 
 from groq import Groq
 grclient = Groq()
@@ -172,24 +191,6 @@ audio_triggers = {
         'scroll': [r'keyword scroll file', 'scroll::'],
     }
 
-
-models = [
-        "gpt-4o-mini",
-        "gpt-4o",
-        "gpt-4",
-        "o1-mini",
-        "o1-preview",
-        "groq:llama-3.1-70b-versatile",
-        "groq:mixtral-8x7b-32768",
-        ] 
-
-try:
-    response = olclient.list()
-    for model in response['models']:
-        models.append("ollama:" + model['name'])
-except Exception as e:
-    pass
-
 # Define prompt_toolkig keybindings
 global kb
 kb = KeyBindings()
@@ -247,6 +248,7 @@ symbiote_settings = {
         "theme": 'default',
         "imap_username": '',
         "imap_password": '',
+        "think": False,
     }
 
 assistant_id = 'asst_cGS0oOCEuRqm0QPO9vVsPw1y'
@@ -716,44 +718,21 @@ class symchat():
                 }
         self.conversation_history.append(hist_entry)
 
-    def send_message(self, user_input):
+    def think(self, user_input):
         available_roles = roles.get_roles()
-        self.write_history('system', available_roles[self.symbiote_settings['role']])
-        self.write_history('user', user_input)
+        self.write_history('user', f'{available_roles['THINKING']}\n\nQUERY:\n{user_input}')
+        num_ctx = 8092
 
-        # OpenAI Assistant
-        """
-        result = self.mrblack.add_message_to_thread(user_input)
-        try:
-            response = self.mrblack.run_assistant(instructions="", thread_id=result.thread_id)
-        except:
-            response = self.mrblack.run_assistant(instructions="")
-        """
-
-        """
-        for i in range(len(response)):
-            print("\b", end="")
-
-        console.print(Markdown(response))
-        """
-
-        self.estimated_tokens = self.estimate_token_count(json.dumps(self.conversation_history))
-        num_ctx = self.estimated_tokens + 8192
-        if self.estimated_tokens > self.symbiote_settings['max_tokens']:
-            self.conversation_history = self.truncate_history(self.conversation_history, self.symbiote_settings['max_tokens'])
-            self.estimated_tokens = self.estimate_token_count(json.dumps(self.conversation_history))
-            num_ctx = self.estimated_tokens + 8192
-
-        if len(self.conversation_history) == 0:
-            print(f"Message contents too large: >{self.symbiote_settings['max_tokens']}")
-
+        print('<THINKING>')
         response = ''
 
-        if self.symbiote_settings['model'].startswith(("gpt", "o1-")):
+        if self.symbiote_settings['model'].startswith("openai"):
+            model_name = self.symbiote_settings['model'].split(":")
+            model = model_name[1]
             # OpenAI Chat Completion
             try:
                 stream = oaiclient.chat.completions.create(
-                        model = self.symbiote_settings['model'],
+                        model = model,
                         messages = self.conversation_history,
                         stream = True,
                         )
@@ -792,6 +771,120 @@ class symchat():
                     model = model,
                     messages = self.conversation_history,
                     stream = True,
+                    )
+
+            for chunk in stream:
+                if chunk.choices[0].delta.content is not None:
+                    print(chunk.choices[0].delta.content, end='', flush=True)
+                    response += chunk.choices[0].delta.content
+
+        self.write_history('assistant', response)
+
+        print()
+        print('</THINKING>')
+        self.suppress = False
+        return response
+
+    def send_message(self, user_input):
+        # Think first
+        if self.symbiote_settings['think'] is True:
+            self.think(user_input)
+
+        available_roles = roles.get_roles()
+        self.write_history('system', available_roles[self.symbiote_settings['role']])
+        self.write_history('user', user_input)
+
+        # OpenAI Assistant
+        """
+        result = self.mrblack.add_message_to_thread(user_input)
+        try:
+            response = self.mrblack.run_assistant(instructions="", thread_id=result.thread_id)
+        except:
+            response = self.mrblack.run_assistant(instructions="")
+        """
+
+        """
+        for i in range(len(response)):
+            print("\b", end="")
+
+        console.print(Markdown(response))
+        """
+
+        self.estimated_tokens = self.estimate_token_count(json.dumps(self.conversation_history))
+        num_ctx = self.estimated_tokens + 8192
+        if self.estimated_tokens > self.symbiote_settings['max_tokens']:
+            self.conversation_history = self.truncate_history(self.conversation_history, self.symbiote_settings['max_tokens'])
+            self.estimated_tokens = self.estimate_token_count(json.dumps(self.conversation_history))
+            num_ctx = self.estimated_tokens + 8192
+
+        if len(self.conversation_history) == 0:
+            print(f"Message contents too large: >{self.symbiote_settings['max_tokens']}")
+
+        response = ''
+        streaming = self.symbiote_settings['stream']
+
+        if self.symbiote_settings['model'].startswith("openai"):
+            model_name = self.symbiote_settings['model'].split(":")
+            model = model_name[1]
+            
+            # Remove system messages from the history if using o1 models
+            # o1 models do not allow role type of system
+            # also streaming must be turned off
+            if model.startswith("o1-"):
+                streaming = False
+                self.spinner.start()
+                for message in self.conversation_history:
+                    if message['role'] == 'system':
+                        self.conversation_history.remove(message)
+
+            # OpenAI Chat Completion
+            try:
+                stream = oaiclient.chat.completions.create(
+                        model = model,
+                        messages = self.conversation_history,
+                        stream = streaming,
+                        )
+            except Exception as e:
+                print(e)
+                return response
+
+            if streaming:
+                for chunk in stream:
+                    if chunk.choices[0].delta.content is not None:
+                        print(chunk.choices[0].delta.content, end="", flush=True)
+                        response += chunk.choices[0].delta.content
+            else:
+                response = stream.choices[0].message.content
+                self.spinner.succeed("Completed")
+                print(response)
+
+        elif self.symbiote_settings['model'].startswith("ollama"):
+            # Ollama Chat Completion
+            model_name = self.symbiote_settings['model'].split(":")
+
+            model = model_name[1] + ":" + model_name[2]
+
+            stream = olclient.chat(
+                    model = model,
+                    messages = self.conversation_history,
+                    stream = streaming,
+                    #format = "json",
+                    options = { "num_ctx": num_ctx },
+                    )
+
+            if streaming:
+                for chunk in stream:
+                    print(chunk['message']['content'], end='', flush=True)
+                    response += chunk['message']['content']
+
+        elif self.symbiote_settings['model'].startswith("groq"):
+            model_name = self.symbiote_settings['model'].split(":")
+            model = model_name[1]
+
+            stream = grclient.chat.completions.create(
+                    model = model,
+                    messages = self.conversation_history,
+                    stream = stream,
                     )
 
             for chunk in stream:
@@ -1205,7 +1298,8 @@ class symchat():
                     codeidentify = codeextract.CodeBlockIdentifier(text)
             else:
                 # process the last conversation message for code to extract
-                last_message = self.current_conversation[-1]
+                last_message = self.conversation_history[-1]
+                print(last_message['content'])
                 codeidentify = codeextract.CodeBlockIdentifier(last_message['content'])
 
             files = codeidentify.process_text()
@@ -1584,11 +1678,10 @@ class symchat():
                 if result:
                     print(result)
                     content = f"Summarize the results of the command {command}\n{result}"
-                self.send_message(content)
             else:
                 print(f"No command specified")
 
-            return
+            return None
 
         # Trigger to replay prior log data.
         replay_pattern = r'replay::|replay:(.*):'
@@ -1679,8 +1772,8 @@ class symchat():
             else:
                 data = self.textPrompt("URL or text to analyze:")
 
-            detector = fake_news.FakeNewsDetector()
             self.spinner.start()
+            detector = fake_news.FakeNewsDetector()
             if self.is_valid_url(data) is True:
                 text = detector.download_text_from_url(data)
             else:
@@ -1689,6 +1782,7 @@ class symchat():
             result = detector.analyze_text(text)
             self.spinner.succeed('Completed')
             if result:
+                print(json.dumps(result, indent=4))
                 user_input = f"The following results are from a fake news analyzer.  Analyze the following json document and provide a summary and report of the findings.\n{result}"
             else:
                 return None
@@ -1708,8 +1802,10 @@ class symchat():
                 return None
 
             print(f"Fetching youtube transcript from: {yt_url}")
+            self.spinner.start()
             yt = ytutil.YouTubeUtility(yt_url)
             transcript = yt.get_transcript()
+            self.spinner.succeed('Completed')
             if transcript:
                 user_input = user_input[:match.start()] + transcript + user_input[match.end():]
             else:
@@ -1768,12 +1864,12 @@ class symchat():
                 print("No content to analyze.")
                 return None
 
-            detector = deception.DeceptionDetector()
             self.spinner.start()
+            detector = deception.DeceptionDetector()
             results = detector.analyze_text(analysis_content)
             self.spinner.succeed('Completed')
             if results:
-                #print(json.dumps(results, indent=4))
+                print(json.dumps(results, indent=4))
                 user_input = f"Review the following JSON and create a report on the deceptive findings.\n{results}"
             else:
                 user_input = None
