@@ -12,36 +12,63 @@ import pygame.freetype
 import pytesseract
 import numpy as np
 import cv2
-import webcolors
-import symbiote.colortools as ct
 
+class ColorConverter:
+    def __init__(self):
+        # Manually define a dictionary of CSS3 colors in hexadecimal format
+        self.colors = {
+            'black': '#000000',
+            'white': '#FFFFFF',
+            'red': '#FF0000',
+            'green': '#008000',
+            'blue': '#0000FF',
+            'yellow': '#FFFF00',
+            'cyan': '#00FFFF',
+            'magenta': '#FF00FF',
+            # Add more as needed
+            'neon_green': '#39ff14',
+            'neon_yellow': '#ffff00',
+            'neon_red': '#ff0033',
+            'neon_blue': '#4d4dff'
+        }
 
-color = ct.ColorConverter()
-colors = color.get_color_names(format='rgba') 
-colors['neon_green'] = (57, 255, 20, 255)
-colors['neon_yellow'] = (255, 255, 0, 255)
-colors['neon_red'] = (255, 0, 51, 255)
-colors['neon_blue'] = (77, 77, 255, 255)
+    def get_color_names(self, format='rgba'):
+        color_dict = {}
+        for name, hex_value in self.colors.items():
+            rgb = self.hex_to_rgb(hex_value)
+            if format == 'rgba':
+                color_dict[name] = (*rgb, 255)
+            else:
+                color_dict[name] = rgb
+        return color_dict
 
-# Add a new variable for toggling contour detection
+    def rgb_to_hex(self, rgb):
+        return '#{:02x}{:02x}{:02x}'.format(rgb[0], rgb[1], rgb[2])
+
+    def hex_to_rgb(self, hex_color):
+        hex_color = hex_color.lstrip('#')
+        return tuple(int(hex_color[i:i+2], 16) for i in (0, 2, 4))
+
+# Instantiate ColorConverter and get color names
+color_converter = ColorConverter()
+colors = color_converter.get_color_names()
+
+# Matrix parameters and settings (remaining script as provided)
 contour_detection = False
-
 color_cycle = False
-
-# Matrix parameters
 matrix = 0
 num_streams = 10000
 speed = .01
 min_speed = 0.01
 max_speed = 5.0
-font_size = 12 
+font_size = 12
 default_font_color = 'white'
-font_color = default_font_color 
+font_color = default_font_color
 default_decay_color = 'green'
-font_decay_color = default_decay_color 
+font_decay_color = default_decay_color
 default_background_color = 'black'
 background_color = default_background_color
-fade_intensity = .1  # The higher this value, the faster the trails will fade
+fade_intensity = .1
 random_fade = False
 new_stream = True
 persistent_dot = False
@@ -49,25 +76,21 @@ font = 'Courier'
 
 setting_message = None
 setting_message_expiration = 0
-
 ocr_enabled = False
 static_overlay = False
 
 # Initialize Pygame
 pygame.init()
-width, height = 1024, 768 
-# Create a resizable window
+width, height = 1024, 768
 screen = pygame.display.set_mode((width, height), pygame.RESIZABLE)
 clock = pygame.time.Clock()
 font = pygame.freetype.SysFont('Courier', font_size)
-
-# Frames per second
 FPS = 30
 
-# Add a new variable for toggling edge detection
+# New variable for toggling edge detection
 edge_detection = False
-edge_fps = 30 # number of frames to detect edges on 1 out of 30 for example
-edge_decay = 60 
+edge_fps = 30
+edge_decay = 60
 edge_detection_min = 50
 edge_detection_max = 150
 edge_surface = pygame.Surface((width, height), pygame.SRCALPHA)

@@ -720,7 +720,8 @@ class symchat():
 
     def think(self, user_input):
         available_roles = roles.get_roles()
-        self.write_history('user', f'{available_roles['THINKING']}\n\nQUERY:\n{user_input}')
+        self.write_history('user', f"{available_roles['THINKING']}\n\nQUERY:\n{user_input}")
+
         num_ctx = 8092
 
         print('<THINKING>')
