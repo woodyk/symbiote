@@ -90,7 +90,6 @@ try:
 except Exception as e:
     pass
 
-
 import openai
 oaiclient = openai.OpenAI()
 try:
@@ -115,7 +114,7 @@ command_list = {
         "tokens::": "Token usage summary.",
         "save::": "Save self.symbiote_settings and backup the ANNGL",
         "exit::": "Exit symbiote the symbiote CLI",
-        "setting::": "View, change, or add settings for symbiote.",
+        "settings::": "View, change, or add settings for symbiote.",
         "maxtoken::": "Change maxtoken setting.",
         "model::": "Change the AI model being used.",
         "cd::": "Change working directory.",
@@ -165,10 +164,10 @@ command_list = {
 
 
 audio_triggers = {
-        'speech_off': [r'keyword speech off', 'setting:speech:0:'],
-        'speech_on': [r'keyword speech on', 'setting:speech:1:'],
-        'interactive': [r'keyword interactive mode', 'setting:listen:0:'],
-        'settings': [r'keyword show setting', 'setting::'],
+        'speech_off': [r'keyword speech off', 'settings:speech:0:'],
+        'speech_on': [r'keyword speech on', 'settings:speech:1:'],
+        'interactive': [r'keyword interactive mode', 'settings:listen:0:'],
+        'settings': [r'keyword show setting', 'settings::'],
         'file': [r'keyword open file', 'file::'],
         'shell': [r'keyword (open shell|openshell)', 'shell::'],
         'role': [r'keyword change (role|roll)', 'role::'],
@@ -931,9 +930,9 @@ class symchat():
             self.symspeech = speech.SymSpeech(debug=self.symbiote_settings['debug'])
             self.symspeech.say('Your wish is my command!')
             if self.symbiote_settings['perifious']:
-                user_input = 'setting:perifious:0:'
+                user_input = 'settings:perifious:0:'
             else:
-                user_input = 'setting:perifious:1:'
+                user_input = 'settings:perifious:1:'
 
         if re.search(r'^shell::', user_input):
             # needs to be fixed
@@ -1039,7 +1038,7 @@ class symchat():
             return system_prompt
 
         # Trigger to display openai settings  
-        setting_pattern = r'^setting::|setting:(.*):(.*):'
+        setting_pattern = r'^settings::|settings:(.*):(.*):'
         match = re.search(setting_pattern, user_input)
         if match:
             self.suppress = True
