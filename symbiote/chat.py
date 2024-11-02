@@ -142,7 +142,7 @@ command_list = {
         "history::": "Show discussion history.",
         "train::": "Train AI model on given data in a file or directory.",
         "structure::": "Data structure builder.",
-        "exec::": "Execute a local cli command and learn from the execution fo the command.",
+        "$": "Execute a local cli command and learn from the execution fo the command.",
         "fine-tune::": "Fine-tune a model on a given data in a file or directory.",
         "image::": "Render an image from the provided text.",
         "replay::": "Replay the current conversation to the current model.",
@@ -667,7 +667,7 @@ class symchat():
                 self.chat_session.bottom_toolbar = None
             else:
                 #self.chat_session.bottom_toolbar = f"Model: {self.symbiote_settings['model']}\nCurrent Conversation: {self.symbiote_settings['conversation']}\nLast Char Count: {self.token_track['last_char_count']}\nToken Usage:\nUser: {self.token_track['user_tokens']} Assistant: {self.token_track['completion_tokens']} Conversation: {self.token_track['truncated_tokens']} Total Used: {self.token_track['rolling_tokens']}\nCost: ${self.token_track['cost']:.2f}\ncwd: {current_path}"
-                self.chat_session.bottom_toolbar = f"Model: {self.symbiote_settings['model']} Role: {self.symbiote_settings['role']} Estimated Tokens: {self.estimated_tokens}"
+                self.chat_session.bottom_toolbar = f"Model: {self.symbiote_settings['model']} | Role: {self.symbiote_settings['role']}\nEstimated Tokens: {self.estimated_tokens}"
 
             if self.run is False:
                 self.user_input = self.chat_session.prompt(message=f"{self.symbiote_settings['role']}>\n",
@@ -1272,10 +1272,13 @@ class symchat():
                 time.sleep(4)
             else:
                 history_length = False 
+            
+            for line in self.conversation_history:
+                print(f"role: {line['role']}")
+                print(f"{line['content']}")
+                print(f"------------------------------------")
 
-            history = self.sym.export_conversation(self.symbiote_settings['conversation'], history=True, lines=history_length)
-
-            return history
+            return None
 
         # Trigger for code:: extraction from provided text
         ''' Add options for running, extracting and editing code on the fly '''
@@ -1356,7 +1359,7 @@ class symchat():
 
             self.chat_session.style = prompt_style
             self.symbiote_settings['theme'] = theme_name
-            self.sym.update_symbiote_settings(settings=self.symbiote_settings)
+            #self.sym.update_symbiote_settings(settings=self.symbiote_settings)
             self.save_settings(settings=self.symbiote_settings)
 
             return theme_name
@@ -1667,19 +1670,25 @@ class symchat():
             return None
 
         # Trigger system execution of a command
-        exec_pattern = r'exec:(.*):'
+        exec_pattern = r'^\$(.*)|run:(.*):'
         match = re.search(exec_pattern, user_input)
         if match:
-            self.suppress = True
-            self.exit = True
+            #self.suppress = True
+            #self.exit = True
             if match.group(1):
                 command = match.group(1)
-                result = self.symutils.exec_command(command)
+                result = self.exec_command(command)
                 if result:
                     print(result)
-                    content = f"Summarize the results of the command {command}\n{result}"
-            else:
-                print(f"No command specified")
+                return None
+            elif match.group(2):
+                command = match.group(2)
+                result = self.exec_command(command)
+                print(result)
+                print()
+                content = f"\n```{command}\n{result}\n```\n"
+                user_input = user_input[:match.start()] + content + user_input[match.end():]
+                return user_input
 
             return None
 
@@ -2558,3 +2567,17 @@ class symchat():
             return True
         else:
             return False
+
+    def exec_command(self, command):
+        try:
+            # Run the command in the shell, capturing both stdout and stderr
+            result = subprocess.run(command, shell=True, check=True, text=True,
+                                    stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            # Combine stdout and stderr output
+            output = result.stdout + result.stderr
+        except subprocess.CalledProcessError as e:
+            # Combine stdout and stderr from the exception
+            output = e.stdout + e.stderr if e.stdout or e.stderr else "An error occurred, but no output was generated."
+
+        # Return the combined output
+        return output.strip()
