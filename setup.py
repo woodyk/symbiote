@@ -66,5 +66,5 @@ setup(
     cmdclass={
         'clean': CleanCommand,
     },
-    python_requires='>=3.10',
+    python_requires='>=3.10, <3.12',
 )
