@@ -1623,6 +1623,7 @@ class symchat():
             if file_path is None:
                 return None 
             
+            self.spinner.start()
             file_path = os.path.expanduser(file_path)
             absolute_path = os.path.abspath(file_path)
 
@@ -1654,6 +1655,8 @@ class symchat():
                 if dir_content is None:
                     return dir_content
                 user_input = user_input[:match.start()] + dir_content + user_input[match.end():]
+
+            self.spinner.succeed('Completed')
 
             return user_input
 

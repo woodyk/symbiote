@@ -4,14 +4,15 @@
 
 import json
 #import scispacy
+import docx
 import sys
 import re
 import os
 import time
 import subprocess
 import magic
-import textract
 import hashlib
+import pytesseract
 import requests 
 import piexif
 import hashlib
@@ -21,6 +22,7 @@ import climage
 import numpy as np
 import pandas as pd
 import speech_recognition as sr
+import pdfplumber
 
 from mss import mss
 from urllib.parse import urlparse
@@ -389,33 +391,41 @@ class utilities():
 
     def extractText(self, file_path):
         mime_type = magic.from_file(file_path, mime=True)
-
         supported_extensions = ['.csv', '.doc', '.docx', '.eml', '.epub', '.gif', '.htm', '.html', '.jpeg', '.jpg', '.json', '.log', '.mp3', '.msg', '.odt', '.ogg', '.pdf', '.png', '.pptx', '.ps', '.psv', '.rtf', '.tab', '.tff', '.tif', '.tiff', '.tsv', '.txt', '.wav', '.xls', '.xlsx']
 
-        if re.search(r'^text\/', mime_type):
-            with open(file_path, 'r') as f:
-                try:
-                    content = f.read()
-                except UnicodeDecodeError as e:
-                    content = ""
-        elif re.search(r'^audio\/', mime_type):
-            #content = self.transcribe_audio_file(file_path)
-            content = ""
-        elif re.search(r'^image\/', mime_type):
-            try: 
-                content = textract.process(file_path, language='eng')
-            except Exception as e:
-                content = ""
-        else:
-            try:
-                content = textract.process(file_path, method='tesseract', language='eng')
-            except Exception as e:
-                content = ""
-
         try:
-            content = content.decode('utf-8')
-        except:
-            pass
+            # For text files
+            if re.search(r'^text\/', mime_type):
+                with open(file_path, 'r') as f:
+                    content = f.read()
+            
+            # For PDF files
+            elif mime_type == 'application/pdf':
+                content = ""
+                with pdfplumber.open(file_path) as pdf:
+                    for page in pdf.pages:
+                        content += page.extract_text() or ""  # Handles pages with no text gracefully
+
+            # For Word documents (.docx)
+            elif mime_type == 'application/vnd.openxmlformats-officedocument.wordprocessingml.document':
+                doc = docx.Document(file_path)
+                content = '\n'.join([para.text for para in doc.paragraphs])
+
+            # For images, use OCR
+            elif re.search(r'^image\/', mime_type):
+                image = Image.open(file_path)
+                content = pytesseract.image_to_string(image)
+
+            # For unsupported files
+            else:
+                content = ""
+            
+            # Ensure UTF-8 encoding
+            content = content.encode('utf-8').decode('utf-8', errors='ignore')
+
+        except Exception as e:
+            print(f"Error reading {file_path}: {e}")
+            content = ""
 
         if self.settings['debug']:
             print(content)

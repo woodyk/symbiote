@@ -48,7 +48,7 @@ if platform.system() == 'Linux':
 
 setup(
     name='symbiote',
-    version='0.13.0',
+    version='0.14.0',
     description='A command line harness to AI functions.',
     author='Wadih Khairallah',
     url='https://github.com/woodyk/symbiote',
@@ -65,5 +65,6 @@ setup(
     },
     cmdclass={
         'clean': CleanCommand,
-    }
+    },
+    python_requires='>=3.10',
 )
