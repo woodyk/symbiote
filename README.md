@@ -19,18 +19,21 @@ Welcome to the era where you are not just a fleeting moment in time, but a conti
 BitCoin: 36Mg8UnAhVU5ZqSikQmbVXGG3rpYZRGNjC
 
 ## Running symbiote
+
+# MacOs
 ```
-brew install protobuf libmagic tesseract
-python -m spacy download en_core_web_sm
-python -m nltk.downloader vader_lexicon
+brew install pipx protobuf libmagic tesseract
+pipx install . --python /opt/homebrew/bin/python3.11
+symbiote -i
+symbiote
+```
 
 # Ubuntu
+```
 apt-get install portaudio19-dev libmagic1 tesseract-ocr
-virtualenv .venv
-pip3 install -r requirements.txt
-./app.py -i
-pip3 install six --upgrade
-./app.py
+pip install .
+symbiote -i
+symbiote
 ```
 
 Add the following with your API keys to your .bashrc
