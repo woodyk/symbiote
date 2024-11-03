@@ -2,6 +2,7 @@
 
 from setuptools import setup, Command, find_packages
 import platform
+import subprocess
 import os
 import shutil
 
@@ -44,7 +45,41 @@ with open('requirements.txt', 'r') as f:
 modules.append("python-Levenshtein")
 
 if platform.system() == 'Linux':
+    subprocess.run(["sudo", "apt-get", "install", "curl", "autoconf", "automake", "libtool", "pkg-config"])
+    subprocess.run(["sudo", "ldconfig"])
+
+    if os.path.isfile('/etc/lsb-release'):
+        # Ubuntu
+        print('Please run `sudo apt-get install libmagic-dev` to install libmagic on Ubuntu.')
+    elif os.path.isfile('/etc/redhat-release'):
+        # RedHat/CentOS
+        print('Please run `sudo yum install libmagic-devel` to install libmagic on RedHat/CentOS.')
+    elif os.path.isfile('/etc/os-release'):
+        # Other Linux distros
+        print('Please use your package manager to install libmagic-devel or libmagic-dev on this system.')
+
     modules.append('evdev==1.6.1')
+
+if platform.system() == 'Darwin':
+    subprocess.run(["brew", "install", "curl", "autoconf", "automake", "libtool", "pkg-config"])
+
+if platform.system() == 'Windows':
+    print('Please install libmagic-devel or libmagic-dev using your package manager.')
+
+# Gather nltk and spacy requirements
+try:
+    subprocess.call(['python3', '-m', 'spacy', 'download', 'en_core_web_sm'])
+    subprocess.call(['python3', '-m', 'nltk.downloader', 'vader_lexicon'])
+    subprocess.call(['python3', '-m', 'nltk.downloader', 'words'])
+    subprocess.call(['python3', '-m', 'nltk.downloader', 'stopwords'])
+    subprocess.call(['python3', '-m', 'nltk.downloader', 'punkt'])
+    subprocess.call(['python3', '-m', 'nltk.downloader', 'averaged_perceptron_tagger'])
+    subprocess.call(['python3', '-m', 'nltk.downloader', 'averaged_perceptron_tagger_eng'])
+    subprocess.call(['python3', '-m', 'nltk.downloader', 'punkt_tab'])
+    subprocess.call(['python3', '-m', 'nltk.downloader', 'maxent_ne_chunker'])
+except Exception as e:
+    print(f"Error installing nltk vader_lexicon: {e}")
+
 
 setup(
     name='symbiote',

@@ -139,7 +139,7 @@ class symBash():
 
                 if 'send::\r' in command_buffer:
                     print()
-                    self.custom_command(self.schat.send_message, session_data)
+                    self.schat.send_message(session_data)
                     session_data.clear()
                     command_buffer = ""
                     continue

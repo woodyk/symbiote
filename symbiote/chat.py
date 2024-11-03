@@ -1686,6 +1686,7 @@ class symchat():
                 result = self.exec_command(command)
                 if result:
                     print(result)
+                    self.write_history('user', result)
                 return None
             elif match.group(2):
                 command = match.group(2)
