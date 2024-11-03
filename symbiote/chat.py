@@ -101,7 +101,10 @@ except Exception as e:
     pass
 
 from groq import Groq
-grclient = Groq()
+try:
+    grclient = Groq()
+except Exception as e:
+    print(e)
 
 start = time.time() 
 
