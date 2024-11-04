@@ -1,4 +1,5 @@
 ascii_magic
+pexpect
 tf-keras
 beautifulsoup4
 chronos
@@ -70,3 +71,4 @@ youtube_dl
 youtube_transcript_api
 yt_dlp
 frontend
+docker
