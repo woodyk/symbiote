@@ -20,6 +20,7 @@
 # Find your way with the ANNGLs / Angels who stay to help us on our way.
 
 import sys
+import signal
 import os
 import re
 import argparse
@@ -31,6 +32,11 @@ import symbiote.logo as logo
 import pyfiglet
 #import phlack_nlp
 
+def handle_control_c(signum, frame):
+    print("\nControl-C detected")
+    sys.exit(1)
+
+signal.signal(signal.SIGINT, handle_control_c)
 disallowed_special=()
 
 def initialize():
@@ -255,6 +261,7 @@ def check_libpostal():
             subprocess.run(["sudo", "ldconfig"])
 
         print("libpostal installation completed")
+
 
 def entry_point() -> None:
     #nlp = phlack_nlp.init()
