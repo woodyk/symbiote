@@ -19,6 +19,7 @@ import subprocess
 import tempfile
 import webbrowser
 
+from pathlib import Path
 from halo import Halo
 from PIL import Image, ImageDraw, ImageColor
 
@@ -52,7 +53,7 @@ from rich.panel import Panel
 from rich.syntax import Syntax
 from rich.table import Table
 from rich.live import Live
-
+from rich import print as print
 console = Console()
 
 # Add these imports at the beginning of the file
@@ -138,7 +139,7 @@ command_list = {
         "get::": "Get remote data based on uri http, ftp, ssh, etc...",
         "crawl::": "Crawl remote data based on uri http, ftp, ssh, etc...",
         "tree::": "Load a directory tree for submission.",
-        "shell::": "Load the symbiote bash shell.",
+        "shell::": "Work in shell mode and execute commands.",
         "clipboard::": "Load clipboard contents into symbiote.",
         "ls::": "Load ls output for submission.",
         "search::": "Search index for specific data.",
@@ -206,16 +207,6 @@ def _(event):
 def _(event):
     self.user_input = "" 
 
-# Configure prompt settings.
-'''
-prompt_style = Style.from_dict({
-        '': prompt_colors['rich_yellow'], # typed text color
-        'prompt': prompt_colors['light_blue'], # prompt color
-        'bottom-toolbar': f'bg:{prompt_colors["white"]} {prompt_colors["gray"]}', # Bottom toolbar style
-        'bottom-toolbar.off': f'bg:{prompt_colors["off_white"]} {prompt_colors["light_gray"]}',  # Bottom toolbar off style
-    })
-'''
-
 # Default settings for openai and symbiote module.
 homedir = os.getenv('HOME')
 symbiote_settings = {
@@ -251,6 +242,7 @@ symbiote_settings = {
         "imap_username": '',
         "imap_password": '',
         "think": False,
+        "markdown": True,
     }
 
 assistant_id = 'asst_cGS0oOCEuRqm0QPO9vVsPw1y'
@@ -277,6 +269,8 @@ class symchat():
         self.logging = True
         self.timeout = 30
         self.spinner = Halo(text='Processing ', spinner='dots')
+        self.shell_mode = False
+        self.previous_theme = ''
 
         if 'debug' in kwargs:
             self.symbiote_settings['debug'] = kwargs['debug']
@@ -670,10 +664,15 @@ class symchat():
                 self.chat_session.bottom_toolbar = None
             else:
                 #self.chat_session.bottom_toolbar = f"Model: {self.symbiote_settings['model']}\nCurrent Conversation: {self.symbiote_settings['conversation']}\nLast Char Count: {self.token_track['last_char_count']}\nToken Usage:\nUser: {self.token_track['user_tokens']} Assistant: {self.token_track['completion_tokens']} Conversation: {self.token_track['truncated_tokens']} Total Used: {self.token_track['rolling_tokens']}\nCost: ${self.token_track['cost']:.2f}\ncwd: {current_path}"
-                self.chat_session.bottom_toolbar = f"Model: {self.symbiote_settings['model']} | Role: {self.symbiote_settings['role']}\nEstimated Tokens: {self.estimated_tokens}"
+                self.chat_session.bottom_toolbar = f"Model: {self.symbiote_settings['model']} | Role: {self.symbiote_settings['role']}\nEstimated Tokens: {self.estimated_tokens} Shell Mode: {self.shell_mode}"
+
+            if self.shell_mode is True:
+                prompt_content = "shell mode> "
+            else:
+                prompt_content = f"{self.symbiote_settings['role']}>\n"
 
             if self.run is False:
-                self.user_input = self.chat_session.prompt(message=f"{self.symbiote_settings['role']}>\n",
+                self.user_input = self.chat_session.prompt(message=prompt_content,
                                                    multiline=True,
                                                    default=self.user_input,
                                                    vi_mode=self.symbiote_settings['vi_mode']
@@ -700,6 +699,18 @@ class symchat():
                 continue
 
             returned = self.send_message(self.user_input)
+
+            if self.shell_mode is True:
+                if returned.startswith("`") and returned.endswith("`"):
+                    returned = returned[1:-1]
+
+                print(returned)
+                print()
+                response = self.yesNoPrompt("Execute command?")
+                if response is True:
+                    output = self.exec_command(returned)
+                    print(output)
+                    self.write_history('user', output)
 
             self.user_input = ""
 
@@ -793,9 +804,26 @@ class symchat():
         if self.symbiote_settings['think'] is True:
             self.think(user_input)
 
+        current_role = self.symbiote_settings['role']
         available_roles = roles.get_roles()
-        self.write_history('system', available_roles[self.symbiote_settings['role']])
+
+        self.write_history('system', available_roles[current_role])
         self.write_history('user', user_input)
+        self.estimated_tokens = self.estimate_token_count(json.dumps(self.conversation_history))
+        num_ctx = self.estimated_tokens + 8192
+        if self.estimated_tokens > self.symbiote_settings['max_tokens']:
+            self.conversation_history = self.truncate_history(self.conversation_history, self.symbiote_settings['max_tokens'])
+            self.estimated_tokens = self.estimate_token_count(json.dumps(self.conversation_history))
+            num_ctx = self.estimated_tokens + 8192
+
+        message = self.conversation_history
+
+        if self.shell_mode is True:
+            message = []
+            current_role = "SHELL"
+            self.suppress = True
+            message.append({"role": "system", "content": available_roles[current_role]})
+            message.append({"role": "user", "content": user_input})
 
         # OpenAI Assistant
         """
@@ -813,18 +841,16 @@ class symchat():
         console.print(Markdown(response))
         """
 
-        self.estimated_tokens = self.estimate_token_count(json.dumps(self.conversation_history))
-        num_ctx = self.estimated_tokens + 8192
-        if self.estimated_tokens > self.symbiote_settings['max_tokens']:
-            self.conversation_history = self.truncate_history(self.conversation_history, self.symbiote_settings['max_tokens'])
-            self.estimated_tokens = self.estimate_token_count(json.dumps(self.conversation_history))
-            num_ctx = self.estimated_tokens + 8192
-
-        if len(self.conversation_history) == 0:
-            print(f"Message contents too large: >{self.symbiote_settings['max_tokens']}")
-
         response = ''
         streaming = self.symbiote_settings['stream']
+        markdown = self.symbiote_settings['markdown']
+        if self.shell_mode is True:
+            markdown = False
+
+        if markdown is True and streaming is True:
+           live = Live(console=console, refresh_per_second=10)
+           live.start()
+
 
         if self.symbiote_settings['model'].startswith("openai"):
             model_name = self.symbiote_settings['model'].split(":")
@@ -835,7 +861,6 @@ class symchat():
             # also streaming must be turned off
             if model.startswith("o1-"):
                 streaming = False
-                self.spinner.start()
                 for message in self.conversation_history:
                     if message['role'] == 'system':
                         self.conversation_history.remove(message)
@@ -844,22 +869,30 @@ class symchat():
             try:
                 stream = oaiclient.chat.completions.create(
                         model = model,
-                        messages = self.conversation_history,
+                        messages = message,
                         stream = streaming,
                         )
             except Exception as e:
                 print(e)
                 return response
 
-            if streaming:
-                for chunk in stream:
-                    if chunk.choices[0].delta.content is not None:
-                        print(chunk.choices[0].delta.content, end="", flush=True)
-                        response += chunk.choices[0].delta.content
-            else:
+            if self.suppress is True:
                 response = stream.choices[0].message.content
-                self.spinner.succeed("Completed")
-                print(response)
+            else:
+                if streaming:
+                    for chunk in stream:
+                        if chunk.choices[0].delta.content is not None:
+                            response += chunk.choices[0].delta.content
+                            if markdown is True:
+                                live.update(Markdown(response))
+                            else:
+                                print(chunk.choices[0].delta.content, end='', flush=True)
+                else:
+                    response = stream.choices[0].message.content
+                    if markdown is True:
+                        print(Markdown(response))
+                    else:
+                        print(response)
 
         elif self.symbiote_settings['model'].startswith("ollama"):
             # Ollama Chat Completion
@@ -869,16 +902,28 @@ class symchat():
 
             stream = olclient.chat(
                     model = model,
-                    messages = self.conversation_history,
+                    messages = message,
                     stream = streaming,
                     #format = "json",
                     options = { "num_ctx": num_ctx },
                     )
-
-            if streaming:
-                for chunk in stream:
-                    print(chunk['message']['content'], end='', flush=True)
-                    response += chunk['message']['content']
+            
+            if self.suppress is True:
+                response = stream['message']['content']
+            else:
+                if streaming:
+                    for chunk in stream:
+                        response += chunk['message']['content']
+                        if markdown is True:
+                            live.update(Markdown(response))
+                        else:
+                            print(chunk['message']['content'], end='', flush=True)
+                else:
+                    response = stream['message']['content']
+                    if markdown is True:
+                        print(Markdown(response))
+                    else:
+                        print(response)
 
         elif self.symbiote_settings['model'].startswith("groq"):
             model_name = self.symbiote_settings['model'].split(":")
@@ -886,16 +931,35 @@ class symchat():
 
             stream = grclient.chat.completions.create(
                     model = model,
-                    messages = self.conversation_history,
+                    messages = message,
                     stream = stream,
                     )
 
-            for chunk in stream:
-                if chunk.choices[0].delta.content is not None:
-                    print(chunk.choices[0].delta.content, end='', flush=True)
-                    response += chunk.choices[0].delta.content
+            if self.suppress is True:
+                response = stream.choices[0].message.content
+            else:
+                if streaming:
+                    for chunk in stream:
+                        if chunk.choices[0].delta.content is not None:
+                            response += chunk.choices[0].delta.content
+                            if markdown is True:
+                                live.update(Markdown(response))
+                            else:
+                                print(chunk.choices[0].delta.content, end='', flush=True)
+                else:
+                    response = stream.choices[0].message.content
+                    if markdown is True:
+                        print(Markdown(response))
+                    else:
+                        print(response)
 
         print()
+
+        try:
+            if live.is_started:
+                live.stop()
+        except:
+            pass
 
         self.write_history('assistant', response)
 
@@ -905,6 +969,7 @@ class symchat():
             speech_thread.start()
 
         self.suppress = False
+
         return response
 
     def truncate_history(self, history, size):
@@ -938,9 +1003,17 @@ class symchat():
                 user_input = 'settings:perifious:1:'
 
         if re.search(r'^shell::', user_input):
+            if self.shell_mode is False:
+                self.shell_mode = True
+                self.chat_session.style = self.theme_manager.get_theme("liveshell")
+            else:
+                self.shell_mode = False
+                self.chat_session.style = self.theme_manager.get_theme(self.symbiote_settings["theme"])
+
+            print(f"Shell mode set: {self.shell_mode}")
+
             # needs to be fixed
             #shell.symBash().launch_shell()
-            print("Shell not currently available.")
             return None
 
         if re.search(r'^help::', user_input):
@@ -1225,8 +1298,7 @@ class symchat():
         if match:
             self.suppress = True
             self.exit = True
-            self.conversation_history = []
-            self.current_conversation = []
+            self.flush_history()
 
             return None 
 
@@ -1365,7 +1437,7 @@ class symchat():
             #self.sym.update_symbiote_settings(settings=self.symbiote_settings)
             self.save_settings(settings=self.symbiote_settings)
 
-            return theme_name
+            return prompt_style 
 
         # trigger terminal image rendering view:: 
         view_pattern = r'view::|^view:(.*):|^view:(https?:\/\/\S+):'
@@ -1621,7 +1693,8 @@ class symchat():
                 else:
                     file_path = os.path.expanduser(match.group(1))
             else:
-                file_path = self.fileSelector("File name:")
+                #file_path = self.fileSelector("File name:")
+                file_path = self.prompt_file_browser()
 
             if file_path is None:
                 return None 
@@ -2070,7 +2143,7 @@ class symchat():
         class Clock:
             """Renders the time in the center of the screen."""
             def __rich__(self) -> Text:
-                return Text(datetime.now().ctime(), style="bold magenta", justify="center")
+                return Text(datetime.now().ctime(), style="green", justify="center")
 
         layout["header"].update(Clock())
 
@@ -2119,6 +2192,10 @@ class symchat():
                 mandatory=False,
             ).execute()
         return result
+
+    def yesNoPrompt(self, question="Continue?"):
+        answer = inquirer.confirm(message=question, default=False).execute()
+        return answer
             
     def findFiles(self, pattern=None):
         # Recursively get a list of all files from the current directory
@@ -2584,7 +2661,116 @@ class symchat():
             output = result.stdout + result.stderr
         except subprocess.CalledProcessError as e:
             # Combine stdout and stderr from the exception
-            output = e.stdout + e.stderr if e.stdout or e.stderr else "An error occurred, but no output was generated."
+            output = e.stdout + e.stderr if e.stdout or e.stderr else "Command exited with a status other than 0."
 
         # Return the combined output
         return output.strip()
+
+    def prompt_file_browser(self):
+        """Terminal-based file browser using prompt_toolkit to navigate and select files."""
+        current_path = Path.home()  # Start in the user's home directory
+        files = []
+        selected_index = 0  # Track the selected file/folder index
+        scroll_offset = 0  # Track the starting point of the visible list
+        show_hidden = False  # Initialize hidden files visibility
+
+        terminal_height = int(os.get_terminal_size().lines / 2)
+        max_display_lines = terminal_height - 2  # Reduce by 2 for header and footer lines
+
+        def update_file_list():
+            """Update the list of files in the current directory, with '..' as the first entry to go up."""
+            nonlocal files, selected_index, scroll_offset
+            # List current directory contents and insert '..' at the top for navigating up
+            all_files = [".."] + sorted(current_path.iterdir(), key=lambda p: (not p.is_dir(), p.name.lower()))
+
+            # Filter out hidden files if `show_hidden` is False
+            files = [f for f in all_files if isinstance(f, str) or show_hidden or not f.name.startswith('.')]
+
+            selected_index = 0
+            scroll_offset = 0
+
+        def get_display_text():
+            """Display text for the current directory contents with the selected item highlighted."""
+            text = []
+            visible_files = files[scroll_offset:scroll_offset + max_display_lines]
+            for i, f in enumerate(visible_files):
+                real_index = scroll_offset + i
+                prefix = "> " if real_index == selected_index else "  "
+                
+                # Use only the file or directory name for display
+                display_name = f if isinstance(f, str) else f.name
+                display_name += "/" if isinstance(f, Path) and f.is_dir() else ""
+                
+                line = f"{prefix}{display_name}"
+                text.append((f"{'yellow' if real_index == selected_index else 'white'}", line))
+                text.append(('', '\n'))
+            return text
+
+        # Initialize file list with the home directory contents
+        update_file_list()
+
+        # Key bindings
+        kb = KeyBindings()
+
+        @kb.add("up")
+        def move_up(event):
+            nonlocal selected_index, scroll_offset
+            selected_index = (selected_index - 1) % len(files)
+            # Scroll up if the selection goes above the visible area
+            if selected_index < scroll_offset:
+                scroll_offset = max(0, scroll_offset - 1)
+
+        @kb.add("down")
+        def move_down(event):
+            nonlocal selected_index, scroll_offset
+            selected_index = (selected_index + 1) % len(files)
+            # Scroll down if the selection goes beyond the visible area
+            if selected_index >= scroll_offset + max_display_lines:
+                scroll_offset = min(len(files) - max_display_lines, scroll_offset + 1)
+
+        @kb.add("enter")
+        def enter_directory(event):
+            nonlocal current_path
+            selected_file = files[selected_index]
+
+            if selected_file == "..":
+                # Move up to the parent directory
+                current_path = current_path.parent
+                update_file_list()
+            elif isinstance(selected_file, Path) and selected_file.is_dir():
+                # Enter the selected directory
+                current_path = selected_file
+                update_file_list()
+            elif isinstance(selected_file, Path) and selected_file.is_file():
+                # Select the file and exit
+                event.app.exit(result=str(selected_file))  # Return the file path as a string
+
+        @kb.add("escape")
+        def cancel_selection(event):
+            event.app.exit(result=None)  # Exit with None if canceled
+
+        @kb.add("c-h")
+        def toggle_hidden(event):
+            """Toggle the visibility of hidden files."""
+            nonlocal show_hidden
+            show_hidden = not show_hidden
+            update_file_list()
+
+        # Layout with footer for shortcut hint
+        file_list_window = Window(content=FormattedTextControl(get_display_text), wrap_lines=False, height=max_display_lines)
+        footer_window = Window(content=FormattedTextControl(lambda: "Press Ctrl-H to show/hide hidden files. Escape to exit."), height=1, style="grey")
+        layout = Layout(HSplit([
+            Frame(Window(FormattedTextControl(lambda: f"Current Directory: {current_path}"), height=1)),
+            file_list_window,
+            footer_window  # Footer with shortcut instructions
+        ]))
+
+        # Application
+        app = Application(layout=layout, key_bindings=kb, full_screen=True, refresh_interval=0.1)
+
+        # Run the application and return the selected file path (or None if canceled)
+        return app.run()
+
+    def flush_history(self):
+        self.conversation_history = []
+        self.current_conversation = []

@@ -19,7 +19,6 @@
 # to me.  The creation of intelligence, is the natural progression of hyper intellegence.
 # Find your way with the ANNGLs / Angels who stay to help us on our way.
 
-import openai
 import sys
 import os
 import re
@@ -32,8 +31,6 @@ import symbiote.logo as logo
 import pyfiglet
 #import phlack_nlp
 
-# Pull a list of available models to use.
-# available_models = openai.Model.list()
 disallowed_special=()
 
 def initialize():

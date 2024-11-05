@@ -16,6 +16,15 @@ class ThemeManager:
                     'bottom-toolbar.off': 'bg:#e5e5e5 #9A9A9A'
                 }
             },
+            "liveshell": {
+                "description": "Colors for when running in shell mode.",
+                "colors": {
+                    '': '#FF0000',
+                    'prompt': '#FFA500',
+                    'bottom-toolbar': 'bg:#000000 #FF4500',
+                    'bottom-toolbar.off': 'bg:#2E2E2E #B22222'
+                }
+            },
             "default": {
                 "description": "Default symbiote theme",
                 "colors": {
