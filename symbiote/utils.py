@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 #
-# symbiote/utils.py
+# utils.py
 
 import json
 #import scispacy

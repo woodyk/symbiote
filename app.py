@@ -32,11 +32,11 @@ import symbiote.logo as logo
 import pyfiglet
 #import phlack_nlp
 
-def handle_control_c(signum, frame):
+def handleControlC(signum, frame):
     print("\nControl-C detected")
     sys.exit(1)
 
-signal.signal(signal.SIGINT, handle_control_c)
+signal.signal(signal.SIGINT, handleControlC)
 disallowed_special=()
 
 def initialize():
@@ -45,11 +45,11 @@ def initialize():
     pass
 
 def main():
-    def is_data():
+    def isData():
         return select.select([sys.stdin], [], [], 0) == ([sys.stdin], [], [])
 
     piped_query = str()
-    if is_data():
+    if isData():
         for line in sys.stdin:
             piped_query += line
 
@@ -110,14 +110,14 @@ def main():
 
     if args.install:
         os.chdir('/tmp')
-        check_libmagic()
-        check_nl_packages()
-        #check_libpostal()
+        checkLibmagic()
+        checkNlPackages()
+        #checkLibpostal()
         return
 
     import symbiote.chat as chat
 
-    schat = chat.symchat(working_directory=current_path, debug=args.debug)
+    schat = chat.symChat(working_directory=current_path, debug=args.debug)
 
     if args.api:
         import symbiote.api as api
@@ -157,7 +157,7 @@ def main():
         print("\033[0;32m" + text + "\033[0m")
         schat.chat(user_input="", prompt_only=args.prompt_only)
 
-def check_libmagic():
+def checkLibmagic():
     ret_code = 0
 
     try:
@@ -195,7 +195,7 @@ def check_libmagic():
         else:
             print('Unable to determine OS. Please install libmagic-devel or libmagic-dev using your package manager.')
 
-def check_nl_packages():
+def checkNlPackages():
     try:
         subprocess.call(['python3', '-m', 'spacy', 'download', 'en_core_web_sm'])
     except Exception as e:
@@ -213,7 +213,7 @@ def check_nl_packages():
     except Exception as e:
         print(f"Error installing nltk vader_lexicon: {e}")
 
-def check_libpostal():
+def checkLibpostal():
     install = False
     try:
         import postal
