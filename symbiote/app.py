@@ -30,6 +30,7 @@ import subprocess
 import platform
 import symbiote.logo as logo
 import pyfiglet
+from halo import Halo
 #import phlack_nlp
 
 def handleControlC(signum, frame):
@@ -108,12 +109,14 @@ def main():
 
     args = parser.parse_args()
 
+    spinner = Halo(text="Loading Symbiote...", spinner='dots')
+    spinner.start()
+
     if args.install:
         os.chdir('/tmp')
         checkLibmagic()
         checkNlPackages()
         #checkLibpostal()
-        return
 
     import symbiote.chat as chat
 
@@ -131,6 +134,7 @@ def main():
         schat.chat(user_input="", run=args.run)
 
     if args.load:
+        spinner.stop()
         schat.chat(user_input=args.load, suppress=True, run=True)
     elif args.monitor:
         #schat.chat(user_input="role:HELP_ROLE:", run=True)
@@ -140,6 +144,7 @@ def main():
         while True:
             time.sleep(1)
     elif args.query:
+        spinner.stop()
         schat.chat(user_input=args.query, run=args.run, enable=args.enable)
     else:
         os.system('clear')
@@ -151,9 +156,10 @@ def main():
         except:
             pass
         time.sleep(3)
-        os.system('reset')
         figlet = pyfiglet.Figlet(font='ansi_regular')
         text = figlet.renderText('Symbiote')
+        spinner.stop()
+        os.system('reset')
         print("\033[0;32m" + text + "\033[0m")
         schat.chat(user_input="", prompt_only=args.prompt_only)
 
