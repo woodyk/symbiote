@@ -19,6 +19,10 @@
 # to me.  The creation of intelligence, is the natural progression of hyper intellegence.
 # Find your way with the ANNGLs / Angels who stay to help us on our way.
 
+from halo import Halo
+spinner = Halo(text="Loading Symbiote...", spinner='dots')
+spinner.start()
+
 import sys
 import signal
 import os
@@ -28,10 +32,11 @@ import time
 import select
 import subprocess
 import platform
-import symbiote.logo as logo
 import pyfiglet
-from halo import Halo
-#import phlack_nlp
+import nltk
+import spacy
+from spacy.cli import download
+import symbiote.chat as chat
 
 def handleControlC(signum, frame):
     print("\nControl-C detected")
@@ -39,11 +44,6 @@ def handleControlC(signum, frame):
 
 signal.signal(signal.SIGINT, handleControlC)
 disallowed_special=()
-
-def initialize():
-    # Load the NLP module
-    #nlp = phlack_nlp.init()
-    pass
 
 def main():
     def isData():
@@ -103,22 +103,12 @@ def main():
                         action='store_true',
                         help='Launch symbiote straight to prompt.')
 
-    parser.add_argument('-n', '--no_logo',
-                        action='store_true',
-                        help='Do not display the logo splash figlet.')
-
     args = parser.parse_args()
 
-    spinner = Halo(text="Loading Symbiote...", spinner='dots')
-    spinner.start()
-
-    if args.install:
-        os.chdir('/tmp')
-        checkLibmagic()
-        checkNlPackages()
-        #checkLibpostal()
-
-    import symbiote.chat as chat
+    os.chdir('/tmp')
+    checkLibmagic()
+    checkNlPackages()
+    os.chdir(current_path)
 
     schat = chat.symChat(working_directory=current_path, debug=args.debug)
 
@@ -137,8 +127,8 @@ def main():
         spinner.stop()
         schat.chat(user_input=args.load, suppress=True, run=True)
     elif args.monitor:
-        #schat.chat(user_input="role:HELP_ROLE:", run=True)
         import symbiote.monitor as monitor
+        #schat.chat(user_input="role:HELP_ROLE:", run=True)
         monmode = monitor.KeyLogger(schat, debug=args.debug)
         monmode.start()
         while True:
@@ -147,15 +137,6 @@ def main():
         spinner.stop()
         schat.chat(user_input=args.query, run=args.run, enable=args.enable)
     else:
-        os.system('clear')
-        try:
-            if args.prompt_only or args.nologo:
-                pass
-            else:
-                logo.symLogo()
-        except:
-            pass
-        time.sleep(3)
         figlet = pyfiglet.Figlet(font='ansi_regular')
         text = figlet.renderText('Symbiote')
         spinner.stop()
@@ -164,17 +145,17 @@ def main():
         schat.chat(user_input="", prompt_only=args.prompt_only)
 
 def checkLibmagic():
-    ret_code = 0
-
+    installed = False
     try:
         subprocess.check_output(["file", "--version"])
+        return
     except (subprocess.CalledProcessError, FileNotFoundError):
-        ret_code = 1
+        installed = False
 
     system = platform.system()
 
    # Check if libmagic is installed
-    if ret_code != 0:
+    if installed is False:
         # libmagic is not installed
         print('libmagic is not installed on this system.')
 
@@ -202,77 +183,53 @@ def checkLibmagic():
             print('Unable to determine OS. Please install libmagic-devel or libmagic-dev using your package manager.')
 
 def checkNlPackages():
+    # Download required nltk packages
+    packages = [
+        'vader_lexicon', 
+        'words', 
+        'stopwords', 
+        'punkt',
+        'averaged_perceptron_tagger', 
+        'maxent_ne_chunker'
+    ]
+
+    nltk_data_dir = nltk.data.path[0]
+    if os.path.isdir(nltk_data_dir):
+        for package in packages:
+            installed = False
+            subdir = str() 
+            for name in os.listdir(nltk_data_dir):
+                file_path = f"{nltk_data_dir}/{name}/{package}.zip"
+                if os.path.isfile(file_path):
+                    subdir = name
+                    installed = True 
+                    break
+
+            if installed is False:
+                install = f"{subdir}/{package}"
+                try:
+                    nltk.download(install)
+                except Exceptions as e:
+                    print(f"Error downloading {install}: {e}")
+    else:
+        for package in packages:
+            try:
+                nltk.download(package)
+            except Exception as e:
+                print(f"Error downloading {install}: {e}")
+
+    # Download required spacy packages
+    spacy_model = "en_core_web_sm"
     try:
-        subprocess.call(['python3', '-m', 'spacy', 'download', 'en_core_web_sm'])
-    except Exception as e:
-        print(f"Error installing spacy en_core_web_sm: {e}")
-
-    try:
-        subprocess.call(['python3', '-m', 'nltk.downloader', 'vader_lexicon'])
-        subprocess.call(['python3', '-m', 'nltk.downloader', 'words'])
-        subprocess.call(['python3', '-m', 'nltk.downloader', 'stopwords'])
-        subprocess.call(['python3', '-m', 'nltk.downloader', 'punkt'])
-        subprocess.call(['python3', '-m', 'nltk.downloader', 'averaged_perceptron_tagger'])
-        subprocess.call(['python3', '-m', 'nltk.downloader', 'averaged_perceptron_tagger_eng'])
-        subprocess.call(['python3', '-m', 'nltk.downloader', 'punkt_tab'])
-        subprocess.call(['python3', '-m', 'nltk.downloader', 'maxent_ne_chunker'])
-    except Exception as e:
-        print(f"Error installing nltk vader_lexicon: {e}")
-
-def checkLibpostal():
-    install = False
-    try:
-        import postal
-    except Exception as e:
-        install = True
-
-    system = platform.system()
-
-    if system not in ['Linux', 'Darwin']:
-        print("This function only supports MacOS and Linux")
-        return
-
-    if install:
-        # Install prerequisites
-        if system == 'Linux':
-            subprocess.run(["sudo", "apt-get", "install", "curl", "autoconf", "automake", "libtool", "pkg-config"])
-        elif system == 'Darwin':
-            subprocess.run(["brew", "install", "curl", "autoconf", "automake", "libtool", "pkg-config"])
-
-        # Clone libpostal repository
-        subprocess.run(["git", "clone", "https://github.com/openvenues/libpostal"])
-
-        # Install libpostal
-        os.chdir("libpostal")
-        home = os.path.expanduser("~")
-        subprocess.run(["autoreconf", "-fi", "--warning=no-portability"])
-        subprocess.run(["./configure", f'--prefix="{home}/.local/share"', f'--datadir="{home}/.cache/libpostal"'])
-        subprocess.run(["make", "-j4"])
-        subprocess.run(["make", "install"])
-
-        print("############################################")
-        print("Run the following before executing symbiote.")
-        print('echo \'export LD_LIBRARY_PATH="$HOME/.local/share/include:$LD_LIBRARY_PATH"\' >> ~/.bashrc')
-        print('export CPATH="$HOME/.local/share/include:$CPATH"')
-        print('export PATH="$HOME/.local/bin:$PATH"')
-        print('export LDFLAGS="-L$HOME/.local/share/lib"')
-        print('source ~/.bashrc')
-
-        response = input("Hit any key to continue.")
-
-        subprocess.run(["pip3", "install", "postal"])
-
-        # Run ldconfig on Linux
-        if system == 'Linux':
-            subprocess.run(["sudo", "ldconfig"])
-
-        print("libpostal installation completed")
-
+        spacy.load(spacy_model)
+    except:
+        try:
+            download(spacy_model)
+        except Exception as e:
+            print(f"Error downloading {spacy_model}: {e}")
 
 def entry_point() -> None:
-    #nlp = phlack_nlp.init()
     main()
 
 if __name__ == "__main__":
-    #nlp = phlack_nlp.init()
     main()

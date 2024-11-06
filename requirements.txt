@@ -1,4 +1,5 @@
 ascii_magic
+python-Levenshtein
 pathlib
 pexpect
 tf-keras
