@@ -647,7 +647,7 @@ class symChat():
                         )
             except Exception as e:
                 print(e)
-                return response
+                return None
 
             if self.suppress is True:
                 response = stream.choices[0].message.content
@@ -673,13 +673,17 @@ class symChat():
 
             model = model_name[1] + ":" + model_name[2]
 
-            stream = olclient.chat(
-                    model = model,
-                    messages = message,
-                    stream = streaming,
-                    #format = "json",
-                    options = { "num_ctx": num_ctx },
-                    )
+            try:
+                stream = olclient.chat(
+                        model = model,
+                        messages = message,
+                        stream = streaming,
+                        #format = "json",
+                        options = { "num_ctx": num_ctx },
+                        )
+            except Exception as e:
+                print(e)
+                return None
             
             if self.suppress is True:
                 response = stream['message']['content']
@@ -702,11 +706,15 @@ class symChat():
             model_name = self.symbiote_settings['model'].split(":")
             model = model_name[1]
 
-            stream = grclient.chat.completions.create(
-                    model = model,
-                    messages = message,
-                    stream = stream,
-                    )
+            try:
+                stream = grclient.chat.completions.create(
+                        model = model,
+                        messages = message,
+                        stream = stream,
+                        )
+            except Exception as e:
+                print(e)
+                return None
 
             if self.suppress is True:
                 response = stream.choices[0].message.content
