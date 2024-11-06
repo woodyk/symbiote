@@ -137,8 +137,8 @@ def main():
         spinner.stop()
         schat.chat(user_input=args.query, run=args.run, enable=args.enable)
     else:
-        figlet = pyfiglet.Figlet(font='ansi_regular')
-        text = figlet.renderText('Symbiote')
+        figlet = pyfiglet.Figlet(font='standard')
+        text = figlet.renderText('symbiote')
         spinner.stop()
         os.system('reset')
         print("\033[0;32m" + text + "\033[0m")
