@@ -126,7 +126,6 @@ command_list = {
         "nuclei::": "Run a nuclei scan on a given domain and analyze the results.",
         "qr::": "Generate a QR code from the given text.",
         "extract::": "Extract data features for a given file or directory and summarize.",
-        "links::": "Extract links from the given text.",
         "code::": "Extract code and write files.",
         "get::": "Get remote data based on uri http, ftp, ssh, etc...",
         "crawl::": "Crawl remote data based on uri http, ftp, ssh, etc...",
@@ -474,6 +473,7 @@ class symChat():
                                                    vi_mode=self.symbiote_settings['vi_mode']
                                                 )
 
+            print()
             user_input = self.processCommands(user_input)
 
             if user_input is None or user_input == "":
@@ -497,14 +497,13 @@ class symChat():
             if self.shell_mode is True:
                 if returned.startswith("`") and returned.endswith("`"):
                     returned = returned[1:-1]
-
-                print(returned)
-                print()
+                print(f"{returned}\n")
                 response = self.yesNoPrompt("Execute command?")
                 if response is True:
                     output = self.execCommand(returned)
-                    print(output)
+                    print(f"\n{output}\n")
                     self.writeHistory('user', output)
+                    continue
 
             if self.enable is True:
                 self.run = False
@@ -590,7 +589,6 @@ class symChat():
         return response
 
     def sendMessage(self, user_input):
-        # Think first
         if self.symbiote_settings['think'] is True:
             self.think(user_input)
 
@@ -619,10 +617,11 @@ class symChat():
         streaming = self.symbiote_settings['stream']
         markdown = self.symbiote_settings['markdown']
         if self.shell_mode is True:
+            streaming = False
             markdown = False
 
         if markdown is True and streaming is True:
-           live = Live(console=console, refresh_per_second=10)
+           live = Live(console=console, refresh_per_second=5)
            live.start()
 
         if self.symbiote_settings['model'].startswith("openai"):
@@ -670,7 +669,6 @@ class symChat():
         elif self.symbiote_settings['model'].startswith("ollama"):
             # Ollama Chat Completion
             model_name = self.symbiote_settings['model'].split(":")
-
             model = model_name[1] + ":" + model_name[2]
 
             try:
@@ -733,8 +731,6 @@ class symChat():
                         print(Markdown(response))
                     else:
                         print(response)
-        print()
-
         try:
             if live.is_started:
                 live.stop()
@@ -1186,16 +1182,6 @@ class symChat():
 
             self.symutils.scrollContent(absolute_path)
 
-            return None
-
-        # Trigger for links
-        # Extract links from the given text
-        self.registerCommand("links::")
-        links_pattern = r'links::'
-        match = re.search(links_pattern, user_input)
-        if match:
-            user_input = f"Analzyze and extract web links and urls from the following\n\n{user_input}"
-            self.sendMessage(user_input)
             return None
 
         # Trigger for wikipedia search wiki::
