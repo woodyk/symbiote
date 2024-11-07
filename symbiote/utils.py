@@ -38,9 +38,11 @@ from sumy.nlp.tokenizers import Tokenizer
 from sumy.summarizers.lsa import LsaSummarizer
 from dateutil.parser import parse
 from elasticsearch import Elasticsearch, exceptions
+from pathlib import Path
 from rich.syntax import Syntax
 from rich.panel import Panel
 from rich.console import Console
+from rich.markdown import Markdown
 import warnings
 warnings.filterwarnings("ignore", category=UserWarning, module="sumy")
 
@@ -841,12 +843,12 @@ class utilities():
         # Scroll through text content automatically
         if os.path.isfile(file_path):
             text = self.extractText(file_path)
-            for line in text.splitlines():
-                print(line)
-                time.sleep(speed)
-
         else:
-            return f"Unable to find {file_path}."
+            text = file_path
+
+        for line in text.splitlines():
+            print(line)
+            time.sleep(speed)
 
     def imageToAscii(self, image_path):
         # Get terminal size
@@ -895,14 +897,8 @@ class utilities():
         if self.is_image(file_path):
             img_path = self.getImage(file_path)
             self.imageToAscii(img_path)
-        elif content := self.is_url(file_path):
-            self.render_text(file_path, content)
         else:
-            # Open the file and read its content
-            with open(file_path, "r") as file:
-                content = file.read()
-
-            self.render_text(file_path, content)
+            self.render_text(file_path)
 
         return
 
@@ -959,15 +955,31 @@ class utilities():
             return False
 
 
-    def render_text(self, file_path, text):
+    def render_text(self, file_path, text=None):
+        def is_source_code(file_path):
+            SOURCE_CODE_EXTENSIONS = {
+                ".py", ".js", ".java", ".c", ".cpp", ".h", ".cs", ".rb", ".php", ".html",
+                ".css", ".sh", ".bat", ".go", ".rs", ".ts", ".json", ".yml", ".xml",
+                ".sql", ".swift", ".pl", ".m", ".kt", ".scala", ".r", ".lua", ".hs",
+                ".erl", ".ex", ".exs", ".dart", ".jl"
+            }
+
+            path = Path(file_path)
+
+            if path.suffix in SOURCE_CODE_EXTENSIONS:
+                return True
+
+            return False
+
         # Create a console object
         console = Console()
 
+        text = self.extractText(file_path)
         # Create a Syntax object to highlight the code
-        syntax = Syntax(text, "python", line_numbers=True)
+        if is_source_code(file_path):
+            contents = Syntax(text, "python", line_numbers=True)
+        else:
+            contents = Markdown(text)
 
-        # Create a Panel to display the code
-        panel = Panel(syntax, title=file_path, expand=True)
-
-        # Print the panel to the console, centered
+        panel = Panel(contents, title=file_path, expand=True)
         console.print(panel, justify="center")

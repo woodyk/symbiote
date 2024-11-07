@@ -10,13 +10,13 @@ import re
 import threading
 import clipboard
 import json
-import pprint
 import base64
 import requests
 import qrcode
 import subprocess
 import tempfile
 
+from datetime import datetime
 from pathlib import Path
 from halo import Halo
 from PIL import Image, ImageDraw, ImageColor
@@ -33,26 +33,31 @@ from InquirerPy.validator import PathValidator
 from InquirerPy.prompts.filepath import FilePathCompleter
 
 from prompt_toolkit import Application
+from prompt_toolkit.document import Document
 from prompt_toolkit.history import InMemoryHistory, FileHistory
-from prompt_toolkit.shortcuts import PromptSession, prompt, input_dialog, yes_no_dialog, progress_dialog, message_dialog
+from prompt_toolkit.shortcuts import PromptSession, print_container, prompt, input_dialog, yes_no_dialog, progress_dialog, message_dialog
 from prompt_toolkit.key_binding import KeyBindings
 from prompt_toolkit.keys import Keys
 from prompt_toolkit.completion import Completion, WordCompleter
 from prompt_toolkit.styles import Style
 from prompt_toolkit.layout import Layout, HSplit
-from prompt_toolkit.widgets import Dialog, TextArea, Frame, Box, Button
-from prompt_toolkit.layout.dimension import Dimension
+from prompt_toolkit.widgets import Label, SearchToolbar, Dialog, TextArea, Frame, Box, Button
 from prompt_toolkit.layout.containers import Window, VSplit, Float, FloatContainer
 from prompt_toolkit.layout.controls import FormattedTextControl
+from prompt_toolkit.cursor_shapes import CursorShape, ModalCursorShapeConfig
 
+from rich import inspect
 from rich.console import Console
 from rich.markdown import Markdown
 from rich.panel import Panel
 from rich.syntax import Syntax
 from rich.table import Table
+from rich.text import Text
 from rich.live import Live
-from rich import print as print
+from rich.rule import Rule
+#from rich import print as print
 console = Console()
+print = console.print
 
 # Add these imports at the beginning of the file
 #from symbiote.model_creator import create_model, train_model, evaluate_model
@@ -116,6 +121,7 @@ command_list = {
         "model::": "Change the AI model being used.",
         "cd::": "Change working directory.",
         "file::": "Load a file for submission.",
+        "inspect::": "Realtime python object inspector for current running session.",
         "webvuln::": "Run and summarize a web vulnerability scan on a given URL.",
         "deception::": "Run deception analysis on the given text",
         "fake_news::": "Run fake news analysis on the given text",
@@ -302,7 +308,8 @@ class symChat():
         for key, val in sorted(self.symbiote_settings.items()):
             table.add_row(key, str(val))
 
-        console.print(table)
+        print(table)
+        print()
 
     def displayHelp(self):
         table = Table(show_header=True, expand=True, header_style="bold magenta")
@@ -312,7 +319,8 @@ class symChat():
         for cmd, desc in sorted(self.command_list.items()):
             table.add_row(cmd, desc)
 
-        console.print(table)
+        print(table)
+        print()
 
     def displayConvo(self, convo=False):
         conversations = sorted(self.getConversations(self.conversations_dir))
@@ -427,8 +435,27 @@ class symChat():
       
         self.chat_session = PromptSession(key_bindings=kb, vi_mode=self.symbiote_settings['vi_mode'], history=self.history, style=self.prompt_style)
 
+        def getPrompt():
+            # Bottom toolbar configuration
+            if self.prompt_only:
+                self.chat_session.bottom_toolbar = None
+            else:
+                self.chat_session.bottom_toolbar = f"Model: {self.symbiote_settings['model']} | Role: {self.symbiote_settings['role']}\nEstimated Tokens: {self.estimated_tokens} Shell Mode: {self.shell_mode}"
+
+            if self.shell_mode is True:
+                prompt_content = "shell mode> "
+            else:
+                prompt_content = f"{self.symbiote_settings['role'].lower()}>\n"
+
+            prompt = f"{prompt_content}"
+
+            return prompt 
+
         while True:
             user_input = str()
+            now = datetime.now()
+            current_time = now.strftime("%m/%d/%Y %H:%M:%S")
+
             # Chack for a change in settings and write them
             check_settings = hash(json.dumps(self.symbiote_settings, sort_keys=True)) 
 
@@ -455,22 +482,14 @@ class symChat():
             if current_path.startswith(home_dir):
                 current_path = '~' + current_path[len(home_dir):]
 
-            # Bottom toolbar configuration
-            if self.prompt_only:
-                self.chat_session.bottom_toolbar = None
-            else:
-                self.chat_session.bottom_toolbar = f"Model: {self.symbiote_settings['model']} | Role: {self.symbiote_settings['role']}\nEstimated Tokens: {self.estimated_tokens} Shell Mode: {self.shell_mode}"
-
-            if self.shell_mode is True:
-                prompt_content = "shell mode> "
-            else:
-                prompt_content = f"{self.symbiote_settings['role'].lower()}>\n"
-
             if self.run is False:
-                user_input = self.chat_session.prompt(message=prompt_content,
+                user_input = self.chat_session.prompt(message=getPrompt(),
                                                    multiline=True,
                                                    default=user_input,
-                                                   vi_mode=self.symbiote_settings['vi_mode']
+                                                   cursor=CursorShape.UNDERLINE,
+                                                   #rprompt="right justified prompt tet",
+                                                   vi_mode=self.symbiote_settings['vi_mode'],
+                                                   refresh_interval=0.5
                                                 )
 
             print()
@@ -493,6 +512,7 @@ class symChat():
                 continue
 
             returned = self.sendMessage(user_input)
+            print(Rule(title=current_time, style="gray54"))
 
             if self.shell_mode is True:
                 if returned.startswith("`") and returned.endswith("`"):
@@ -767,6 +787,12 @@ class symChat():
 
         self.registerCommand("test::")
         if user_input.startswith('test::'):
+            print(Panel(Text("hello world", justify="center"), title="test"))
+            print()
+            print("[red]hello world[/red]")
+
+            obj = input("object: ")
+
             return None
  
         self.registerCommand("perifious::")
@@ -979,7 +1005,8 @@ class symChat():
                     reindex = False
 
             if file_path is None:
-                file_path = self.fileSelector("Extraction path:")
+                #file_path = self.fileSelector("Extraction path:")
+                file_path = self.displayFileBrowser()
 
             if file_path is None:
                 return None
@@ -1029,11 +1056,13 @@ class symChat():
                 time.sleep(4)
             else:
                 history_length = False 
-            
+           
+            history = str()
             for line in self.conversation_history:
+                history += f"role: {line['role']}\n{line['content']}\n"
                 print(f"role: {line['role']}")
-                print(f"{line['content']}")
-                print(f"------------------------------------")
+                print(Markdown(line['content']))
+                print()
 
             return None
 
@@ -1113,7 +1142,8 @@ class symChat():
             if match.group(1):
                 file_path = match.group(1)
             else:
-                file_path = self.fileSelector('File name:')
+                #file_path = self.fileSelector('File name:')
+                file_path = self.displayFileBrowser()
             
             if os.path.isfile(file_path):
                 file_path = os.path.expanduser(file_path)
@@ -1123,6 +1153,7 @@ class symChat():
                 return None
 
             self.symutils.viewFile(file_path)
+            print()
 
             return None
 
@@ -1135,7 +1166,8 @@ class symChat():
             if match.group(1):
                 image_path = match.group(1)
             else:
-                image_path = self.fileSelector('Image path:')
+                #image_path = self.fileSelector('Image path:')
+                image_path = self.displayFileBrowser()
                 image_path = os.path.expanduser(image_path)
                 image_path = os.path.abspath(image_path)
 
@@ -1173,7 +1205,8 @@ class symChat():
             if match.group(1):
                 file_path = match.group(1)
 
-            file_path = self.fileSelector("File name:")
+            #file_path = self.fileSelector("File name:")
+            file_path = self.displayFileBrowser()
             print(file_path)
 
             if file_path is None:
@@ -1322,6 +1355,24 @@ class symChat():
             else:
                 print("No content provided for the qr.")
 
+            return None
+
+        # Trigger for inspect:: command to inspect running python objects.
+        self.registerCommand("inspect::")
+        inspect_pattern = r'inspect::|inspect:(.*):'
+        match = re.search(inspect_pattern, user_input)
+        if match:
+            if match.group(1):
+                obj = match.group(1)
+            else:
+                all_objs = list({**globals(), **locals()}.keys())
+                obj = self.listSelector("Objects:", all_objs)
+
+            if obj:
+                obj = eval(obj, globals(), locals())
+                inspect(obj)
+
+            print()
             return None
 
         # Trigger for file:: processing. Load file content into user_input for ai consumption.
@@ -2061,13 +2112,14 @@ class symChat():
     def displayFileBrowser(self):
         """Terminal-based file browser using prompt_toolkit to navigate and select files."""
         current_path = Path.home()  # Start in the user's home directory
+        #current_path = Path.cwd()
         files = []
         selected_index = 0  # Track the selected file/folder index
         scroll_offset = 0  # Track the starting point of the visible list
         show_hidden = False  # Initialize hidden files visibility
 
-        terminal_height = int(os.get_terminal_size().lines / 2)
-        max_display_lines = terminal_height - 2  # Reduce by 2 for header and footer lines
+        terminal_height = int(os.get_terminal_size().lines)
+        max_display_lines = terminal_height - 4  # Reduce by 2 for header and footer lines
 
         def updateFileList():
             """Update the list of files in the current directory, with '..' as the first entry to go up."""
@@ -2149,12 +2201,14 @@ class symChat():
             updateFileList()
 
         # Layout with footer for shortcut hint
+        header_window = Frame(Window(FormattedTextControl(lambda: f"Current Directory: {current_path}"), height=1))
         file_list_window = Window(content=FormattedTextControl(getDisplayText), wrap_lines=False, height=max_display_lines)
         footer_window = Window(content=FormattedTextControl(lambda: "Press Ctrl-H to show/hide hidden files. Escape to exit."), height=1, style="grey")
+
         layout = Layout(HSplit([
-            Frame(Window(FormattedTextControl(lambda: f"Current Directory: {current_path}"), height=1)),
+            header_window, 
             file_list_window,
-            footer_window  # Footer with shortcut instructions
+            footer_window
         ]))
 
         # Application
@@ -2181,3 +2235,37 @@ class symChat():
                 conversations.append(file)
 
         return conversations
+
+    def displayPager(self, text):
+        search_field = SearchToolbar()
+
+        output_field = TextArea(
+                text,
+                scrollbar=True,
+                search_field=search_field,
+                )
+
+        kb = KeyBindings()
+
+        @kb.add("escape")
+        @kb.add("q")
+        def _(event):
+            event.app.exit()
+
+        framing = Frame(
+                output_field,
+                title="Content Viewer",
+                )
+
+        layout = Layout(framing, focused_element=output_field)
+
+        app = Application(
+                layout=layout,
+                key_bindings=kb,
+                mouse_support=True,
+                full_screen=True
+                )
+
+        return app.run()
+
+
