@@ -43,6 +43,11 @@ from rich.syntax import Syntax
 from rich.panel import Panel
 from rich.console import Console
 from rich.markdown import Markdown
+from rich.console import Console
+console = Console()
+print = console.print
+log = console.log
+
 import warnings
 warnings.filterwarnings("ignore", category=UserWarning, module="sumy")
 
@@ -99,7 +104,7 @@ class utilities():
         try:
             result = subprocess.run(['exiftool', '-j', file_path], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         except Exception as e:
-            print(f'exiftool failed: {e}')
+            log(f'exiftool failed: {e}')
 
         metadata = json.loads(result.stdout.decode())[0]
         metadata['SHA256'] = sha256
@@ -241,7 +246,7 @@ class utilities():
         doc = self.nlpm(text)
 
         for ent in doc.ents:
-            print(ent.label_, ent.text)
+            log(ent.label_, ent.text)
 
     def analyze_file(self, path, reindex=False):
         file_list = []
@@ -258,7 +263,7 @@ class utilities():
         for file in file_list:
             fcount += 1
             if self.settings['debug']:
-                print(f'Processing file {file}. count:{fcount}')
+                log(f'Processing file {file}. count:{fcount}')
 
             doc_id = self.getSHA256(file)
 
@@ -426,11 +431,11 @@ class utilities():
             content = content.encode('utf-8').decode('utf-8', errors='ignore')
 
         except Exception as e:
-            print(f"Error reading {file_path}: {e}")
+            log(f"Error reading {file_path}: {e}")
             content = ""
 
         if self.settings['debug']:
-            print(content)
+            log(content)
 
         return content
 
@@ -438,7 +443,7 @@ class utilities():
         es = Elasticsearch(self.settings['elasticsearch'])
 
         if not es.ping():
-            print(f'Unable to reach {self.settings["elasticsearch"]}')
+            log(f'Unable to reach {self.settings["elasticsearch"]}')
             return None
 
         return es
@@ -556,14 +561,14 @@ class utilities():
         for file in file_list:
             fcount += 1
             if self.settings['debug']:
-                print(f'Processing file {file}. count:{fcount}')
+                log(f'Processing file {file}. count:{fcount}')
 
             doc_id = self.getSHA256(file)
 
             if not reindex:
                 if es.exists(index=index, id=doc_id):
                     if self.settings['debug']:
-                        print(f"Document {doc_id} found. skipping...")
+                        log(f"Document {doc_id} found. skipping...")
                     continue
 
             content = self.summarizeFile(file)
@@ -572,22 +577,22 @@ class utilities():
                 es.index(index=index, id=doc_id, document=json.dumps(content))
             except exceptions.NotFoundError as e:
                 if self.settings['debug']:
-                    print(f"Document not found: {e}")
+                    log(f"Document not found: {e}")
             except exceptions.RequestError as e:
                 if self.settings['debug']:
-                    print(f"Problem with the request: {e}")
+                    log(f"Problem with the request: {e}")
             except exceptions.ConnectionError as e:
                 if self.settings['debug']:
-                    print(f"Problem with the connection: {e}")
+                    log(f"Problem with the connection: {e}")
             except exceptions.ConflictError as e:
                 if self.settings['debug']:
-                    print(f"Conflict occurred. Probably the document with this id already exists.")
+                    log(f"Conflict occurred. Probably the document with this id already exists.")
             except exceptions.TransportError as e:
                 if self.settings['debug']:
-                    print(f"General transport error: {e}")
+                    log(f"General transport error: {e}")
             except Exception as e:
                 if self.settings['debug']:
-                    print(f"Error: {e}")
+                    log(f"Error: {e}")
 
             es.indices.refresh(index=index)
 
@@ -644,7 +649,7 @@ class utilities():
 
             ret = res.copy()
         except:
-            print(f'Error running query: {query}')
+            log(f'Error running query: {query}')
 
         return ret 
 
@@ -676,7 +681,7 @@ class utilities():
         try:
             output = df[display_fields]
         except:
-            print("No results found.")
+            log("No results found.")
         #print(df[['METADATA.SourceFile']])
 
         return output 
@@ -697,7 +702,7 @@ class utilities():
         text = ""
         for file_path in file_list:
             if self.settings['debug']:
-                print(f"Scanning {file_path}")
+                log(f"Scanning {file_path}")
             with open(file_path, 'r') as file:
                 for line_no, line in enumerate(file.readlines(), start=1):
                     if re.search(regex_search, line, re.I):
@@ -710,7 +715,7 @@ class utilities():
                         ratio = fuzz.ratio(fuzzy.lower(), chunk.lower())
                         if ratio > 50:
                             if self.settings['debug']:
-                                print(ratio, chunk, "\n", line)
+                                log(ratio, chunk, "\n", line)
                             text += line
                             break
 
@@ -746,13 +751,13 @@ class utilities():
             audio = recognizer.record(source)
         try:
             text = recognizer.recognize_google(audio)
-            print("Google Speech Recognition thinks you said: " + text)
+            log("Google Speech Recognition thinks you said: " + text)
         except sr.UnknownValueError:
-            print("Google Speech Recognition could not understand audio")
+            log("Google Speech Recognition could not understand audio")
         except sr.RequestError as e:
-            print(f"Could not request results from Google Speech Recognition service; {e}")
+            log(f"Could not request results from Google Speech Recognition service; {e}")
         except Exception as e:
-            print(f"Unknown exception: {e}")
+            log(f"Unknown exception: {e}")
 
         return text
 
@@ -789,7 +794,7 @@ class utilities():
             re.compile(final_regex)
             return final_regex
         except re.error:
-            print(f"Invalid search term: {query}")
+            log(f"Invalid search term: {query}")
             return False
 
     def exec_command(self, command):
@@ -946,9 +951,9 @@ class utilities():
                 readable_text = text_maker.handle(str(soup))
 
             except requests.HTTPError as e:
-                print(f"HTTP error occurred: {e}")
+                log(f"HTTP error occurred: {e}")
             except Exception as e:
-                print(f"An error occurred: {e}")
+                log(f"An error occurred: {e}")
 
             return readable_text
         else:
@@ -971,9 +976,6 @@ class utilities():
 
             return False
 
-        # Create a console object
-        console = Console()
-
         text = self.extractText(file_path)
         # Create a Syntax object to highlight the code
         if is_source_code(file_path):
@@ -982,4 +984,4 @@ class utilities():
             contents = Markdown(text)
 
         panel = Panel(contents, title=file_path, expand=True)
-        console.print(panel, justify="center")
+        print(panel, justify="center")

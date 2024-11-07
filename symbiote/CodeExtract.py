@@ -15,6 +15,10 @@ from pygments import highlight
 from pygments.style import Style
 from pygments.token import Token
 from pygments.formatters import Terminal256Formatter
+from rich.console import Console
+console = Console()
+print = console.print
+log = console.log
 
 pygment_styles = [
         'murphy',
@@ -92,7 +96,7 @@ class CodeBlockIdentifier:
         try:
             lexer = guess_lexer_for_filename(file_name, code)
         except ClassNotFound:
-            print(f'Could not determine the language of the file: {file_name}')
+            log(f'Could not determine the language of the file: {file_name}')
             return None
 
         # Choose the linter command based on the lexer name
@@ -111,7 +115,7 @@ class CodeBlockIdentifier:
         elif 'ruby' in lexer.name.lower():
             command = ['ruby', '-c', file_name]
         else:
-            print(f'Unsupported language: {lexer.name}')
+            log(f'Unsupported language: {lexer.name}')
             return None
 
         # Run the linter command
@@ -228,7 +232,7 @@ class CodeBlockIdentifier:
         return final_score
 
     def identify_language(self, block, lang=None):
-        print(lang)
+        log(lang)
         try:
             if lang is not None:
                 # If 'lang' is provided, use it to get the lexer
@@ -289,7 +293,7 @@ if __name__ == "__main__":
     text = """Here is some Python code:
     ```python
     def hello_world():
-        print("Hello, world!")
+        log("Hello, world!")
     ```
     And here is some HTML:
     ```html

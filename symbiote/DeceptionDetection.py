@@ -18,6 +18,10 @@ from scipy.stats import zscore
 from transformers import pipeline
 import os
 import warnings
+from rich.console import Console
+console = Console()
+print = console.print
+log = console.log
 
 # Suppress NLTK output and Hugging Face FutureWarning
 with warnings.catch_warnings():
@@ -133,7 +137,7 @@ class DeceptionDetector:
             paragraphs = soup.find_all('p')
             extracted_text = "\n".join([para.get_text() for para in paragraphs])
         except requests.exceptions.RequestException as e:
-            print(f"An error occurred while trying to download the text: {e}")
+            log(f"An error occurred while trying to download the text: {e}")
             extracted_text = ""
         return extracted_text
 

@@ -3,6 +3,10 @@
 # wikipedia.py
 
 import requests
+from rich.console import Console
+console = Console()
+print = console.print
+log = console.log
 
 class WikipediaSearch:
     def __init__(self, language='en'):

@@ -1227,8 +1227,8 @@ class symChat():
         match = re.search(wiki_pattern, user_input)
         if match:
             if match.group(1):
-                import symbiote.wikipedia as w
-                wiki = w.WikipediaSearch()
+                import symbiote.Wikipedia as wikipedia
+                wiki = wikipedia.WikipediaSearch()
                 results = wiki.search(match.group(1), 5)
                 results_str = ""
                 for result in results:
