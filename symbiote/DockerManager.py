@@ -12,6 +12,10 @@ import threading
 from queue import Queue, Empty
 import tempfile
 from pathlib import Path
+from rich.console import Console
+console = Console()
+print = console.print
+log = console.log
 
 class DockerManager:
     def __init__(self, image_name="symbiote_playground"):
@@ -23,7 +27,7 @@ class DockerManager:
         self.keep_running = False
         self.docker_path = shutil.which("docker")
         if self.docker_path is None:
-            print(f"Docker executable not found.")
+            log(f"Docker executable not found.")
             return
 
     def ensure_image_exists(self, verbose=False):
@@ -31,7 +35,7 @@ class DockerManager:
         try:
             self.client.images.get(self.image_name)
         except docker.errors.ImageNotFound:
-            print(f"Image '{self.image_name}' not found. Building the image...")
+            log(f"Image '{self.image_name}' not found. Building the image...")
             dockerfile = (
                 "FROM ubuntu:latest\n"
                 "ENV DEBIAN_FRONTEND=noninteractive\n"
@@ -73,23 +77,23 @@ class DockerManager:
                     index = child.expect([r'>>> ', r'\.\.\. ', pexpect.EOF])
                     interaction_log += child.before.strip() + "\n"
                     if index == 0:  # '>>> ' prompt indicates primary prompt
-                        print(child.before.strip())
+                        log(child.before.strip())
                         break
                     elif index == 1:  # '... ' prompt indicates continuation
-                        print(child.before.strip())
+                        log(child.before.strip())
                         # If this is the last line, send an empty line to execute the block
                         if i == len(lines) - 1:
                             child.sendline('')
                     elif index == 2:  # EOF indicates the end of the output
-                        print(child.before.strip())
+                        log(child.before.strip())
                         return interaction_log.strip()
 
             except pexpect.EOF:
-                print(child.before.strip())
+                log(child.before.strip())
                 interaction_log += child.before.strip() + "\n"
                 break
             except pexpect.ExceptionPexpect as e:
-                print(f"Error executing line '{line}': {e}")
+                log(f"Error executing line '{line}': {e}")
                 interaction_log += f"Error executing line '{line}': {e}\n"
                 break
        
@@ -130,25 +134,25 @@ class DockerManager:
             output = container.logs().decode("utf-8")
 
             if exit_code['StatusCode'] != 0:
-                print(f"Command '{command}' failed with status {exit_code['StatusCode']}.")
+                log(f"Command '{command}' failed with status {exit_code['StatusCode']}.")
 
             return output
 
         except docker.errors.ContainerError as e:
-            print("Error executing command in container:", e)
+            log("Error executing command in container:", e)
         except docker.errors.ImageNotFound as e:
-            print("Image not found:", e)
+            log("Image not found:", e)
         except docker.errors.APIError as e:
-            print("Docker API error:", e)
+            log("Docker API error:", e)
         except docker.errors.Timeout as e:
-            print("Execution timed out.")
+            log("Execution timed out.")
             container.kill()  # Ensure container is killed if it times out
         finally:
             # Explicitly remove the container after execution
             try:
                 container.remove()
             except docker.errors.APIError as e:
-                print("Docker API error during container deletion:", e)
+                log("Docker API error during container deletion:", e)
 
 # Example usage for testing
 if __name__ == "__main__":
@@ -165,9 +169,9 @@ if __name__ == "__main__":
     # Execute Python code interactively
     code_block = """
 x = 5
-print("x is:", x)
+log("x is:", x)
 y = x + 10
-print("y is:", y)
+log("y is:", y)
 """
 
     docker_manager.run_interactive_python(code_block)

@@ -13,6 +13,10 @@ import hashlib
 import re
 from prompt_toolkit import print_formatted_text, ANSI
 from prompt_toolkit.utils import get_cwidth
+from rich.console import Console
+console = Console()
+print = console.print
+log = console.log
 
 class WebCrawler:
     def __init__(self, browser="firefox"):
@@ -36,7 +40,7 @@ class WebCrawler:
             options.add_argument("--headless")
             self.driver = webdriver.Firefox(service=webdriver.firefox.service.Service(GeckoDriverManager().install(), log_path='/dev/null'), options=options)
         else:
-            print(f"Unsupported browser: {self.browser}")
+            log(f"Unsupported browser: {self.browser}")
             return ""
 
     def pull_website_content(self, url, search_term=None, crawl=False, depth=None):
@@ -49,7 +53,7 @@ class WebCrawler:
         try: 
             self.driver.get(url)
         except Exception as e:
-            print(f"Error fetching the website content: {e}")
+            log(f"Error fetching the website content: {e}")
             return ""
         
 
@@ -101,7 +105,7 @@ class WebCrawler:
         # Display a progress update
         self.crawl_count += 1
         progress = f"\x1b[2KCount: {self.crawl_count} Discarded: {self.discarded_count} Matches: {self.match_count} URL: {url}"
-        print(progress, end='\r')
+        log(progress, end='\r')
 
         # If crawl option is set to True, find all links and recursively pull content
         if self.crawl and (depth is None or depth > 0):

@@ -22,6 +22,10 @@ from textstat import textstat
 import nltk
 from nltk import pos_tag
 from nltk.tokenize import word_tokenize
+from rich.console import Console
+console = Console()
+print = console.print
+log = console.log
 
 # Download necessary NLTK data
 #nltk.download('punkt')
@@ -358,7 +362,7 @@ class FakeNewsDetector:
             paragraphs = soup.find_all('p')
             return "\n".join([para.get_text() for para in paragraphs])
         except requests.exceptions.RequestException as e:
-            print(f"An error occurred while trying to download the text: {e}")
+            log(f"An error occurred while trying to download the text: {e}")
             return ""
 
     # --- Enhanced AI Detection Methods ---

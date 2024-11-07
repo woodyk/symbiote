@@ -58,6 +58,7 @@ from rich.rule import Rule
 #from rich import print as print
 console = Console()
 print = console.print
+log = console.log
 
 # Add these imports at the beginning of the file
 #from symbiote.model_creator import create_model, train_model, evaluate_model
@@ -496,6 +497,7 @@ class symChat():
             user_input = self.processCommands(user_input)
 
             if user_input is None or user_input == "":
+                print(Rule(title=current_time, style="gray54"))
                 continue
 
             if check_settings != self.settings_hash:
@@ -1559,11 +1561,10 @@ class symChat():
                 url = self.textPrompt("URL to scan:")
 
             if self.isValidUrl(url):
-                self.spinner.start()
                 scanner = web_vuln.SecurityScanner(headless=True, browser='firefox')
-                json_result = scanner.scan(url)
+                scanner.scan(url)
                 report = scanner.generate_report()
-                self.spinner.succeed('Completed')
+                print(Panel(Text(report), title=f"Report: {url}"))
                 user_input = f"Review the following web vulnerability scan and provide details and action items.\n{report}"
                 return user_input
             else:
@@ -1581,12 +1582,14 @@ class symChat():
 
             if self.isValidUrl(url):
                 self.spinner.start()
-                scan_result = self.runNucleiScan(url)
-                self.spinner.succeed('Completed')
-                user_input = f"Review the following nuclei vulnerability scan and provide a report on the findings and action items.\n{scan_result}"
-                return user_input
-            else:
-                return None
+                result = self.runNucleiScan(url)
+                if result:
+                    self.spinner.succeed('Completed')
+                    print(Panel(Text(result), title=url))
+                    user_input = f"Review the following nuclei vulnerability scan and provide a report on the findings and action items.\n{result}"
+                    return user_input
+
+            return None
 
         # Trigger for textual deception analysis deception::
         self.registerCommand("deception::")
@@ -2000,18 +2003,9 @@ class symChat():
         try:
             # Construct the command to run nuclei with the target domain
             command = ['nuclei', '-u', domain, '-j', '-c', '100']
+            result = self.execCommand(command)
 
-            # Run the command using subprocess and capture the output
-            result = subprocess.run(command, capture_output=True, text=True)
-
-            # Check if the command was successful (non-zero return code means error)
-            if result.returncode != 0:
-                print(f"Error: Nuclei scan failed with code {result.returncode}.")
-                print(result.stderr)
-                return None
-
-            # Return the output if successful
-            return result.stdout
+            return result
 
         except Exception as e:
             # In case any other unexpected error occurs, print the error
