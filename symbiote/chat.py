@@ -492,11 +492,14 @@ class symChat():
                                                    refresh_interval=0.5
                                                 )
 
+            '''
             try:
                 user_input = self.processCommands(user_input)
             except Exception as e:
                 log(f"Error processing commands in user_input: {e}")
                 continue
+            '''
+            user_input = self.processCommands(user_input)
 
             if user_input is None or user_input == "":
                 print(Rule(title=current_time, style="gray54"))
@@ -1597,24 +1600,25 @@ class symChat():
         self.registerCommand("deception::")
         deception_pattern = r'deception::|deception:(.*):'
         match = re.search(deception_pattern, user_input)
+        analysis_src = None
         if match:
             if match.group(1):
-                analysis_content = match.group(1)
+                analysis_src = match.group(1)
             else:
-                analysis_content = self.textPrompt("Text or URL:")
+                analysis_src = self.textPrompt("Text or URL:")
 
-            if analysis_content == None:
+            if analysis_src == None:
                 log("No content to analyze.")
                 return None
 
             self.spinner.start()
             detector = deception.DeceptionDetector()
-            results = detector.analyze_text(analysis_content)
+            results = detector.analyze_text(analysis_src)
             self.spinner.succeed('Completed')
             if results:
                 content = json.dumps(results, indent=4)
-                print(Panel(Text(content), title=f"Content: {url}"))
-                user_input = f"Review the following JSON and create a report on the deceptive findings.\n{results}"
+                print(Panel(Text(content), title=f"Deception Analysis Summary"))
+                user_input = f"Review the following JSON and create a report on the deceptive findings.\n{content}"
             else:
                 log("No results returned.")
                 return None
