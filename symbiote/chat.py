@@ -1042,7 +1042,7 @@ class symChat():
             return user_input 
 
         # Trigger to flush current running conversation from memory.
-        self.registerCommand("flush")
+        self.registerCommand("flush::")
         flush_pattern = r'^flush::'
         match = re.search(flush_pattern, user_input)
         if match:
@@ -1921,15 +1921,7 @@ class symChat():
         # Open the image for viewing
         image.show()
 
-    def generateQr(
-        self,
-        text: str,
-        center_color: str = "#00FF00",  # Lime color in hex
-        outer_color: str = "#0000FF",   # Blue color in hex
-        back_color: str = "black",
-        dot_size: int = 10,
-        border_size: int = 10
-    ):
+    def generateQr(self, text: str, center_color: str = "#00FF00", outer_color: str = "#0000FF", back_color: str = "black", dot_size: int = 10, border_size: int = 10):
         # Create a QR code object
         qr = qrcode.QRCode(
             version=1,
@@ -2268,5 +2260,3 @@ class symChat():
                 )
 
         return app.run()
-
-
