@@ -13,6 +13,10 @@ import time
 import re
 from ollama import Client
 olclient = Client(host='http://localhost:11434')
+from rich.console import Console
+console = Console()
+print = console.print
+log = console.log
 
 class MailChecker:
     def __init__(self, username, password, mail_type='imap', days=None, unread=False, model=None):
@@ -53,14 +57,12 @@ class MailChecker:
             count = 0
             for mail_id in mail_ids:
                 count += 1
-                print(f"\rProcessing {count} of {len(mail_ids)} e-mails.", end="", flush=True)
+                log(f"Processing {count} of {len(mail_ids)} e-mails.")
                 result, msg_data = mail.fetch(mail_id, '(RFC822)')
                 raw_email = msg_data[0][1]
                 msg = email.message_from_bytes(raw_email)
                 emails.append(self._get_email_content(msg))
 
-            print()
-            
             return json.dumps(emails, indent=4)
 
     def _check_pop_mail(self):
@@ -95,6 +97,7 @@ class MailChecker:
 
         if self.model is not None: 
             # Summarize e-mail body
+            log(f"Summarizing e-mail body")
             system_prompt = """You are an expert in summarizing emails. Your task is to transform the body of an email into a concise, structured summary. This summary should accurately capture the key details and essence of the original email and include a summary of any attachments. Follow these guidelines:
 
     Identify the Purpose: Determine the primary purpose of the email (e.g., request, update, notification, inquiry, etc.).
@@ -117,27 +120,31 @@ class MailChecker:
             messages = []
             messages.append({"role": "system", "content": system_prompt})
             messages.append({"role": "user", "content": body})
-            response = olclient.chat(
-                    model=self.model,
-                    messages=messages,
-                    #options={ "num_ctx": 8192 },
-                    stream=False,
-                    )
+            if self.model.startswith("ollama:"):
+                model_name = self.model.split(":")
+                use_model = model_name[1] + ":" + model_name[2]
 
-            body = response['message']['content']
+                response = olclient.chat(
+                        model=use_model,
+                        messages=messages,
+                        #options={ "num_ctx": 8192 },
+                        stream=False,
+                        )
+
+                body = response['message']['content']
         
         email_content = {
             "from": from_,
             "to": to_,
             "subject": subject,
             "date": date_unix,
-            "body": body
+            "body": body[:500]
         }
         
         return email_content
 
     def _get_body(self, msg):
-        body = ""
+        body = str() 
         if msg.is_multipart():
             for part in msg.walk():
                 content_type = part.get_content_type()

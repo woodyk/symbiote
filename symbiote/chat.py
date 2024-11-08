@@ -55,7 +55,6 @@ from rich.table import Table
 from rich.text import Text
 from rich.live import Live
 from rich.rule import Rule
-#from rich import print as print
 console = Console()
 print = console.print
 log = console.log
@@ -70,7 +69,7 @@ import symbiote.CodeExtract as codeextract
 import symbiote.WebCrawler as webcrawler
 import symbiote.utils as utils
 #import symbiote.core as core
-import symbiote.get_email as mail
+import symbiote.GetEmail as mail
 from symbiote.themes import ThemeManager
 import symbiote.headlines as hl
 import symbiote.ImageAnalysis as ia
@@ -100,14 +99,14 @@ try:
     for model in response:
         models.append("openai:" + model.id)
 except Exception as e:
-    print(e)
+    log(e)
     pass
 
 from groq import Groq
 try:
     grclient = Groq()
 except Exception as e:
-    print(e)
+    log(e)
 
 command_list = {
         "help::": "This help output.",
@@ -147,7 +146,7 @@ command_list = {
         "theme::": "Change the theme for the symbiote cli.",
         "view::": "View a file",
         "scroll::": "Scroll through the text of a given file a file",
-        "dork::": "Run a google search on your search term.",
+        "google::": "Run a google search on your search term.",
         "wiki::": "Run a wikipedia search on your search term.",
         "headlines::|news::": "Get headlines from major news agencies.",
         "mail::": "Load e-mail messages from gmail.",
@@ -185,7 +184,7 @@ kb = KeyBindings()
 @kb.add('c-c')
 def _(event):
     ''' Exit Application '''
-    print("Control-C detected.")
+    log("Control-C detected.")
     sys.exit(0) 
 
 # Default settings for openai and symbiote module.
@@ -354,12 +353,12 @@ class symChat():
                 with open(clear_file, 'w') as file:
                     pass
             except:
-                print(f"Unable to clear {clear_file}")
+                log(f"Unable to clear {clear_file}")
 
             if self.symbiote_settings['conversation'] == os.path.basename(clear_file):
                 self.current_conversation = self.sym.loadConversation(clear_file)
 
-            print(f"Conversation cleared: {clear_file}")
+            log(f"Conversation cleared: {clear_file}")
 
             return
         elif selected_file == "export":
@@ -381,7 +380,7 @@ class symChat():
             self.current_conversation = self.sym.loadConversation(self.conversations_file)
             self.convo_file = os.path.basename(self.conversations_file)
 
-        print(f"Loaded conversation: {selected_file}")
+        log(f"Loaded conversation: {selected_file}")
 
         return
 
@@ -393,7 +392,7 @@ class symChat():
             if model_name in model_list:
                 selected_model = args[0]
             else:
-                print(f"No such model: {model_name}")
+                log(f"No such model: {model_name}")
                 return None
         except:
             selected_model = self.listSelector("Select a model:", sorted(model_list))
@@ -493,8 +492,11 @@ class symChat():
                                                    refresh_interval=0.5
                                                 )
 
-            print()
-            user_input = self.processCommands(user_input)
+            try:
+                user_input = self.processCommands(user_input)
+            except Exception as e:
+                log(f"Error processing commands in user_input: {e}")
+                continue
 
             if user_input is None or user_input == "":
                 print(Rule(title=current_time, style="gray54"))
@@ -551,7 +553,7 @@ class symChat():
         num_ctx = 8092
 
         print('<THINKING>')
-        response = ''
+        response = str() 
 
         if self.symbiote_settings['model'].startswith("openai"):
             model_name = self.symbiote_settings['model'].split(":")
@@ -564,7 +566,7 @@ class symChat():
                         stream = True,
                         )
             except Exception as e:
-                print(e)
+                log(e)
                 return response
 
             for chunk in stream:
@@ -637,12 +639,16 @@ class symChat():
             message.append({"role": "system", "content": available_roles[current_role]})
             message.append({"role": "user", "content": user_input})
 
-        response = ''
+        response = str() 
         streaming = self.symbiote_settings['stream']
         markdown = self.symbiote_settings['markdown']
         if self.shell_mode is True:
             streaming = False
             markdown = False
+
+        if len(message) == 0:
+            log(f"The user input is empty.  Possibly your input was too large.")
+            return None
 
         if markdown is True and streaming is True:
            live = Live(console=console, refresh_per_second=5)
@@ -669,7 +675,7 @@ class symChat():
                         stream = streaming,
                         )
             except Exception as e:
-                print(e)
+                log(e)
                 return None
 
             if self.suppress is True:
@@ -682,7 +688,7 @@ class symChat():
                             if markdown is True:
                                 live.update(Markdown(response))
                             else:
-                                print(chunk.choices[0].delta.content, end='', flush=True)
+                                log(chunk.choices[0].delta.content, end='', flush=True)
                 else:
                     response = stream.choices[0].message.content
                     if markdown is True:
@@ -704,7 +710,7 @@ class symChat():
                         options = { "num_ctx": num_ctx },
                         )
             except Exception as e:
-                print(e)
+                log(e)
                 return None
             
             if self.suppress is True:
@@ -735,7 +741,7 @@ class symChat():
                         stream = stream,
                         )
             except Exception as e:
-                print(e)
+                log(e)
                 return None
 
             if self.suppress is True:
@@ -792,9 +798,6 @@ class symChat():
             print(Panel(Text("hello world", justify="center"), title="test"))
             print()
             print("[red]hello world[/red]")
-
-            obj = input("object: ")
-
             return None
  
         self.registerCommand("perifious::")
@@ -815,7 +818,7 @@ class symChat():
                 self.shell_mode = False
                 self.chat_session.style = self.theme_manager.get_theme(self.symbiote_settings["theme"])
 
-            print(f"Shell mode set: {self.shell_mode}")
+            log(f"Shell mode set: {self.shell_mode}")
 
             # needs to be fixed
             #shell.symBash().launch_shell()
@@ -853,7 +856,7 @@ class symChat():
                 sub_command = match.group(1).strip()
                 if sub_command == 'get':
                     if re.search(r'^https?://\S+', contents):
-                        print(f"Fetching content from: {contents}")
+                        log(f"Fetching content from: {contents}")
                         crawler = webcrawler.WebCrawler(browser='firefox')
                         pages = crawler.pull_website_content(url, search_term=None, crawl=False, depth=None)
                         for md5, page in pages.items():
@@ -892,7 +895,7 @@ class symChat():
             if selected_role in available_roles:
                 self.symbiote_settings['role'] = selected_role 
             else:
-                print(f"No such role: {selected_role}")
+                log(f"No such role: {selected_role}")
 
             return None
 
@@ -968,7 +971,7 @@ class symChat():
                 self.working_directory = requested_directory 
                 os.chdir(self.working_directory)
             else:
-                print(f"Directory does not exit: {requested_directory}")
+                log(f"Directory does not exit: {requested_directory}")
                 return None
 
             return None 
@@ -1024,7 +1027,7 @@ class symChat():
 
                 return result
             elif not os.path.isfile(file_path):
-                print(f"File not found: {file_path}")
+                log(f"File not found: {file_path}")
                 return None
 
             summary = self.symutils.analyze_file(file_path)
@@ -1151,7 +1154,7 @@ class symChat():
                 file_path = os.path.expanduser(file_path)
                 file_path = os.path.abspath(file_path)
             elif os.path.isdir(file_path):
-                print(f'Must be a file not a directory.')
+                log(f'Must be a file not a directory.')
                 return None
 
             self.symutils.viewFile(file_path)
@@ -1229,18 +1232,20 @@ class symChat():
             if match.group(1):
                 import symbiote.Wikipedia as wikipedia
                 wiki = wikipedia.WikipediaSearch()
-                results = wiki.search(match.group(1), 5)
-                results_str = ""
+                search_term = match.group(1)
+                results = wiki.search(search_term, 5)
+                results_str = str()
                 for result in results:
                     results_str += result['text']
 
+                print(Panel(Text(results_str), title=f"Wikipedia: {search_term}"))
                 content = f"wikipedia search\n"
                 content += '\n```\n{}\n```\n'.format(results_str)
                 user_input = user_input[:match.start()] + content + user_input[match.end():]
 
                 return user_input
             else:
-                print("No search term provided.")
+                log("No search term provided.")
                 return None
 
         # Trigger for headline analysis
@@ -1251,7 +1256,7 @@ class symChat():
         if match:
             gh = hl.getHeadlines()
             result = gh.scrape()
-
+            print(Panel(Text(result), title=f"News Headlines"))
             content = f"Consolidate and summarize the following.\n"
             content += '\n```\n{}\n```\n'.format(result)
             user_input = user_input[:match.start()] + content + user_input[match.end():]
@@ -1259,21 +1264,22 @@ class symChat():
             return user_input
 
         # Trigger for google search or dorking
-        self.registerCommand("dork::")
-        google_pattern = r'dork:(.*):'
+        self.registerCommand("google::")
+        google_pattern = r'google:(.*):'
         match = re.search(google_pattern, user_input)
         if match:
             if match.group(1):
                 import symbiote.googleSearch as gs
-                dork = gs.googleSearch()
-                links = dork.fetch_links(match.group(1))
-                results = dork.fetch_text_from_urls(links)
-                results = self.cleatText(results)
-
-                user_input = user_input[:match.start()] + results + user_input[match.end():]
+                search_term = match.group(1)
+                search = gs.googleSearch()
+                links = search.fetch_links(search_term)
+                result = search.fetch_text_from_urls(links)
+                result = self.cleanText(result)
+                print(Panel(Text(result[:10000]), title=f"Search Result: {search_term}"))
+                user_input = user_input[:match.start()] + result + user_input[match.end():]
                 return user_input
             else:
-                print("No search term provided.")
+                log("No search term provided.")
                 return None
 
         # Trigger for define::
@@ -1292,6 +1298,8 @@ class symChat():
 """
                 user_input = content
 
+                return user_input
+
         # Trigger for imap mail checker mail::
         self.registerCommand("mail::")
         mail_pattern = r'mail::'
@@ -1303,9 +1311,14 @@ class symChat():
                     mail_type='imap',
                     days=2,
                     unread=False,
+                    #model=self.symbiote_settings['model'],
                     model=None,
                     )
             email = mail_checker.check_mail()
+
+            if email is None:
+                log(f"No emails to analyze.")
+                return None
 
             content = f"""You read in a JSON document of e-mails containing from, to, subject, received date, and body and converse about those messages. Your job is as follows.
 1. Identify messages that may be of importance and highlight details about those messages.
@@ -1314,9 +1327,11 @@ class symChat():
 4. Provide a brief summary of the messages found.
 5. Provide further analysis upon request.
 """
- 
-            content += '\n```\n{}\n```\n'.format(email)
+            content += f"\n```\n{email}\n```\n"
+            print(Panel(Text(email), title=f"Emails: {self.symbiote_settings['imap_username']}"))
+            print()
             user_input = user_input[:match.start()] + content + user_input[match.end():]
+
             return user_input
 
         # Trigger for w3m web browser functionality browser::
@@ -1342,7 +1357,7 @@ class symChat():
                 url = match.group(1)
                 self.urlImageExtract(url)
             else:
-                print('No url specified.')
+                log('No url specified.')
 
             return None
 
@@ -1355,7 +1370,7 @@ class symChat():
                 content = match.group(1)
                 self.generateQr(content)
             else:
-                print("No content provided for the qr.")
+                log("No content provided for the qr.")
 
             return None
 
@@ -1373,6 +1388,8 @@ class symChat():
             if obj:
                 obj = eval(obj, globals(), locals())
                 inspect(obj)
+            else:
+                log(f"No object selected.")
 
             print()
             return None
@@ -1384,54 +1401,30 @@ class symChat():
         match = re.search(file_pattern, user_input)
         if match: 
             file_path = None
-            sub_command = None
-            scroll = False
-
             if match.group(1):
-                print(match.group(1))
-                matched = match.group(1)
-                meta_pattern = r'meta:(.*)'
-
-                matchb = re.search(meta_pattern, matched)
-                if matchb:
-                    sub_command = "meta"
-                    if matchb.group(1):
-                        file_path = os.path.expanduser(matchb.group(1))
-                else:
-                    file_path = os.path.expanduser(match.group(1))
+                file_path = match.group(1)
             else:
-                #file_path = self.fileSelector("File name:")
                 file_path = self.displayFileBrowser()
 
             if file_path is None:
+                log(f"No such file or directory: {file_path}")
                 return None 
             
             file_path = os.path.expanduser(file_path)
-            absolute_path = os.path.abspath(file_path)
+            file_path = os.path.abspath(file_path)
 
-            if sub_command is not None:
-                # Process file sub commands
-                if sub_command == "meta":
-                    meta_data = self.symutils.extractMetadata(file_path)
-                    content = json.dumps(meta_data)
-                else:
-                    print(f"Unknown sub command: {sub_command}")
-                    return None
-
-                meta_content = '\n```\n{}\n```\n'.format(content)
-                user_input = user_input[:match.start()] + meta_content + user_input[match.end():]
-
-            elif os.path.isfile(file_path):
+            if os.path.isfile(file_path):
                 content = self.symutils.extractText(file_path)
-
-                file_content = f"File name: {absolute_path}\n"
+                print(Panel(Text(content), title=f"Content: {file_path}"))
+                file_content = f"File name: {file_path}\n"
                 file_content += '\n```\n{}\n```\n'.format(content)
                 user_input = user_input[:match.start()] + file_content + user_input[match.end():]
-
             elif os.path.isdir(file_path):
-                dir_content = self.symutils.extractDirText(file_path)
-                if dir_content is None:
+                content = self.symutils.extractDirText(file_path)
+                if content is None:
+                    log(f"No content found in directory: {file_path}")
                     return None
+                print(Panel(Text(content), title=f"Content: {file_path}"))
                 user_input = user_input[:match.start()] + dir_content + user_input[match.end():]
 
             return user_input
@@ -1445,7 +1438,7 @@ class symChat():
                 query = match.group(1)
                 self.fluxImageGenerator(query)
             else:
-                print(f"No image description provided.")
+                log(f"No image description provided.")
 
             return None
 
@@ -1459,14 +1452,13 @@ class symChat():
                 command = match.group(1)
                 result = self.execCommand(command)
                 if result:
-                    print(result)
+                    print(Panel(Text(result), title=f"Command: {command}"))
                     self.writeHistory('user', result)
                 return None
             elif match.group(2):
                 command = match.group(2)
                 result = self.execCommand(command)
-                print(result)
-                print()
+                print(Panel(Text(result), title=f"Command: {command}"))
                 content = f"\n```{command}\n{result}\n```\n"
                 user_input = user_input[:match.start()] + content + user_input[match.end():]
                 return user_input
@@ -1479,7 +1471,7 @@ class symChat():
         match = re.search(get_pattern, user_input)
         if match:
             crawl = False
-            website_content = ''
+            website_content = str() 
             if match.group(1):
                 url = match.group(1)
             else:
@@ -1487,14 +1479,16 @@ class symChat():
             
             if url == None:
                 return None 
-
-            self.spinner.start()
+            
+            log(f"Fetching {url}...")
+            content = str()
             crawler = webcrawler.WebCrawler(browser='firefox')
             pages = crawler.pull_website_content(url, search_term=None, crawl=crawl, depth=None)
-            self.spinner.succeed('Completed')
             for md5, page in pages.items():
-                website_content += page['content']
-            user_input = user_input[:match.start()] + website_content + user_input[match.end():]
+                content += page['content']
+
+            print(Panel(Text(content), title=f"Content: {url}"))
+            user_input = user_input[:match.start()] + content + user_input[match.end():]
             print()
             return user_input 
 
@@ -1503,10 +1497,15 @@ class symChat():
         fake_news_pattern = r'\bfake_news::|\bfake_news:(.*):'
         match = re.search(fake_news_pattern, user_input)
         if match:
+            data = None
             if match.group(1):
                 data = match.group(1)
             else:
                 data = self.textPrompt("URL or text to analyze:")
+
+            if data is None:
+                log(f"No data provided.")
+                return None
 
             self.spinner.start()
             detector = fake_news.FakeNewsDetector()
@@ -1518,9 +1517,11 @@ class symChat():
             result = detector.analyze_text(text)
             self.spinner.succeed('Completed')
             if result:
-                print(json.dumps(result, indent=4))
+                output = json.dumps(result, indent=4)
+                print(Panel(Text(output), title=f"FakeNew Analysis: {data}"))
                 user_input = f"The following results are from a fake news analyzer.  Analyze the following json document and provide a summary and report of the findings.\n{result}"
             else:
+                log(f"No results for {data}")
                 return None
             
             return user_input
@@ -1536,17 +1537,18 @@ class symChat():
                 yt_url = self.textPrompt("Youtube URL:")
 
             if yt_url == None:
+                log(f"No transciprts url set.")
                 return None
 
-            print(f"Fetching youtube transcript from: {yt_url}")
-            self.spinner.start()
+            log(f"Fetching youtube transcript from: {yt_url}")
             yt = ytutil.YouTubeUtility(yt_url)
             transcript = yt.get_transcript()
-            self.spinner.succeed('Completed')
             if transcript:
+                print(Panel(Text(transcript), title=f"Transcripts: {yt_url}"))
                 user_input = user_input[:match.start()] + transcript + user_input[match.end():]
             else:
-                user_input = None
+                log(f"No transcripts found.")
+                return None
 
             return user_input
 
@@ -1602,7 +1604,7 @@ class symChat():
                 analysis_content = self.textPrompt("Text or URL:")
 
             if analysis_content == None:
-                print("No content to analyze.")
+                log("No content to analyze.")
                 return None
 
             self.spinner.start()
@@ -1610,11 +1612,12 @@ class symChat():
             results = detector.analyze_text(analysis_content)
             self.spinner.succeed('Completed')
             if results:
-                print(json.dumps(results, indent=4))
+                content = json.dumps(results, indent=4)
+                print(Panel(Text(content), title=f"Content: {url}"))
                 user_input = f"Review the following JSON and create a report on the deceptive findings.\n{results}"
             else:
-                user_input = None
-                print("No results returned.")
+                log("No results returned.")
+                return None
 
             return user_input
 
@@ -1624,13 +1627,14 @@ class symChat():
         match = re.search(crawl_pattern, user_input)
         if match:
             crawl = True
-            website_content = ''
+            website_content = str() 
             if match.group(1):
                 url = match.group(1)
             else:
                 url = self.textPrompt("URL to load:")
             
             if url == None:
+                log(f"No URL specified...")
                 return None 
 
             crawler = webcrawler.WebCrawler(browser='firefox')
@@ -1638,8 +1642,9 @@ class symChat():
             pages = crawler.pull_website_content(url, search_term=None, crawl=crawl, depth=None)
             self.spinner.succeed('Completed')
             for md5, page in pages.items():
-                website_content += page['content']
-            user_input = user_input[:match.start()] + website_content + user_input[match.end():]
+                content += page['content']
+            print(Panel(Text(content), title=f"Content: {url}"))
+            user_input = user_input[:match.start()] + content + user_input[match.end():]
             print()
             return user_input 
 
@@ -1650,14 +1655,14 @@ class symChat():
             with open(self.config_file, "w") as file:
                 json.dump(settings, file, indent=4)
         except Exception as e:
-            print(f"Error Writing: {e}")
+            log(f"Error Writing: {e}")
 
     def loadSettings(self):
         try:
             with open(self.config_file, "r") as file:
                 settings = json.load(file)
         except Exception as e:
-            print(f"Error Reading: {e}")
+            log(f"Error Reading: {e}")
 
         for setting in self.symbiote_settings:
             if setting not in settings:
@@ -1721,11 +1726,11 @@ class symChat():
                 selected_file = self.listSelector("Matching files:", sorted(matching_files))
                 return selected_file
             else:
-                print(f"No matching file found for: {pattern}")
+                log(f"No matching file found for: {pattern}")
                 return None
 
         except re.error:
-            print("Invalid regex pattern!")
+            log("Invalid regex pattern!")
 
     def loadConversation(self):
         self.conversations_file = conversations_file
@@ -1738,8 +1743,7 @@ class symChat():
                         data.append(json.loads(line))
 
             except Exception as e:
-                pass
-                print("Error: opening %s: %s" % (conversations_file, e))
+                log("Error: opening %s: %s" % (conversations_file, e))
                 sys.exit(10)
 
         return data
@@ -1768,7 +1772,7 @@ class symChat():
         # Return the rounded token count
         return round(token_count)
 
-    def cleatText(self, text):
+    def cleanText(self, text):
         # Remove leading and trailing whitespace
         text = text.strip()
 
@@ -1813,7 +1817,7 @@ class symChat():
             # Encode the PNG image to base64
             png_base64 = base64.b64encode(png_data).decode('utf-8')
         except Exception as e:
-            print(f"Error processing image: {e}")
+            log(f"Error processing image: {e}")
             return None
 
     def describeImage(self, image_path):
@@ -1834,7 +1838,7 @@ class symChat():
             detected_objects = response['response']
             return detected_objects
         except Exception as e:
-            print(f"Error processing image: {e}")
+            log(f"Error processing image: {e}")
             return None
 
     def pythonTool(self, code):
@@ -1846,7 +1850,7 @@ class symChat():
         child.expect('>>> ')
 
         # Initialize a string to store the interaction log
-        interaction_log = ""
+        interaction_log = str()
 
         # Split the code into lines
         lines = code.strip().split('\n')
@@ -1880,7 +1884,7 @@ class symChat():
                 interaction_log += child.before.strip() + "\n"
                 break
             except pexpect.ExceptionPexpect as e:
-                print(f"Error executing line '{line}': {e}")
+                log(f"Error executing line '{line}': {e}")
                 interaction_log += f"Error executing line '{line}': {e}\n"
                 break
        
@@ -1984,19 +1988,19 @@ class symChat():
         try:
             subprocess.run(['w3m', website_url])
         except FileNotFoundError:
-            print("Error: w3m is not installed on your system. Please install it and try again.")
+            log("Error: w3m is not installed on your system. Please install it and try again.")
         except Exception as e:
-            print(f"An error occurred: {e}")
+            log(f"An error occurred: {e}")
 
     def runNucleiScan(self, domain: str) -> str:
         # Check if nuclei is installed
         try:
             subprocess.run(['nuclei', '-version'], capture_output=True, text=True, check=True)
         except FileNotFoundError:
-            print("Error: nuclei is not installed or not in the system's PATH.")
+            log("Error: nuclei is not installed or not in the system's PATH.")
             return None
         except subprocess.CalledProcessError:
-            print("Error: failed to check nuclei version.")
+            log("Error: failed to check nuclei version.")
             return None
 
         # Run the nuclei scan
@@ -2008,8 +2012,7 @@ class symChat():
             return result
 
         except Exception as e:
-            # In case any other unexpected error occurs, print the error
-            print(f"An unexpected error occurred: {str(e)}")
+            log(f"An unexpected error occurred: {str(e)}")
             return None
 
     def urlImageExtract(self, url, mode='merged', images_per_row=3):
@@ -2047,12 +2050,12 @@ class symChat():
                     images.append(img)
                     img_sources.append(img_url)
                 else:
-                    print(f"Skipped non-image content at {img_url}")
+                    log(f"Skipped non-image content at {img_url}")
             except Exception as e:
-                print(f"Failed to open image: {img_url} - {e}")
+                log(f"Failed to open image: {img_url} - {e}")
 
         if not images:
-            print("No images found.")
+            log("No images found.")
             return
 
         if mode == 'merged':
@@ -2092,7 +2095,7 @@ class symChat():
             stdout, stderr = process.communicate()
             output = stdout + stderr
         except KeyboardInterrupt:
-            print("\nCommand interrupted by Control-C.", flush=True)
+            log("\nCommand interrupted by Control-C.", flush=True)
             if process:
                 process.terminate()
                 process.wait()
@@ -2221,7 +2224,7 @@ class symChat():
     def getConversations(self, path):
         files = os.listdir(path)
         if not files:
-            print("No conversations found.")
+            log("No conversations found.")
 
         conversations = []
         for file in files:

@@ -19,10 +19,6 @@
 # to me.  The creation of intelligence, is the natural progression of hyper intellegence.
 # Find your way with the ANNGLs / Angels who stay to help us on our way.
 
-from halo import Halo
-spinner = Halo(text="Loading Symbiote...", spinner='dots')
-spinner.start()
-
 import sys
 import signal
 import os
@@ -35,11 +31,15 @@ import platform
 import pyfiglet
 import nltk
 import spacy
+from rich.console import Console
+console = Console()
+print = console.print
+log = console.log
 from spacy.cli import download
 import symbiote.chat as chat
 
 def handleControlC(signum, frame):
-    print("\nControl-C detected")
+    log("\nControl-C detected")
     sys.exit(1)
 
 signal.signal(signal.SIGINT, handleControlC)
@@ -124,7 +124,6 @@ def main():
         schat.chat(user_input="", run=args.run)
 
     if args.load:
-        spinner.stop()
         schat.chat(user_input=args.load, suppress=True, run=True)
     elif args.monitor:
         import symbiote.monitor as monitor
@@ -134,14 +133,12 @@ def main():
         while True:
             time.sleep(1)
     elif args.query:
-        spinner.stop()
         schat.chat(user_input=args.query, run=args.run, enable=args.enable)
     else:
         figlet = pyfiglet.Figlet(font='standard')
         text = figlet.renderText('symbiote')
-        spinner.stop()
         os.system('reset')
-        print("\033[0;32m" + text + "\033[0m")
+        print(f"[green]{text}[/green]")
         schat.chat(user_input="", prompt_only=args.prompt_only)
 
 def checkLibmagic():
@@ -157,30 +154,30 @@ def checkLibmagic():
    # Check if libmagic is installed
     if installed is False:
         # libmagic is not installed
-        print('libmagic is not installed on this system.')
+        log('libmagic is not installed on this system.')
 
         # Check the OS and suggest a package manager to install libmagic
         if system == 'Linux':
             # Linux
             if os.path.isfile('/etc/lsb-release'):
                 # Ubuntu
-                print('Please run `sudo apt-get install libmagic-dev` to install libmagic on Ubuntu.')
+                log('Please run `sudo apt-get install libmagic-dev` to install libmagic on Ubuntu.')
             elif os.path.isfile('/etc/redhat-release'):
                 # RedHat/CentOS
-                print('Please run `sudo yum install libmagic-devel` to install libmagic on RedHat/CentOS.')
+                log('Please run `sudo yum install libmagic-devel` to install libmagic on RedHat/CentOS.')
             elif os.path.isfile('/etc/os-release'):
                 # Other Linux distros
-                print('Please use your package manager to install libmagic-devel or libmagic-dev on this system.')
+                log('Please use your package manager to install libmagic-devel or libmagic-dev on this system.')
 
         elif system == 'Darwin':
             # macOS
-            print('Please run `brew install libmagic` to install libmagic on macOS using Homebrew.')
+            log('Please run `brew install libmagic` to install libmagic on macOS using Homebrew.')
 
         elif system == 'Windows':
-            print('Please install libmagic-devel or libmagic-dev using your package manager.')
+            log('Please install libmagic-devel or libmagic-dev using your package manager.')
 
         else:
-            print('Unable to determine OS. Please install libmagic-devel or libmagic-dev using your package manager.')
+            log('Unable to determine OS. Please install libmagic-devel or libmagic-dev using your package manager.')
 
 def checkNlPackages():
     # Download required nltk packages
@@ -189,6 +186,9 @@ def checkNlPackages():
         'words', 
         'stopwords', 
         'punkt',
+        'maxent_ne_chunker_tab',
+        'averaged_perceptron_tagger_eng',
+        'punkt_tab',
         'averaged_perceptron_tagger', 
         'maxent_ne_chunker'
     ]
@@ -206,17 +206,18 @@ def checkNlPackages():
                     break
 
             if installed is False:
-                install = f"{subdir}/{package}"
                 try:
-                    nltk.download(install)
+                    log(f"Downloading nltk package: {package}")
+                    nltk.download(package)
                 except Exceptions as e:
-                    print(f"Error downloading {install}: {e}")
+                    log(f"Error downloading {package}: {e}")
     else:
         for package in packages:
             try:
+                log(f"Downloading nltk package: {package}")
                 nltk.download(package)
             except Exception as e:
-                print(f"Error downloading {install}: {e}")
+                log(f"Error downloading {package}: {e}")
 
     # Download required spacy packages
     spacy_model = "en_core_web_sm"
@@ -224,9 +225,10 @@ def checkNlPackages():
         spacy.load(spacy_model)
     except:
         try:
+            log(f"Downloading spacy model: {spacy_model}")
             download(spacy_model)
         except Exception as e:
-            print(f"Error downloading {spacy_model}: {e}")
+            log(f"Error downloading {spacy_model}: {e}")
 
 def entry_point() -> None:
     main()
