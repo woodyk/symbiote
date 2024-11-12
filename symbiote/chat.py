@@ -126,6 +126,7 @@ command_list = {
         "model::": "Change the AI model being used.",
         "cd::": "Change working directory.",
         "file::": "Load a file for submission.",
+        "reload::": "Reload running python modules.",
         "weather::": "Display the current weater.",
         "inspect::": "Realtime python object inspector for current running session.",
         "webvuln::": "Run and summarize a web vulnerability scan on a given URL.",
@@ -1488,8 +1489,9 @@ class symChat():
                 log(f"Unable to get weather for {location}")
                 return None
 
-            #print(Panel(Text(result), title=f"Weather: {location}"))
-            content = f"Analyze the following weather details and provide a well formatted weather report for {location}.\n```json\n{result}```"
+            weather = json.dumps(result['current_condition']) 
+            print(Panel(Text(weather), title=f"Weather: {location}"))
+            content = f"Analyze the following weather details and provide a well formatted weather report for {location}.\n```json\n{weather}```"
             user_input = user_input[:match.start()] + content + user_input[match.end():]
 
             return user_input
@@ -2357,21 +2359,21 @@ class symChat():
         return app.run()
 
     def getWeather(self, location="33004"):
+        text = None 
         try:
             # Format the URL for wttr.in with the specified location
             url = f'https://wttr.in/{location}?format=j1'
             response = requests.get(url)
 
             if response.status_code == 200:
-                return response.text 
+                text = json.loads(response.text)
+                return text 
             else:
                 log(f"Failed to get weather data. Status code: {response.status_code}")
-                return None
         except Exception as e:
             log(f"An error occurred: {e}")
-            return None
 
-        return response
+        return text
 
     def getIp(self):
         import netifaces
