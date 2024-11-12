@@ -19,23 +19,23 @@
 # to me.  The creation of intelligence, is the natural progression of hyper intellegence.
 # Find your way with the ANNGLs / Angels who stay to help us on our way.
 
+from rich.console import Console
+console = Console()
+print = console.print
+log = console.log
+log(f"Loading...")
+
 import sys
 import signal
 import os
-import re
 import argparse
 import time
 import select
 import subprocess
 import platform
 import pyfiglet
-import nltk
-import spacy
-from rich.console import Console
-console = Console()
-print = console.print
-log = console.log
-from spacy.cli import download
+
+log(f"Importing symbiote libs.")
 import symbiote.chat as chat
 
 def handleControlC(signum, frame):
@@ -142,6 +142,7 @@ def main():
         schat.chat(user_input="", prompt_only=args.prompt_only)
 
 def checkLibmagic():
+    log(f"Checking for libmagic...")
     installed = False
     try:
         subprocess.check_output(["file", "--version"])
@@ -180,6 +181,8 @@ def checkLibmagic():
             log('Unable to determine OS. Please install libmagic-devel or libmagic-dev using your package manager.')
 
 def checkNlPackages():
+    log("Checking for nltk models.")
+    import nltk
     # Download required nltk packages
     packages = [
         'vader_lexicon', 
@@ -220,6 +223,10 @@ def checkNlPackages():
                 log(f"Error downloading {package}: {e}")
 
     # Download required spacy packages
+    log(f"Checking spacy models.")
+    import spacy
+    from spacy.cli import download
+
     spacy_model = "en_core_web_sm"
     try:
         spacy.load(spacy_model)

@@ -3,6 +3,19 @@
 #
 # chat.py
 
+from rich import inspect
+from rich.console import Console
+from rich.markdown import Markdown
+from rich.panel import Panel
+from rich.syntax import Syntax
+from rich.table import Table
+from rich.text import Text
+from rich.live import Live
+from rich.rule import Rule
+console = Console()
+print = console.print
+log = console.log
+
 import time
 import sys
 import os
@@ -32,11 +45,13 @@ from io import BytesIO
 
 from bs4 import BeautifulSoup
 
+log("Loading inquirerpy.")
 from InquirerPy import inquirer
 from InquirerPy.base.control import Choice
 from InquirerPy.validator import PathValidator
 from InquirerPy.prompts.filepath import FilePathCompleter
 
+log("Loading prompt_toolkit.")
 from prompt_toolkit import Application
 from prompt_toolkit.document import Document
 from prompt_toolkit.history import InMemoryHistory, FileHistory
@@ -51,37 +66,19 @@ from prompt_toolkit.layout.containers import Window, VSplit, Float, FloatContain
 from prompt_toolkit.layout.controls import FormattedTextControl
 from prompt_toolkit.cursor_shapes import CursorShape, ModalCursorShapeConfig
 
-from rich import inspect
-from rich.console import Console
-from rich.markdown import Markdown
-from rich.panel import Panel
-from rich.syntax import Syntax
-from rich.table import Table
-from rich.text import Text
-from rich.live import Live
-from rich.rule import Rule
-console = Console()
-print = console.print
-log = console.log
-
 # Add these imports at the beginning of the file
 #from symbiote.model_creator import create_model, train_model, evaluate_model
 
+log("Loading symbiote roles.")
 import symbiote.roles as roles
+#log("Loading symbiote shell.")
 import symbiote.shell as shell
+log("Loading symbiote speech.")
 import symbiote.speech as speech
-import symbiote.CodeExtract as codeextract
-import symbiote.WebCrawler as webcrawler
+log("Loading symbiote utils.")
 import symbiote.utils as utils
-#import symbiote.core as core
-import symbiote.GetEmail as mail
+log("Loading symbiote themes.")
 from symbiote.themes import ThemeManager
-import symbiote.headlines as hl
-import symbiote.ImageAnalysis as ia
-import symbiote.YoutubeUtility as ytutil
-import symbiote.DeceptionDetection as deception
-import symbiote.FakeNewsAnalysis as fake_news
-import symbiote.WebVulnerabilityScan as web_vuln
 
 system = platform.system()
 
@@ -883,6 +880,7 @@ class symChat():
         clipboard_pattern = r'clipboard::|clipboard:(.*):'
         match = re.search(clipboard_pattern, user_input)
         if match:
+            import symbiote.WebCrawler as webcrawler
             contents = clipboard.paste()
             if match.group(1):
                 sub_command = match.group(1).strip()
@@ -1128,6 +1126,7 @@ class symChat():
         code_pattern = r'code::|code:(.*):'
         match = re.search(code_pattern, user_input)
         if match:
+            import symbiote.CodeExtract as codeextract
             codeRun = False
             if match.group(1):
                 text = match.group(1)
@@ -1226,8 +1225,9 @@ class symChat():
                 image_path = os.path.expanduser(image_path)
                 image_path = os.path.abspath(image_path)
 
-            extractor = ia.ImageAnalyzer(detection=True, extract_text=True, backend='mtcnn') 
             self.spinner.start()
+            import symbiote.ImageAnalysis as ia
+            extractor = ia.ImageAnalyzer(detection=True, extract_text=True, backend='mtcnn') 
             results = extractor.analyze_images(image_path, mode='none')
             self.spinner.succeed('Completed')
             human_readable = extractor.render_human_readable(results)
@@ -1304,6 +1304,7 @@ class symChat():
         news_pattern = r'\bnews::|\bheadlines::'
         match = re.search(news_pattern, user_input)
         if match:
+            import symbiote.headlines as hl
             gh = hl.getHeadlines()
             result = gh.scrape()
             print(Panel(Text(result), title=f"News Headlines"))
@@ -1360,6 +1361,7 @@ class symChat():
         mail_pattern = r'mail::'
         match = re.search(mail_pattern, user_input)
         if match:
+            import symbiote.GetEmail as mail
             mail_checker = mail.MailChecker(
                     username=self.settings['imap_username'],
                     password=self.settings['imap_password'],
@@ -1564,6 +1566,7 @@ class symChat():
                 return None 
             
             log(f"Fetching {url}...")
+            import symbiote.WebCrawler as webcrawler
             content = str()
             crawler = webcrawler.WebCrawler(browser='firefox')
             pages = crawler.pull_website_content(url, search_term=None, crawl=crawl, depth=None)
@@ -1591,6 +1594,7 @@ class symChat():
                 return None
 
             self.spinner.start()
+            import symbiote.FakeNewsAnalysis as fake_news
             detector = fake_news.FakeNewsDetector()
             if self.isValidUrl(data) is True:
                 text = detector.download_text_from_url(data)
@@ -1624,6 +1628,8 @@ class symChat():
                 return None
 
             log(f"Fetching youtube transcript from: {yt_url}")
+
+            import symbiote.YoutubeUtility as ytutil
             yt = ytutil.YouTubeUtility(yt_url)
             transcript = yt.get_transcript()
             if transcript:
@@ -1646,6 +1652,7 @@ class symChat():
                 url = self.textPrompt("URL to scan:")
 
             if self.isValidUrl(url):
+                import symbiote.WebVulnerabilityScan as web_vuln
                 scanner = web_vuln.SecurityScanner(headless=True, browser='firefox')
                 scanner.scan(url)
                 report = scanner.generate_report()
@@ -1671,6 +1678,7 @@ class symChat():
                 return None
 
             self.spinner.start()
+            import symbiote.DeceptionDetection as deception
             detector = deception.DeceptionDetector()
             results = detector.analyze_text(analysis_src)
             self.spinner.succeed('Completed')
