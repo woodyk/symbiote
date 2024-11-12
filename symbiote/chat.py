@@ -117,7 +117,7 @@ except Exception as e:
 command_list = {
         "help::": "This help output.",
         "convo::": "Load, create conversation.",
-        "role::": "Load built in system roles.",
+        "roles::": "Load built in system roles.",
         "clear::": "Clear the screen.",
         "flush::": "Flush the current conversation from memory.",
         "save::": "Save self.settings and backup the ANNGL",
@@ -140,6 +140,7 @@ command_list = {
         "extract::": "Extract data features for a given file or directory and summarize.",
         "code::": "Extract code and write files.",
         "get::": "Get remote data based on uri http, ftp, ssh, etc...",
+        "getip::": "Get your IP address information.",
         "crawl::": "Crawl remote data based on uri http, ftp, ssh, etc...",
         "shell::": "Work in shell mode and execute commands.",
         "clipboard::": "Load clipboard contents into symbiote.",
@@ -165,7 +166,7 @@ audio_triggers = {
         'settings': [r'keyword show setting', 'settings::'],
         'file': [r'keyword open file', 'file::'],
         'shell': [r'keyword (open shell|openshell)', 'shell::'],
-        'role': [r'keyword change (role|roll)', 'role::'],
+        'role': [r'keyword change (role|roll)', 'roles::'],
         'conversation': [r'keyword change conversation', 'convo::'],
         'model': [r'keyword change model', 'model::'],
         'get': [r'keyword get website', 'get::'],
@@ -450,13 +451,14 @@ class symChat():
             if self.shell_mode is True:
                 prompt_content = "shell mode> "
             else:
-                prompt_content = f"{self.settings['role'].lower()}>\n"
+                prompt_content = f"{self.settings['role'].lower()}> "
 
             prompt = f"{prompt_content}"
 
             return prompt 
 
         while True:
+            print()
             user_input = str()
             now = datetime.now()
             current_time = now.strftime("%H:%M:%S")
@@ -509,6 +511,7 @@ class symChat():
             user_input = self.processCommands(user_input)
 
             if user_input is None or user_input == "":
+                print()
                 print(Rule(title=f"{current_date} {current_time}", style="gray54"))
                 continue
 
@@ -526,7 +529,8 @@ class symChat():
                 continue
 
             returned = self.sendMessage(user_input)
-
+            if returned is None:
+                print(f"No response.")
             print()
             print(Rule(title=f"{current_date} {current_time}", style="gray54"))
 
@@ -627,6 +631,7 @@ class symChat():
         return response
 
     def sendMessage(self, user_input):
+        assistant_prompt = "symbiote> "
         if self.settings['think'] is True:
             self.think(user_input)
 
@@ -899,9 +904,31 @@ class symChat():
 
             return user_input
 
+        # Trigger to reload modules
+        self.registerCommand("reload::")
+        reload_pattern = r"reload::|reload:(.*):"
+        match = re.search(reload_pattern, user_input)
+        if match:
+            if match.group(1):
+                module = match.group(1)
+                if module in list(sys.modules.keys()):
+                    name = syss.modules.get(module)
+                    log(f"Reloading {module}")
+                    importlib.reload(module)
+                else:
+                    log(f"No such module: {module}")
+            else:
+                for module_name in list(sys.modules.keys()):
+                    if module_name.startswith("symbiote."):
+                        module = sys.modules.get(module_name)
+                        log(f"Reloading {module}")
+                        importlib.reload(module)
+
+            return None
+
         # Trigger to choose role
-        self.registerCommand("role::")
-        role_pattern = r'^role::|role:(.*):'
+        self.registerCommand("roles::")
+        role_pattern = r'^roles::|roles:(.*):'
         match = re.search(role_pattern, user_input)
         if match:
             importlib.reload(roles)
@@ -1375,23 +1402,29 @@ class symChat():
                     )
             email = mail_checker.check_mail()
 
+            content = [] 
+            for key, val in enumerate(email):
+                content.append(f"Message: {key}")
+                content.append(f"\tDate: {val['date']}")
+                content.append(f"\tFrom: {val['from']}")
+                content.append(f"\tTo: {val['to']}")
+                content.append(f"\tSubject: {val['subject'][:30]}")
+                #content.append(f"\tBody Size: {len(val['body'])} chars")
+                content.append("")
+                #content.append(f"\tBody:\n\t\t{val['body'][:]}\n")
+
+            content = "\n".join(content)
+
             if email is None:
                 log(f"No emails to analyze.")
                 return None
 
-            '''
-            content = f"""You read in a JSON document of e-mails containing from, to, subject, received date, and body and converse about those messages. Your job is as follows.
-1. Identify messages that may be of importance and highlight details about those messages.
-2. Identify messages that may be considered spam.
-3. Analyze the pattern of all the messages and look for common messages that may represent a larger message all together.
-4. Provide a brief summary of the messages found.
-5. Provide further analysis upon request.
-"""
-            '''
-            content = f"\n```json\n{email}\n```\n"
-            print(Panel(Text(email), title=f"Emails: {self.settings['imap_username']}"))
+            review = json.dumps(email)
+            prompt = f"Create a report from the following in a nice format."
+            review = f"{prompt}\n```json\n{review}\n```\n"
+            print(Panel(Text(content), title=f"Emails: {self.settings['imap_username']}"))
             print()
-            user_input = user_input[:match.start()] + content + user_input[match.end():]
+            user_input = user_input[:match.start()] + review + user_input[match.end():]
 
             return user_input
 
@@ -1550,6 +1583,22 @@ class symChat():
                 user_input = user_input[:match.start()] + content + user_input[match.end():]
                 return user_input
 
+            return None
+
+        # Trigger for getip::
+        self.registerCommand("getip::")
+        getip_pattern = r'getip::'
+        match = re.search(getip_pattern, user_input)
+        if match:
+            ipinfo = self.getIp()
+            report = self.ifaceReport(ipinfo)
+            print(Panel(Text(report), title=f"Network Info:"))
+
+            content = str()
+            content = f"\n```network_info\n{ipinfo}\n```"
+            #user_input = user_input[:match.start()] + content + user_input[match.end():]
+
+            self.writeHistory('user', content)
             return None
 
         # Trigger for get:URL processing. Load website content into user_input for model consumption.
@@ -2323,3 +2372,151 @@ class symChat():
             return None
 
         return response
+
+    def getIp(self):
+        import netifaces
+        import dns.resolver
+        network_info = {
+            "interfaces": {},
+            "dns_resolvers": [],
+            "default_gateways": {},
+            "external_ip": "", 
+        }
+
+
+        try:
+            # Format the URL for wttr.in with the specified location
+            url = f'https://api.ipify.org'
+            response = requests.get(url)
+
+            if response.status_code == 200:
+                network_info['external_ip'] = response.text
+            else:
+                log(f"Failed to get weather data. Status code: {response.status_code}")
+        except Exception as e:
+            log(f"An error occurred: {e}")
+
+        # Gather information about each network interface
+        for interface in netifaces.interfaces():
+            interface_info = {}
+            addresses = netifaces.ifaddresses(interface)
+            
+            # IPv4 information
+            if netifaces.AF_INET in addresses:
+                ipv4_info = addresses[netifaces.AF_INET][0]
+                interface_info["ipv4"] = {
+                    "address": ipv4_info.get("addr"),
+                    "netmask": ipv4_info.get("netmask"),
+                    "broadcast": ipv4_info.get("broadcast")
+                }
+            
+            # IPv6 information
+            if netifaces.AF_INET6 in addresses:
+                ipv6_info = addresses[netifaces.AF_INET6][0]
+                interface_info["ipv6"] = {
+                    "address": ipv6_info.get("addr"),
+                    "netmask": ipv6_info.get("netmask"),
+                    "broadcast": ipv6_info.get("broadcast")
+                }
+            
+            # MAC address (hardware address)
+            if netifaces.AF_LINK in addresses:
+                mac_info = addresses[netifaces.AF_LINK][0]
+                interface_info["mac"] = mac_info.get("addr")
+            
+            # Add interface information to the main dictionary
+            network_info["interfaces"][interface] = interface_info
+
+        # Collect DNS resolvers
+        try:
+            with open('/etc/resolv.conf', 'r') as file:
+                for line in file:
+                    if line.startswith('nameserver'):
+                        network_info["dns_resolvers"].append(line.split()[1])
+        except FileNotFoundError:
+            network_info["dns_resolvers"] = ["Could not read /etc/resolv.conf"]
+
+        # Collect default gateway information
+        gateways = netifaces.gateways()
+        for family, gateway_info in gateways.get("default", {}).items():
+            if family == netifaces.AF_INET:
+                network_info["default_gateways"]["ipv4"] = {
+                    "gateway": gateway_info[0],
+                    "interface": gateway_info[1]
+                }
+            elif family == netifaces.AF_INET6:
+                network_info["default_gateways"]["ipv6"] = {
+                    "gateway": gateway_info[0],
+                    "interface": gateway_info[1]
+                }
+
+        return network_info
+
+    def ifaceReport(self, network_info):
+        report = []
+        report.append("Network Information\n" + "="*20)
+
+        # External IP
+        report.append("\nExternal IP:")
+        if network_info["external_ip"]:
+            report.append(f"  - {network_info['external_ip']}")
+        else:
+            report.append("  None")
+
+        # DNS Resolvers
+        report.append("\nDNS Resolvers:")
+        if network_info["dns_resolvers"]:
+            for resolver in network_info["dns_resolvers"]:
+                report.append(f"  - {resolver}")
+        else:
+            report.append("  None")
+
+        # Default Gateways
+        report.append("\nDefault Gateways:")
+        gateway_devs = []
+        ipv4_gateway = network_info["default_gateways"].get("ipv4")
+        if ipv4_gateway:
+            report.append(f"  Gateway: {ipv4_gateway['gateway']}")
+            report.append(f"  Interface: {ipv4_gateway['interface']}")
+            gateway_devs.append(ipv4_gateway['interface'])
+
+        ipv6_gateway = network_info["default_gateways"].get("ipv6")
+        if ipv6_gateway:
+            report.append(f"  Gateway: {ipv6_gateway['gateway']}")
+            report.append(f"  Interface: {ipv6_gateway['interface']}")
+            gateway_devs.append(ipv6_gateway['interface'])
+
+        # Interface information
+        report.append(f"\nInterfaces:")
+        for interface, details in network_info["interfaces"].items():
+            primary = "" 
+            if interface in gateway_devs:
+                primary = " *primary" 
+
+            mac = details.get("mac", None)
+            # IPv4 Info
+            ipv4_info = details.get("ipv4")
+            if ipv4_info:
+                report.append(f"  {interface}:{primary}")
+                report.append(f"    Address: {ipv4_info.get('address')}")
+                report.append(f"    Netmask: {ipv4_info.get('netmask')}")
+                report.append(f"    Broadcast: {ipv4_info.get('broadcast')}")
+                if mac is not None:
+                    report.append(f"    Mac: {mac}")
+
+                continue
+
+            # IPv6 Info
+            ipv6_info = details.get("ipv6")
+            if ipv6_info:
+                report.append(f"  {interface}:{primary}")
+                report.append(f"    Address: {ipv6_info.get('address')}")
+                report.append(f"    Netmask: {ipv6_info.get('netmask')}")
+                report.append(f"    Broadcast: {ipv6_info.get('broadcast')}")
+                if mac is not None:
+                    report.append(f"    Mac: {mac}")
+
+                continue
+
+        # Join the report list into a single string
+        return "\n".join(report)

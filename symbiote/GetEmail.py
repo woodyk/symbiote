@@ -64,7 +64,7 @@ class MailChecker:
                 msg = email.message_from_bytes(raw_email)
                 emails.append(self._get_email_content(msg))
 
-            return json.dumps(emails, indent=4)
+            return emails
 
     def _check_pop_mail(self):
         with poplib.POP3_SSL(self.pop_server) as mail:
@@ -86,7 +86,7 @@ class MailChecker:
                 
                 emails.append(self._get_email_content(msg))
 
-            return json.dumps(emails, indent=4)
+            return emails
 
     def _get_email_content(self, msg):
         from_ = msg.get('From', '').strip()
@@ -139,7 +139,7 @@ class MailChecker:
             "to": to_,
             "subject": subject,
             "date": date_unix,
-            "body": body[:500]
+            "body": body[:10000]
         }
         
         return email_content

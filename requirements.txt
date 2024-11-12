@@ -76,3 +76,5 @@ yt_dlp
 frontend
 docker
 pgeocode
+netifaces
+dnspython
