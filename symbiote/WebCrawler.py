@@ -104,8 +104,8 @@ class WebCrawler:
 
         # Display a progress update
         self.crawl_count += 1
-        progress = f"\x1b[2KCount: {self.crawl_count} Discarded: {self.discarded_count} Matches: {self.match_count} URL: {url}"
-        log(progress, end='\r')
+        #progress = f"\x1b[2KCount: {self.crawl_count} Discarded: {self.discarded_count} Matches: {self.match_count} URL: {url}"
+        #log(progress, end='\r')
 
         # If crawl option is set to True, find all links and recursively pull content
         if self.crawl and (depth is None or depth > 0):

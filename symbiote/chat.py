@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+
 #
 # chat.py
 
@@ -15,6 +16,10 @@ import requests
 import qrcode
 import subprocess
 import tempfile
+import platform
+import pgeocode
+
+nomi = pgeocode.Nominatim('us')
 
 from datetime import datetime
 from pathlib import Path
@@ -78,6 +83,8 @@ import symbiote.DeceptionDetection as deception
 import symbiote.FakeNewsAnalysis as fake_news
 import symbiote.WebVulnerabilityScan as web_vuln
 
+system = platform.system()
+
 models = [
         "groq:llama-3.1-70b-versatile",
         "groq:mixtral-8x7b-32768",
@@ -114,22 +121,22 @@ command_list = {
         "role::": "Load built in system roles.",
         "clear::": "Clear the screen.",
         "flush::": "Flush the current conversation from memory.",
-        "save::": "Save self.symbiote_settings and backup the ANNGL",
+        "save::": "Save self.settings and backup the ANNGL",
         "exit::": "Exit symbiote the symbiote CLI",
         "settings::": "View, change, or add settings for symbiote.",
-        "maxtoken::": "Change maxtoken setting.",
         "model::": "Change the AI model being used.",
         "cd::": "Change working directory.",
         "file::": "Load a file for submission.",
+        "weather::": "Display the current weater.",
         "inspect::": "Realtime python object inspector for current running session.",
         "webvuln::": "Run and summarize a web vulnerability scan on a given URL.",
         "deception::": "Run deception analysis on the given text",
+        "geo::": "Check the geo location of an IP or a domains IP.",
         "fake_news::": "Run fake news analysis on the given text",
         "yt_transcript::": "Download the transcripts from youtube url for processing.",
         "image_extract::": "Extract images from a given URL and display them.",
         "analyze_image::": "Analyze an image or images from a website or file.",
         "w3m::|browser::": "Open a URL in w3m terminal web browser.",
-        "nuclei::": "Run a nuclei scan on a given domain and analyze the results.",
         "qr::": "Generate a QR code from the given text.",
         "extract::": "Extract data features for a given file or directory and summarize.",
         "code::": "Extract code and write files.",
@@ -192,9 +199,10 @@ homedir = os.getenv('HOME')
 symbiote_settings = {
         "model": "",
         "max_tokens": 512,
+        "location": '',
         "stream": True,
         "user": "smallroom",
-        "conversation": "conversation.jsonl",
+        "conversation": '',
         "vi_mode": False,
         "speech": False,
         "listen": False,
@@ -210,17 +218,18 @@ symbiote_settings = {
         "imap_password": '',
         "think": False,
         "markdown": True,
+        "config_file": f"{homedir}/.symbiote/config"
     }
 
 class symChat():
     def __init__(self, *args, **kwargs):
-        # Autoflush output buffer
-        sys.stdout = io.TextIOWrapper(
-                open(sys.stdout.fileno(), 'wb', 0),
-                write_through=True
-            )
+        self.config_file = symbiote_settings['config_file']
+        settings = self.loadSettings()
+        if settings is None:
+            self.settings = symbiote_settings 
+            settings = symbiote_settings
 
-        self.symbiote_settings = symbiote_settings 
+        self.settings = settings 
         self.conversation_history = []
         self.estimated_tokens = self.estimateTokenCount(json.dumps(self.conversation_history))
         self.audio_triggers = audio_triggers
@@ -229,7 +238,7 @@ class symChat():
         self.command_register = []
 
         if 'debug' in kwargs:
-            self.symbiote_settings['debug'] = kwargs['debug']
+            self.settings['debug'] = kwargs['debug']
             
         if 'working_directory' in kwargs:
             self.working_directory = kwargs['working_directory']
@@ -237,22 +246,15 @@ class symChat():
             self.working_directory = os.getcwd()
 
         # Set symbiote home path parameters
-        symbiote_dir = os.path.expanduser(self.symbiote_settings['symbiote_path'])
+        symbiote_dir = os.path.expanduser(self.settings['symbiote_path'])
         if not os.path.exists(symbiote_dir):
             os.mkdir(symbiote_dir)
 
-        # Set symbiote conf file
-        self.config_file = os.path.join(symbiote_dir, "config")
-        if not os.path.exists(self.config_file):
-            self.saveSettings(settings=self.symbiote_settings)
-        else:
-            self.symbiote_settings = self.loadSettings()
-
         if 'stream' in kwargs:
-            self.symbiote_settings['stream'] = kwargs['stream']
+            self.settings['stream'] = kwargs['stream']
 
         # Get hash for current settings
-        self.settings_hash = hash(json.dumps(self.symbiote_settings, sort_keys=True))
+        self.default_hash = hash(json.dumps(self.settings, sort_keys=True)) 
 
         # Set the conversations directory
         self.conversations_dir = os.path.join(symbiote_dir, "conversations")
@@ -260,11 +262,11 @@ class symChat():
             os.mkdir(self.conversations_dir)
 
         # Set the default conversation
-        if self.symbiote_settings['conversation'] == '/dev/null':
-            self.conversations_file = self.symbiote_settings['conversation']
+        if self.settings['conversation'] == '/dev/null':
+            self.conversations_file = self.settings['conversation']
             self.convo_file = self.conversations_file
         else:
-            self.conversations_file = os.path.join(self.conversations_dir, self.symbiote_settings['conversation'])
+            self.conversations_file = os.path.join(self.conversations_dir, self.settings['conversation'])
             self.convo_file = os.path.basename(self.conversations_file)
 
         # Set symbiote shell history file
@@ -279,11 +281,11 @@ class symChat():
         self.current_conversation = []
 
         # Load utils object
-        self.symutils = utils.utilities(settings=self.symbiote_settings)
+        self.symutils = utils.utilities(settings=self.settings)
 
         # Init the shell theme manager
         self.theme_manager = ThemeManager()
-        self.prompt_style = self.theme_manager.get_theme(self.symbiote_settings['theme'])
+        self.prompt_style = self.theme_manager.get_theme(self.settings['theme'])
 
         self.command_list = command_list
 
@@ -295,6 +297,9 @@ class symChat():
         self.command_completer = WordCompleter(commands)
         '''
 
+        # Get location details
+        self.geo = nomi.query_postal_code(self.settings['location'])
+
         if 'suppress' in kwargs:
             self.suppress = kwargs['suppress']
         else:
@@ -305,7 +310,7 @@ class symChat():
         table.add_column("Key", style="cyan", no_wrap=True)
         table.add_column("Value", style="white")
 
-        for key, val in sorted(self.symbiote_settings.items()):
+        for key, val in sorted(self.settings.items()):
             table.add_row(key, str(val))
 
         print(table)
@@ -343,7 +348,7 @@ class symChat():
         if selected_file == "new":
             selected_file = self.textPrompt("File name:")
         elif selected_file == "notes":
-            selected_file = self.symbiote_settings['notes']
+            selected_file = self.settings['notes']
         elif selected_file == "clear":
             clear_file = self.listSelector("Select a conversation:", conversations)
 
@@ -355,7 +360,7 @@ class symChat():
             except:
                 log(f"Unable to clear {clear_file}")
 
-            if self.symbiote_settings['conversation'] == os.path.basename(clear_file):
+            if self.settings['conversation'] == os.path.basename(clear_file):
                 self.current_conversation = self.sym.loadConversation(clear_file)
 
             log(f"Conversation cleared: {clear_file}")
@@ -371,11 +376,11 @@ class symChat():
         
         if selected_file == "null": 
             self.conversations_file = '/dev/null'
-            self.symbiote_settings['conversation'] = self.conversations_file
+            self.settings['conversation'] = self.conversations_file
             self.current_conversation = []
             self.convo_file = self.conversations_file
         else:
-            self.symbiote_settings['conversation'] = selected_file
+            self.settings['conversation'] = selected_file
             self.conversations_file = os.path.join(self.conversations_dir, selected_file)
             self.current_conversation = self.sym.loadConversation(self.conversations_file)
             self.convo_file = os.path.basename(self.conversations_file)
@@ -386,7 +391,7 @@ class symChat():
 
     def selectModel(self, *args):
         model_list = models
-        print(f"Current Model: {self.symbiote_settings['model']}")
+        print(f"Current Model: {self.settings['model']}")
         try:
             model_name = args[0]
             if model_name in model_list:
@@ -397,7 +402,8 @@ class symChat():
         except:
             selected_model = self.listSelector("Select a model:", sorted(model_list))
 
-        self.symbiote_settings['model'] = selected_model
+        self.settings['model'] = selected_model
+        self.saveSettings()
 
         return None
 
@@ -433,19 +439,19 @@ class symChat():
             self.previous_directory = self.working_directory
             os.chdir(self.working_directory)
       
-        self.chat_session = PromptSession(key_bindings=kb, vi_mode=self.symbiote_settings['vi_mode'], history=self.history, style=self.prompt_style)
+        self.chat_session = PromptSession(key_bindings=kb, vi_mode=self.settings['vi_mode'], history=self.history, style=self.prompt_style)
 
         def getPrompt():
             # Bottom toolbar configuration
             if self.prompt_only:
                 self.chat_session.bottom_toolbar = None
             else:
-                self.chat_session.bottom_toolbar = f"Model: {self.symbiote_settings['model']} | Role: {self.symbiote_settings['role']}\nEstimated Tokens: {self.estimated_tokens} Shell Mode: {self.shell_mode}"
+                self.chat_session.bottom_toolbar = f"Model: {self.settings['model']} | Role: {self.settings['role']}\nEstimated Tokens: {self.estimated_tokens} Shell Mode: {self.shell_mode}"
 
             if self.shell_mode is True:
                 prompt_content = "shell mode> "
             else:
-                prompt_content = f"{self.symbiote_settings['role'].lower()}>\n"
+                prompt_content = f"{self.settings['role'].lower()}>\n"
 
             prompt = f"{prompt_content}"
 
@@ -454,16 +460,17 @@ class symChat():
         while True:
             user_input = str()
             now = datetime.now()
-            current_time = now.strftime("%m/%d/%Y %H:%M:%S")
+            current_time = now.strftime("%H:%M:%S")
+            current_date = now.strftime("%m/%d/%Y")
 
             # Chack for a change in settings and write them
-            check_settings = hash(json.dumps(self.symbiote_settings, sort_keys=True)) 
+            check_settings = hash(json.dumps(self.settings, sort_keys=True)) 
 
             self.estimated_tokens = self.estimateTokenCount(json.dumps(self.conversation_history))
 
-            if self.symbiote_settings['listen'] and self.run is False:
+            if self.settings['listen'] and self.run is False:
                 if not hasattr(self, 'symspeech'):
-                    self.symspeech = speech.SymSpeech(settings=self.symbiote_settings)
+                    self.symspeech = speech.SymSpeech(settings=self.settings)
                     self.speechQueue = self.symspeech.start_keyword_listen()
 
                 self.spinner.start()
@@ -488,7 +495,7 @@ class symChat():
                                                    default=user_input,
                                                    cursor=CursorShape.UNDERLINE,
                                                    #rprompt="right justified prompt tet",
-                                                   vi_mode=self.symbiote_settings['vi_mode'],
+                                                   vi_mode=self.settings['vi_mode'],
                                                    refresh_interval=0.5
                                                 )
 
@@ -499,15 +506,16 @@ class symChat():
                 log(f"Error processing commands in user_input: {e}")
                 continue
             '''
+            print()
             user_input = self.processCommands(user_input)
 
             if user_input is None or user_input == "":
-                print(Rule(title=current_time, style="gray54"))
+                print(Rule(title=f"{current_date} {current_time}", style="gray54"))
                 continue
 
-            if check_settings != self.settings_hash:
-                self.saveSettings(settings=self.symbiote_settings)
-                self.settings_hash = check_settings
+            if check_settings != self.default_hash:
+                self.saveSettings()
+                self.default_hash = check_settings
 
             if user_input is None or re.search(r'^\n+$', user_input) or user_input == "":
                 if self.run is True and self.enable is False:
@@ -519,7 +527,9 @@ class symChat():
                 continue
 
             returned = self.sendMessage(user_input)
-            print(Rule(title=current_time, style="gray54"))
+
+            print()
+            print(Rule(title=f"{current_date} {current_time}", style="gray54"))
 
             if self.shell_mode is True:
                 if returned.startswith("`") and returned.endswith("`"):
@@ -558,8 +568,8 @@ class symChat():
         print('<THINKING>')
         response = str() 
 
-        if self.symbiote_settings['model'].startswith("openai"):
-            model_name = self.symbiote_settings['model'].split(":")
+        if self.settings['model'].startswith("openai"):
+            model_name = self.settings['model'].split(":")
             model = model_name[1]
             # OpenAI Chat Completion
             try:
@@ -577,9 +587,9 @@ class symChat():
                     print(chunk.choices[0].delta.content, end="", flush=True)
                     response += chunk.choices[0].delta.content
 
-        elif self.symbiote_settings['model'].startswith("ollama"):
+        elif self.settings['model'].startswith("ollama"):
             # Ollama Chat Completion
-            model_name = self.symbiote_settings['model'].split(":")
+            model_name = self.settings['model'].split(":")
 
             model = model_name[1] + ":" + model_name[2]
 
@@ -595,8 +605,8 @@ class symChat():
                 print(chunk['message']['content'], end='', flush=True)
                 response += chunk['message']['content']
 
-        elif self.symbiote_settings['model'].startswith("groq"):
-            model_name = self.symbiote_settings['model'].split(":")
+        elif self.settings['model'].startswith("groq"):
+            model_name = self.settings['model'].split(":")
             model = model_name[1]
 
             stream = grclient.chat.completions.create(
@@ -618,20 +628,39 @@ class symChat():
         return response
 
     def sendMessage(self, user_input):
-        if self.symbiote_settings['think'] is True:
+        if self.settings['think'] is True:
             self.think(user_input)
 
-        current_role = self.symbiote_settings['role']
+        current_role = self.settings['role']
         available_roles = roles.get_roles()
 
-        self.writeHistory('system', available_roles[current_role])
+        self.geo = nomi.query_postal_code(self.settings['location'])
+        now = datetime.now()
+        current_time = now.strftime("%H:%M:%S")
+        current_date = now.strftime("%m/%d/%Y")
+
+        suffix = f"time:{current_time},"
+        suffix += f"date:{current_date},"
+        suffix += f"operating system:{system},"
+        for key, val in self.geo.items():
+            if key == "accuracy":
+                continue
+
+            suffix += f"{key}: {val},"
+
+        system_prompt = f"{available_roles[current_role]}\n{suffix.strip()}"
+        self.writeHistory('system', system_prompt)
         self.writeHistory('user', user_input)
+
+        '''
         self.estimated_tokens = self.estimateTokenCount(json.dumps(self.conversation_history))
         num_ctx = self.estimated_tokens + 8192
-        if self.estimated_tokens > self.symbiote_settings['max_tokens']:
-            self.conversation_history = self.truncateHistory(self.conversation_history, self.symbiote_settings['max_tokens'])
+        if self.estimated_tokens > self.settings['max_tokens']:
+            self.conversation_history = self.truncateHistory(self.conversation_history, self.settings['max_tokens'])
             self.estimated_tokens = self.estimateTokenCount(json.dumps(self.conversation_history))
             num_ctx = self.estimated_tokens + 8192
+        '''
+        num_ctx = self.settings['max_tokens']
 
         message = self.conversation_history
 
@@ -643,8 +672,8 @@ class symChat():
             message.append({"role": "user", "content": user_input})
 
         response = str() 
-        streaming = self.symbiote_settings['stream']
-        markdown = self.symbiote_settings['markdown']
+        streaming = self.settings['stream']
+        markdown = self.settings['markdown']
         if self.shell_mode is True:
             streaming = False
             markdown = False
@@ -657,8 +686,8 @@ class symChat():
            live = Live(console=console, refresh_per_second=5)
            live.start()
 
-        if self.symbiote_settings['model'].startswith("openai"):
-            model_name = self.symbiote_settings['model'].split(":")
+        if self.settings['model'].startswith("openai"):
+            model_name = self.settings['model'].split(":")
             model = model_name[1]
             
             # Remove system messages from the history if using o1 models
@@ -699,9 +728,9 @@ class symChat():
                     else:
                         print(response)
 
-        elif self.symbiote_settings['model'].startswith("ollama"):
+        elif self.settings['model'].startswith("ollama"):
             # Ollama Chat Completion
-            model_name = self.symbiote_settings['model'].split(":")
+            model_name = self.settings['model'].split(":")
             model = model_name[1] + ":" + model_name[2]
 
             try:
@@ -733,8 +762,8 @@ class symChat():
                     else:
                         print(response)
 
-        elif self.symbiote_settings['model'].startswith("groq"):
-            model_name = self.symbiote_settings['model'].split(":")
+        elif self.settings['model'].startswith("groq"):
+            model_name = self.settings['model'].split(":")
             model = model_name[1]
 
             try:
@@ -772,7 +801,7 @@ class symChat():
 
         self.writeHistory('assistant', response)
 
-        if self.symbiote_settings['speech'] and self.suppress is False:
+        if self.settings['speech'] and self.suppress is False:
             self.symspeech = speech.SymSpeech()
             speech_thread = threading.Thread(target=self.symspeech.say, args=(response,))
             speech_thread.start()
@@ -805,9 +834,9 @@ class symChat():
  
         self.registerCommand("perifious::")
         if re.search(r'^perifious::', user_input):
-            self.symspeech = speech.SymSpeech(debug=self.symbiote_settings['debug'])
+            self.symspeech = speech.SymSpeech(debug=self.settings['debug'])
             self.symspeech.say('Your wish is my command!')
-            if self.symbiote_settings['perifious']:
+            if self.settings['perifious']:
                 user_input = 'settings:perifious:0:'
             else:
                 user_input = 'settings:perifious:1:'
@@ -819,7 +848,7 @@ class symChat():
                 self.chat_session.style = self.theme_manager.get_theme("liveshell")
             else:
                 self.shell_mode = False
-                self.chat_session.style = self.theme_manager.get_theme(self.symbiote_settings["theme"])
+                self.chat_session.style = self.theme_manager.get_theme(self.settings["theme"])
 
             log(f"Shell mode set: {self.shell_mode}")
 
@@ -840,12 +869,12 @@ class symChat():
 
         self.registerCommand("save::")
         if re.search(r"^save::", user_input):
-            self.saveSettings(settings=self.symbiote_settings)
+            self.saveSettings()
             return None
 
         self.registerCommand("exit::")
         if re.search(r'^exit::', user_input):
-            self.saveSettings(settings=self.symbiote_settings)
+            self.saveSettings()
             os.system('reset')
             sys.exit(0)
 
@@ -889,14 +918,15 @@ class symChat():
                 for role_name in available_roles:
                     role_list.append(role_name)
 
-                print(f"Current Role: {self.symbiote_settings['role']}")
+                print(f"Current Role: {self.settings['role']}")
                 selected_role = self.listSelector("Select a role:", sorted(role_list))
 
                 if selected_role is None:
                     return None
 
             if selected_role in available_roles:
-                self.symbiote_settings['role'] = selected_role 
+                self.settings['role'] = selected_role 
+                self.saveSettings()
             else:
                 log(f"No such role: {selected_role}")
 
@@ -908,22 +938,40 @@ class symChat():
         match = re.search(setting_pattern, user_input)
         if match:
             if match.group(1):
-                setting = match.group(1)
+                setting = match.group(1).lower()
                 set_value = match.group(2)
-                if setting in self.symbiote_settings:
-                    get_type = type(self.symbiote_settings[setting])
+                if setting in self.settings:
+                    get_type = type(self.settings[setting])
                     if get_type == bool:
                         if re.search(r'^false$|^0$|^off$', set_value):
                             set_value = False
                         else:
                             set_value = True
-                    else:        
-                        set_value = get_type(set_value) 
+                    else:
+                        set_value = set_value
 
-                    self.symbiote_settings[setting] = set_value
-                    #self.sym.update_symbiote_settings(settings=self.symbiote_settings)
-                    self.symutils = utils.utilities(settings=self.symbiote_settings)
-                    self.saveSettings(settings=self.symbiote_settings)
+                    if setting == "location":
+                        prior = str(set_value).lower()
+                        try:
+                            self.geo = nomi.query_postal_code(set_value)
+                            set_value = self.geo['postal_code']
+                            set_value = str(set_value).lower()
+                        except Exception as e:
+                            log(f"error {e}")
+
+                        if str(set_value).lower() == prior:
+                            try:
+                                tmp = nomi.query_location(set_value, top_k=1)
+                                set_value = tmp['postal_code'].iloc[0]
+                            except Exception as e:
+                                log(f"error {e}")
+                                return None
+                            
+                            self.geo = nomi.query_postal_code(set_value)
+                    self.settings[setting] = set_value
+                    #self.sym.update_symbiote_settings(settings=self.settings)
+                    self.symutils = utils.utilities(settings=self.settings)
+                    self.saveSettings()
             else:
                 self.displaySettings()
 
@@ -1035,7 +1083,7 @@ class symChat():
 
             summary = self.symutils.analyze_file(file_path)
             #summary = self.symutils.summarizeFile(file_path)
-            #if self.symbiote_settings['debug']:
+            #if self.settings['debug']:
             #    print(json.dumps(summary, indent=4))
             user_input = user_input[:match.start()] + json.dumps(summary) + user_input[match.end():]
 
@@ -1054,7 +1102,7 @@ class symChat():
         self.registerCommand("history::")
         history_pattern = r'^history::|^history:(.*):'
         match = re.search(history_pattern, user_input)
-        if self.symbiote_settings['conversation'] == '/dev/null':
+        if self.settings['conversation'] == '/dev/null':
             return None
 
         if match:
@@ -1118,7 +1166,7 @@ class symChat():
             else:
                 pass
 
-            self.saveConversation(user_input, self.symbiote_settings['notes'])
+            self.saveConversation(user_input, self.settings['notes'])
 
             return None
 
@@ -1134,9 +1182,8 @@ class symChat():
                 theme_name, prompt_style = self.theme_manager.select_theme() 
 
             self.chat_session.style = prompt_style
-            self.symbiote_settings['theme'] = theme_name
-            #self.sym.update_symbiote_settings(settings=self.symbiote_settings)
-            self.saveSettings(settings=self.symbiote_settings)
+            self.settings['theme'] = theme_name
+            self.saveSettings()
 
             return None 
 
@@ -1241,7 +1288,7 @@ class symChat():
                 for result in results:
                     results_str += result['text']
 
-                print(Panel(Text(results_str), title=f"Wikipedia: {search_term}"))
+                print(Panel(Text(results_str[:8000]), title=f"Wikipedia: {search_term}"))
                 content = f"wikipedia search\n"
                 content += '\n```\n{}\n```\n'.format(results_str)
                 user_input = user_input[:match.start()] + content + user_input[match.end():]
@@ -1278,7 +1325,12 @@ class symChat():
                 links = search.fetch_links(search_term)
                 result = search.fetch_text_from_urls(links)
                 result = self.cleanText(result)
-                print(Panel(Text(result[:10000]), title=f"Search Result: {search_term}"))
+                print(Panel(Text(result[:5000]), title=f"Search Result: {search_term}"))
+                content = str()
+                for link in links:
+                    content += f"{link}\n"
+                print(Panel(Text(content), title=f"Links:"))
+
                 user_input = user_input[:match.start()] + result + user_input[match.end():]
                 return user_input
             else:
@@ -1309,12 +1361,12 @@ class symChat():
         match = re.search(mail_pattern, user_input)
         if match:
             mail_checker = mail.MailChecker(
-                    username=self.symbiote_settings['imap_username'],
-                    password=self.symbiote_settings['imap_password'],
+                    username=self.settings['imap_username'],
+                    password=self.settings['imap_password'],
                     mail_type='imap',
                     days=2,
                     unread=False,
-                    #model=self.symbiote_settings['model'],
+                    #model=self.settings['model'],
                     model=None,
                     )
             email = mail_checker.check_mail()
@@ -1323,6 +1375,7 @@ class symChat():
                 log(f"No emails to analyze.")
                 return None
 
+            '''
             content = f"""You read in a JSON document of e-mails containing from, to, subject, received date, and body and converse about those messages. Your job is as follows.
 1. Identify messages that may be of importance and highlight details about those messages.
 2. Identify messages that may be considered spam.
@@ -1330,8 +1383,9 @@ class symChat():
 4. Provide a brief summary of the messages found.
 5. Provide further analysis upon request.
 """
-            content += f"\n```\n{email}\n```\n"
-            print(Panel(Text(email), title=f"Emails: {self.symbiote_settings['imap_username']}"))
+            '''
+            content = f"\n```json\n{email}\n```\n"
+            print(Panel(Text(email), title=f"Emails: {self.settings['imap_username']}"))
             print()
             user_input = user_input[:match.start()] + content + user_input[match.end():]
 
@@ -1376,6 +1430,32 @@ class symChat():
                 log("No content provided for the qr.")
 
             return None
+
+        # Trigger for weather::
+        self.registerCommand("weather::")
+        weather_pattern = r"weather::|weather:(.*):"
+        match = re.search(weather_pattern, user_input)
+        if match:
+            if match.group(1):
+                location = match.group(1)
+            else:
+                location = self.settings['location']
+
+            if location is None:
+                log("No location set in settings::")
+                return None
+
+            result = self.getWeather(location)
+
+            if result is None:
+                log(f"Unable to get weather for {location}")
+                return None
+
+            #print(Panel(Text(result), title=f"Weather: {location}"))
+            content = f"Analyze the following weather details and provide a well formatted weather report for {location}.\n```json\n{result}```"
+            user_input = user_input[:match.start()] + content + user_input[match.end():]
+
+            return user_input
 
         # Trigger for inspect:: command to inspect running python objects.
         self.registerCommand("inspect::")
@@ -1575,27 +1655,6 @@ class symChat():
             else:
                 return None
 
-        # Trigger nuclei scan nuclei::
-        self.registerCommand("nuclei::")
-        nuclei_pattern = r'nuclei::|nuclei:(.*):'
-        match = re.search(nuclei_pattern, user_input)
-        if match:
-            if match.group(1):
-                url = match.group(1)
-            else:
-                url = self.textPrompt("URL to scan:")
-
-            if self.isValidUrl(url):
-                self.spinner.start()
-                result = self.runNucleiScan(url)
-                if result:
-                    self.spinner.succeed('Completed')
-                    print(Panel(Text(result), title=url))
-                    user_input = f"Review the following nuclei vulnerability scan and provide a report on the findings and action items.\n{result}"
-                    return user_input
-
-            return None
-
         # Trigger for textual deception analysis deception::
         self.registerCommand("deception::")
         deception_pattern = r'deception::|deception:(.*):'
@@ -1654,12 +1713,13 @@ class symChat():
 
         return user_input
 
-    def saveSettings(self, settings):
+    def saveSettings(self):
         try:
             with open(self.config_file, "w") as file:
-                json.dump(settings, file, indent=4)
+                json.dump(self.settings, file, indent=4, sort_keys=True)
         except Exception as e:
             log(f"Error Writing: {e}")
+            return None
 
     def loadSettings(self):
         try:
@@ -1667,10 +1727,9 @@ class symChat():
                 settings = json.load(file)
         except Exception as e:
             log(f"Error Reading: {e}")
+            return None
 
-        for setting in self.symbiote_settings:
-            if setting not in settings:
-                settings[setting] = self.symbiote_settings[setting]
+        print(settings)
 
         return settings
 
@@ -1988,29 +2047,6 @@ class symChat():
         except Exception as e:
             log(f"An error occurred: {e}")
 
-    def runNucleiScan(self, domain: str) -> str:
-        # Check if nuclei is installed
-        try:
-            subprocess.run(['nuclei', '-version'], capture_output=True, text=True, check=True)
-        except FileNotFoundError:
-            log("Error: nuclei is not installed or not in the system's PATH.")
-            return None
-        except subprocess.CalledProcessError:
-            log("Error: failed to check nuclei version.")
-            return None
-
-        # Run the nuclei scan
-        try:
-            # Construct the command to run nuclei with the target domain
-            command = ['nuclei', '-u', domain, '-j', '-c', '100']
-            result = self.execCommand(command)
-
-            return result
-
-        except Exception as e:
-            log(f"An unexpected error occurred: {str(e)}")
-            return None
-
     def urlImageExtract(self, url, mode='merged', images_per_row=3):
         # Send a request to the URL
         response = requests.get(url)
@@ -2260,3 +2296,21 @@ class symChat():
                 )
 
         return app.run()
+
+    def getWeather(self, location="33004"):
+        try:
+            # Format the URL for wttr.in with the specified location
+            url = f'https://wttr.in/{location}?format=j1'
+            response = requests.get(url)
+
+            if response.status_code == 200:
+                return response.text 
+            else:
+                log(f"Failed to get weather data. Status code: {response.status_code}")
+                return None
+        except Exception as e:
+            log(f"An error occurred: {e}")
+            return None
+
+        return response
+

@@ -22,7 +22,11 @@ class googleSearch:
             response = requests.get(search_url)
             response.raise_for_status()
             search_results = response.json()
-            links = [item['link'] for item in search_results.get('items', [])]
+            links = []
+            for item in search_results.get('items', []):
+                #log(f"{item['snippet']}\n\n")
+                links.append(item['link'])
+
             return links
         except Exception as e:
             log(f"Failed to fetch search results: {e}")
@@ -30,19 +34,23 @@ class googleSearch:
 
     def fetch_text_from_urls(self, urls):
         all_text = str() 
+        links = list()
         for url in urls:
             log(f"Fetchting: {url}")
             try:
                 response = requests.get(url)
                 response.raise_for_status()
                 soup = BeautifulSoup(response.content, 'html.parser')
+                for link in soup.find_all('a', href=True):
+                    links.append(link.get('href'))
+
                 text = soup.get_text()
-                all_text += text + " "  # Append text and add a space to separate content from different URLs
+                all_text += text + " "
             except Exception as e:
                 log(f"Failed to fetch page content from {url}: {e}")
                 continue
 
-        return all_text.strip()  # Remove any trailing whitespace
+        return all_text.strip()
 
 if __name__ == "__main__":
     # Usage example
