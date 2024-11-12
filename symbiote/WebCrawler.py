@@ -19,16 +19,18 @@ import hashlib
 import re
 from prompt_toolkit import print_formatted_text, ANSI
 from prompt_toolkit.utils import get_cwidth
+import requests
 
 class WebCrawler:
     def __init__(self, browser="firefox"):
+        self.pages = {}
         self.visited_urls = set()
-        self.pages = {}  # Store page details in a dictionary
         self.match_count = 0  # Count of matched pages
         self.crawl_count = 0  # Count of crawled pages
         self.discarded_count = 0 # Count discarded pages
         self.browser = browser
         self.base_url = None 
+        self.found_links = set()
 
         # Set up the WebDriver and make it run headlessly
         if self.browser.lower() == "chrome":
@@ -45,9 +47,11 @@ class WebCrawler:
             log(f"Unsupported browser: {self.browser}")
             return ""
 
-    def pull_website_content(self, url, search_term=None, crawl=False, depth=None):
+    def pull_website_content(self, url=None, search_term=None, crawl=False, depth=None):
         if self.base_url is None:
             self.base_url = url
+
+        self.found_links.add(url)
 
         self.search_term = search_term
         self.crawl = crawl
@@ -57,7 +61,6 @@ class WebCrawler:
         except Exception as e:
             log(f"Error fetching the website content: {e}")
             return ""
-        
 
         soup = BeautifulSoup(self.driver.page_source, 'html.parser')
 
@@ -65,18 +68,52 @@ class WebCrawler:
         #self.driver.quit()
 
         # Remove all script and style elements
-        for script in soup(["script", "style"]):
-            script.decompose()
+        scripts = []
+        for script in soup.find_all("script"):
+            if script.string is not None:
+                scripts.append(script.string)
+
+            elif script.get("src"):
+                script_url = script["src"]
+
+                if not script_url.startswith("http"):
+                    script_url = requests.compat.urljoin(url, script_url)
+                try:
+                    script_response = requests.get(script_url)
+                    if script_response.status_code == 200:
+                        scripts.append(script_response.text)
+                except Exception as e:
+                    log(e)
+
+        csss = []
+        for style in soup.find_all("style"):
+            if style.string is not None:
+                csss.append(style.string)
+
+        for style_link in soup.find_all("link", rel="stylesheet"):
+            css_url = style_link.get("href")
+
+            if css_url:
+                if not css_url.startswith("http"):
+                    css_url = requests.compat.urljoin(url, css_url)
+
+                try:
+                    css_response = requests.get(css_url)
+                    if css_response.status_code == 200:
+                        csss.append(css_response.text)
+                except Exception as e:
+                    log(e)
+
+        for link in soup.find_all("a", href=True):
+            href_link = link["href"]
+            full_url = urljoin(url, href_link)
+            self.found_links.add(full_url) 
 
         # Get the text content
         text = soup.get_text()
-        text = re.sub(r'\n+', r'\n', text)
-        text = re.sub(r'\s+', r' ', text)
 
-        # Compute the md5 sum of the page content
         md5_sum = hashlib.md5(text.encode()).hexdigest()
 
-        # If the md5 sum already exists in the pages dictionary, discard the page
         if md5_sum in self.pages:
             self.discarded_count += 1
             return ""
@@ -91,18 +128,14 @@ class WebCrawler:
 
         # Store the page details in the pages dictionary
         self.pages[md5_sum] = {
-            'url': url,
+            'url': str(url),
             'content_type': self.driver.execute_script("return document.contentType"),
             'content': text,
-            'matched': matched,
-            # Add any other details you want to store
+            'scripts': list(scripts),
+            'css': list(csss),
+            'matched': bool(matched),
+            'links': list(self.found_links)
         }
-
-        '''
-        # Encapsulate the extracted text and its md5 sum within triple backticks
-        text = f"URL / Website: {url}.\n\nMD5 Sum: {md5_sum}\n\n```{text}```\n\n"
-        text = str(text)
-        '''
 
         # Display a progress update
         self.crawl_count += 1
@@ -120,6 +153,20 @@ class WebCrawler:
                     self.pull_website_content(absolute_url, search_term=self.search_term, crawl=True, depth=None if depth is None else depth - 1)
 
         return self.pages
+
+    def close(self):
+        """Close the WebDriver and clean up resources."""
+        if self.driver:
+            self.driver.quit()
+            log("WebDriver closed.")
+
+    def __enter__(self):
+        """Support context manager entry."""
+        return self
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        """Support context manager exit, ensuring resources are closed."""
+        self.close()
 
 if __name__ == "__main__":
     # Usage

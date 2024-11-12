@@ -897,8 +897,14 @@ class symChat():
                         log(f"Fetching content from: {contents}")
                         crawler = webcrawler.WebCrawler(browser='firefox')
                         pages = crawler.pull_website_content(url, search_term=None, crawl=False, depth=None)
-                        for md5, page in pages.items():
-                            website_content += page['content']
+                        crawler.close()
+                        website_content = str()
+                        if pages:
+                            for md5, page in pages.items():
+                                website_content += page['content']
+                        else:
+                            log(f"Unable to fetch data for {url}")
+
                         user_input = user_input[:match.start()] + website_content + user_input[match.end():]
             else:
                 user_input = user_input[:match.start()] + contents + user_input[match.end():]
@@ -1617,17 +1623,47 @@ class symChat():
             
             if url == None:
                 return None 
+
+            content = str()
+            css = str()
+            script = str()
+            links = str()
             
             log(f"Fetching {url}...")
             import symbiote.WebCrawler as webcrawler
-            content = str()
             crawler = webcrawler.WebCrawler(browser='firefox')
             pages = crawler.pull_website_content(url, search_term=None, crawl=crawl, depth=None)
-            for md5, page in pages.items():
-                content += page['content']
+            crawler.close()
 
-            print(Panel(Text(content), title=f"Content: {url}"))
+            if pages:
+                for md5, item in pages.items():
+                    content += item['content']
+                    links += "\n".join(item['links'])
+                    css += "\n".join(item['css'])
+                    script += "\n".join(item['scripts'])
+            else:
+                log(f"No content gathered for {url}")
+                return None
+
+            content = self.cleanText(content)
+            css = self.cleanText(css)
+            script = self.cleanText(script)
+
+            log(len(content))
+            log(len(css))
+            log(len(script))
+            log(len(links))
+
+            print(Panel(Text(content[:1000]), title=f"Content: {url}"))
+            if css:
+                print(Panel(Text(css[:1000]), title=f"CSS: {url}"))
+            if script:
+                print(Panel(Text(script[:1000]), title=f"Scripts: {url}"))
+            if len(links) > 0:
+                print(Panel(Text(links), title=f"Links: {url}"))
+            
             user_input = user_input[:match.start()] + content + user_input[match.end():]
+
             print()
             return user_input 
 
@@ -1764,6 +1800,7 @@ class symChat():
             crawler = webcrawler.WebCrawler(browser='firefox')
             self.spinner.start()
             pages = crawler.pull_website_content(url, search_term=None, crawl=crawl, depth=None)
+            crawler.close()
             self.spinner.succeed('Completed')
             for md5, page in pages.items():
                 content += page['content']
@@ -1901,26 +1938,26 @@ class symChat():
         text = text.strip()
 
         # Replace multiple spaces with a single space
-        text = re.sub(r'\s+', ' ', text)
+        text = re.sub(r' +', ' ', text)
+        text = re.sub(r'\n+', '\n', text)
 
         # Remove any non-ASCII characters (optional, based on your needs)
         text = re.sub(r'[^\x00-\x7F]+', '', text)
 
         # Normalize dashes and remove unnecessary punctuation
-        text = re.sub(r'[–—]', '-', text)  # Normalize dashes
-        text = re.sub(r'[“”]', '"', text)  # Normalize quotes
-        text = re.sub(r"[‘’]", "'", text)  # Normalize apostrophes
+        #text = re.sub(r'[–—]', '-', text)  # Normalize dashes
+        #text = re.sub(r'[“”]', '"', text)  # Normalize quotes
+        #text = re.sub(r"[‘’]", "'", text)  # Normalize apostrophes
 
         # Optionally remove or replace other special characters
         # You can customize this step according to your needs
         # For example, remove non-alphanumeric except common punctuation
-        text = re.sub(r'[^\w\s.,!?\'"-]', '', text)
+        #text = re.sub(r'[^\w\s.,!?\'"-]', '', text)
 
         # Further replace double punctuation (optional)
         text = re.sub(r'\.{2,}', '.', text)  # Replace multiple dots with a single dot
 
-        # Convert to lowercase (optional, depending on your use case)
-        text = text.lower()
+        #text = text.lower()
 
         return text
 
