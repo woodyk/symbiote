@@ -2,6 +2,12 @@
 #
 # roles.py
 
+from rich.console import Console
+console = Console()
+print = console.print
+log = console.log
+#log("Loading symbiote roles.")
+
 import platform
 
 os_name = platform.system()

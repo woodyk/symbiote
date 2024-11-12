@@ -2,6 +2,12 @@
 #
 # codeextract.py
 
+from rich.console import Console
+console = Console()
+print = console.print
+log = console.log
+log("Loading symbiote CodeExtract.")
+
 import re
 import os
 import uuid
@@ -15,10 +21,6 @@ from pygments import highlight
 from pygments.style import Style
 from pygments.token import Token
 from pygments.formatters import Terminal256Formatter
-from rich.console import Console
-console = Console()
-print = console.print
-log = console.log
 
 pygment_styles = [
         'murphy',

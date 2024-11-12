@@ -2,6 +2,12 @@
 #
 # headlines.py
 
+from rich.console import Console
+console = Console()
+print = console.print
+log = console.log
+log("Loading symbiote headlines.")
+
 import requests
 from bs4 import BeautifulSoup
 
@@ -41,5 +47,5 @@ class getHeadlines:
 if __name__ == "__main__":
     gh = getHeadlines()
     result = gh.scrape()
-    print(result)
+    log(result)
 

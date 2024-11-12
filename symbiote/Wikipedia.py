@@ -7,6 +7,7 @@ from rich.console import Console
 console = Console()
 print = console.print
 log = console.log
+log("Loading symbiote Wikipedia.")
 
 class WikipediaSearch:
     def __init__(self, language='en'):
@@ -58,7 +59,7 @@ if __name__ == "__main__":
     wiki_search = WikipediaSearch()
     results = wiki_search.search('Quantum computing', 5)
     for article in results:
-        print(f"Title: {article['title']}")
-        print(f"URL: {article['url']}")
-        print(f"Text: {article['text'][:500]}")  # Printing only the first 500 characters of the text for brevity
+        log(f"Title: {article['title']}")
+        log(f"URL: {article['url']}")
+        log(f"Text: {article['text'][:500]}")  # Printing only the first 500 characters of the text for brevity
 

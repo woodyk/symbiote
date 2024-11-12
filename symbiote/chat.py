@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
-
 #
 # chat.py
+
 
 from rich import inspect
 from rich.console import Console
@@ -21,6 +21,7 @@ import sys
 import os
 import io
 import re
+import importlib
 import threading
 import clipboard
 import json
@@ -30,19 +31,17 @@ import qrcode
 import subprocess
 import tempfile
 import platform
-import pgeocode
 
+log("Loading pgeocode.")
+import pgeocode
 nomi = pgeocode.Nominatim('us')
 
 from datetime import datetime
 from pathlib import Path
 from halo import Halo
 from PIL import Image, ImageDraw, ImageColor
-
 from urllib.parse import urlparse
-
 from io import BytesIO
-
 from bs4 import BeautifulSoup
 
 log("Loading inquirerpy.")
@@ -87,6 +86,7 @@ models = [
         "groq:mixtral-8x7b-32768",
         ] 
 
+log("Loading ollama.")
 from ollama import Client
 olclient = Client(host='http://localhost:11434')
 try:
@@ -96,6 +96,7 @@ try:
 except Exception as e:
     pass
 
+log("Loading openai.")
 import openai
 oaiclient = openai.OpenAI()
 try:
@@ -106,6 +107,7 @@ except Exception as e:
     log(e)
     pass
 
+log("Loading groq.")
 from groq import Groq
 try:
     grclient = Groq()
@@ -902,7 +904,7 @@ class symChat():
         role_pattern = r'^role::|role:(.*):'
         match = re.search(role_pattern, user_input)
         if match:
-            import symbiote.roles as roles
+            importlib.reload(roles)
             available_roles = roles.get_roles()
 
             if match.group(1):
@@ -2321,4 +2323,3 @@ class symChat():
             return None
 
         return response
-

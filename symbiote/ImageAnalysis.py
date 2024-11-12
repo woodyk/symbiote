@@ -2,6 +2,12 @@
 #
 # ImageAnalysis.py
 
+from rich.console import Console
+console = Console()
+print = console.print
+log = console.log
+log("Loading symbiote ImageAnalysis.")
+
 import os
 import sys
 import base64
@@ -37,7 +43,7 @@ class ImageAnalyzer:
                 img = Image.open(image_source)
             return img
         except Exception as e:
-            print(f"Error opening path: {e}")
+            log(f"Error opening path: {e}")
             return None
 
     def analyze_faces(self, image_path):
@@ -51,7 +57,7 @@ class ImageAnalyzer:
             )
             return analysis_results
         except Exception as e:
-            print(f"An error occurred while analyzing the photo: {e}")
+            log(f"An error occurred while analyzing the photo: {e}")
             return None
 
     def draw_boxes(self, image, analysis_results):
@@ -106,7 +112,7 @@ class ImageAnalyzer:
             return detections
 
         except Exception as e:
-            print(f"Object detection failed: {e}")
+            log(f"Object detection failed: {e}")
             return []
 
     def extract_text_from_image(self, image):
@@ -114,7 +120,7 @@ class ImageAnalyzer:
             text = pytesseract.image_to_string(image)
             return text.strip()
         except Exception as e:
-            print(f"Text extraction failed: {e}")
+            log(f"Text extraction failed: {e}")
             return ""
 
     def analyze_images(self, path, mode='html', images_per_row=3):
@@ -156,7 +162,7 @@ class ImageAnalyzer:
                         images.append(img)
                         img_sources.append(img_url)
                 except Exception as e:
-                    print(f"Failed to open image: {img_url} - {e}")
+                    log(f"Failed to open image: {img_url} - {e}")
 
         for img in images:
             result = {"image_source": img_sources[images.index(img)]}
@@ -311,7 +317,7 @@ class ImageAnalyzer:
             img_str = base64.b64encode(buffered.getvalue()).decode("utf-8")  # Converting to base64
             return img_str
         except Exception as e:
-            print(f"Failed to convert image to base64: {e}")
+            log(f"Failed to convert image to base64: {e}")
             return None
 
     def describe_image(self, img):
@@ -332,10 +338,10 @@ class ImageAnalyzer:
                 detected_objects = response['response']
                 return detected_objects
             except Exception as e:
-                print(f"Error processing image: {e}")
+                log(f"Error processing image: {e}")
                 return None
         except Exception as e:
-            print(f"Failed to describe image: {e}")
+            log(f"Failed to describe image: {e}")
             return None
 
 # Example usage
@@ -346,8 +352,8 @@ if __name__ == "__main__":
     #results = extractor.analyze_images(path, mode='html')
     results = extractor.analyze_images(path, mode='none')
     human_readable = extractor.render_human_readable(results)
-    print(json.dumps(results, indent=4))
-    print(human_readable)
+    log(json.dumps(results, indent=4))
+    log(human_readable)
 
 
 """

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 #
-# Email.py
+# GetEmail.py
 
 import imaplib
 import poplib
@@ -17,6 +17,7 @@ from rich.console import Console
 console = Console()
 print = console.print
 log = console.log
+log("Loading symbiote GetEmail.")
 
 class MailChecker:
     def __init__(self, username, password, mail_type='imap', days=None, unread=False, model=None):

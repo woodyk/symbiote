@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 #
-# tt.py
+# googleSearch.py
+
 import os
 import requests
 import urllib
@@ -9,6 +10,7 @@ from rich.console import Console
 console = Console()
 print = console.print
 log = console.log
+log("Loading symbiote googleSearch.")
 
 class googleSearch:
     def __init__(self):
@@ -57,4 +59,4 @@ if __name__ == "__main__":
     search_engine = googleSearch()
     links = search_engine.fetch_links("site:w3schools.com python")
     all_text = search_engine.fetch_text_from_urls(links)
-    print(all_text)
+    log(all_text)

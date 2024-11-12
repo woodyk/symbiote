@@ -2,6 +2,12 @@
 #
 # webcrawler.py
 
+from rich.console import Console
+console = Console()
+print = console.print
+log = console.log
+log("Loading symbiote WebCrawler.")
+
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options as ChromeOptions
 from selenium.webdriver.firefox.options import Options as FirefoxOptions
@@ -13,10 +19,6 @@ import hashlib
 import re
 from prompt_toolkit import print_formatted_text, ANSI
 from prompt_toolkit.utils import get_cwidth
-from rich.console import Console
-console = Console()
-print = console.print
-log = console.log
 
 class WebCrawler:
     def __init__(self, browser="firefox"):
@@ -135,8 +137,8 @@ if __name__ == "__main__":
 
     # Print the pages
     for md5, page in pages.items():
-        print(f"URL: {page['url']}")
-        print(f"Content Type: {page['content_type']}")
-        print(f"Content: {page['content']}")
-        print(f"Search Term Matched: {page['matched']}")
-        print("\n")
+        log(f"URL: {page['url']}")
+        log(f"Content Type: {page['content_type']}")
+        log(f"Content: {page['content']}")
+        log(f"Search Term Matched: {page['matched']}")
+        log("\n")
