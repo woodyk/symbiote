@@ -2,16 +2,22 @@
 #
 # chat.py
 
-
 from rich import inspect
+from rich.tree import Tree
 from rich.console import Console
+from rich.columns import Columns 
 from rich.markdown import Markdown
 from rich.panel import Panel
+from rich.console import Group
+from rich.markup import escape
+from rich.padding import Padding
 from rich.syntax import Syntax
 from rich.table import Table
 from rich.text import Text
 from rich.live import Live
 from rich.rule import Rule
+from rich.theme import Theme
+from rich.highlighter import Highlighter, RegexHighlighter
 console = Console()
 print = console.print
 log = console.log
@@ -71,13 +77,15 @@ from prompt_toolkit.cursor_shapes import CursorShape, ModalCursorShapeConfig
 log("Loading symbiote roles.")
 import symbiote.roles as roles
 #log("Loading symbiote shell.")
-import symbiote.shell as shell
+#import symbiote.shell as shell
 log("Loading symbiote speech.")
-import symbiote.speech as speech
+from symbiote.speech import SymSpeech
 log("Loading symbiote utils.")
-import symbiote.utils as utils
+from symbiote.utils import Utilities
 log("Loading symbiote themes.")
 from symbiote.themes import ThemeManager
+log("Loading symbiote MemoryStore.")
+from symbiote.memory import MemoryStore
 
 system = platform.system()
 
@@ -126,6 +134,8 @@ command_list = {
         "model::": "Change the AI model being used.",
         "cd::": "Change working directory.",
         "file::": "Load a file for submission.",
+        "memory::": "CRUD access to symbiote memory",
+        "search::": "Search symbiote memory for information",
         "reload::": "Reload running python modules.",
         "weather::": "Display the current weater.",
         "inspect::": "Realtime python object inspector for current running session.",
@@ -238,6 +248,11 @@ class symChat():
         self.shell_mode = False
         self.command_register = []
 
+        # initialize memory manager
+        self.memory = MemoryStore()
+
+        self.return_input = True
+
         if 'debug' in kwargs:
             self.settings['debug'] = kwargs['debug']
             
@@ -282,7 +297,7 @@ class symChat():
         self.current_conversation = []
 
         # Load utils object
-        self.symutils = utils.utilities(settings=self.settings)
+        self.symutils = Utilities(settings=self.settings)
 
         # Init the shell theme manager
         self.theme_manager = ThemeManager()
@@ -472,7 +487,7 @@ class symChat():
 
             if self.settings['listen'] and self.run is False:
                 if not hasattr(self, 'symspeech'):
-                    self.symspeech = speech.SymSpeech(settings=self.settings)
+                    self.symspeech = SymSpeech(settings=self.settings)
                     self.speechQueue = self.symspeech.start_keyword_listen()
 
                 self.spinner.start()
@@ -807,7 +822,7 @@ class symChat():
         self.writeHistory('assistant', response)
 
         if self.settings['speech'] and self.suppress is False:
-            self.symspeech = speech.SymSpeech()
+            self.symspeech = SymSpeech()
             speech_thread = threading.Thread(target=self.symspeech.say, args=(response,))
             speech_thread.start()
 
@@ -824,6 +839,77 @@ class symChat():
         return history
 
     def processCommands(self, user_input):
+        def _checkCommand(user_input):
+            command_pattern = r"(^|\b| )(?P<command_name>\w+):(?P<content>.*?):($|\b| )"
+
+            # Lists to store the results
+            commands = []
+            surrounding_texts = []
+            last_end = 0
+
+            # Find all command matches
+            for match in re.finditer(command_pattern, user_input):
+                # Extract command name and content
+                command_name = match.group("command_name")
+                if match.group("content"):
+                    content = match.group("content")
+                else:
+                    content = None
+
+                # Append command info
+                commands.append({
+                    "command_name": command_name,
+                    "content": content,
+                    "start": match.start(),
+                    "end": match.end()
+                })
+
+                # Capture surrounding text before each command
+                start, end = match.span()
+                if start > last_end:
+                    surrounding_texts.append(user_input[last_end:start].strip())
+
+                last_end = end
+
+            # Append any remaining text after the last command
+            if last_end < len(user_input):
+                surrounding_texts.append(user_input[last_end:].strip())
+
+            # If there is no surrounding text, return None
+            if not any(surrounding_texts):
+                return False
+            else:
+                return True
+            '''
+            # Process each command and replace it in the user_input
+            offset = 0  # Track character offset for replacement
+            for command in commands:
+                command_name = command["command_name"]
+                content = command["content"]
+
+                # Attempt to call the function dynamically
+                try:
+                    func = command_functions.get(f"command_{command_name}")
+                    if callable(func):
+                        log(f"Calling function: {command_name} with content: {content}")
+                        replacement_content = func(content)
+                        replacement = f"\n```\n{replacement_content}\n```\n"
+
+                        start = command["start"] + offset
+                        end = command["end"] + offset
+                        user_input = user_input[:start] + replacement + user_input[end:]
+
+                        offset += len(replacement) - (end - start)
+                    else:
+                        log(f"No function found for command: {command_name}")
+                except Exception as e:
+                    log(f"Error calling function {command_name}: {e}")
+
+            return user_input
+            '''
+
+        self.return_input = _checkCommand(user_input)
+
         # Audio keyword triggers
         for keyword in self.audio_triggers:
             if re.search(self.audio_triggers[keyword][0], user_input):
@@ -836,7 +922,7 @@ class symChat():
             print()
             print("[red]hello world[/red]")
             return None
- 
+
         self.registerCommand("perifious::")
         if re.search(r'^perifious::', user_input):
             self.symspeech = speech.SymSpeech(debug=self.settings['debug'])
@@ -1004,7 +1090,7 @@ class symChat():
                             self.geo = nomi.query_postal_code(set_value)
                     self.settings[setting] = set_value
                     #self.sym.update_symbiote_settings(settings=self.settings)
-                    self.symutils = utils.utilities(settings=self.settings)
+                    self.symutils = Utilities(settings=self.settings)
                     self.saveSettings()
             else:
                 self.displaySettings()
@@ -1129,7 +1215,6 @@ class symChat():
         match = re.search(flush_pattern, user_input)
         if match:
             self.flushHistory()
-
             return None 
 
         # Trigger for history::. Show the history of the messages.
@@ -1157,7 +1242,6 @@ class symChat():
             return None
 
         # Trigger for code:: extraction from provided text
-        ''' Add options for running, extracting and editing code on the fly '''
         self.registerCommand("code::")
         code_pattern = r'code::|code:(.*):'
         match = re.search(code_pattern, user_input)
@@ -1190,8 +1274,7 @@ class symChat():
 
             return files
 
-        # Trigger for note:: taking.  Take the note provided and query the current model but place the note and results
-        # in a special file for future tracking.
+        # Trigger for note:: taking.
         self.registerCommand("note::")
         note_pattern = r'^note::|^note:([\s\S]*?):'
         match = re.search(note_pattern, user_input)
@@ -1490,6 +1573,7 @@ class symChat():
                 return None
 
             result = self.getWeather(location)
+            self.memory.create("weather_command", result)
 
             if result is None:
                 log(f"Unable to get weather for {location}")
@@ -1515,11 +1599,46 @@ class symChat():
 
             if obj:
                 obj = eval(obj, globals(), locals())
-                inspect(obj)
+                inspect(obj, methods=True, help=True, all=True)
             else:
                 log(f"No object selected.")
 
             print()
+            return None
+
+        # Trigger for memory:: management
+        self.registerCommand("memory::")
+        memory_pattern = r"^memory::|^memory:(.*):"
+        match = re.search(memory_pattern, user_input)
+        if match:
+            if match.group(1):
+                info = match.group(1)
+
+            inspect(self.memory.structure())
+
+            return None
+
+        # Trigger for search:: on memory 
+        self.registerCommand("search::")
+        search_pattern = r"search::|search:(.*):"
+        match = re.search(search_pattern, user_input)
+        if match:
+            if match.group(1):
+                search_term = match.group(1)
+            else:
+                search_term = self.textPrompt("Search term|regex>") 
+
+            text_result = self.getSearchResults(search_term)
+
+            if text_result:
+                self.memory.create("search_command", str(text_result))
+                if self.return_input:
+                    self.writeHistory("user", text_result)
+                else:
+                    content = f"```json\n{text_result}\n```"
+                    user_input = user_input[:match.start()] + content + user_input[match.end():]
+                    return user_input
+
             return None
 
         # Trigger for file:: processing. Load file content into user_input for ai consumption.
@@ -1544,10 +1663,14 @@ class symChat():
             if os.path.isfile(file_path):
                 content = self.symutils.extractText(file_path)
                 print(Panel(Text(content), title=f"Content: {file_path}"))
+                self.memory.create("file_command", content)
+
                 file_content = f"File name: {file_path}\n"
                 file_content += '\n```\n{}\n```\n'.format(content)
                 user_input = user_input[:match.start()] + file_content + user_input[match.end():]
             elif os.path.isdir(file_path):
+                log(f"Directory crawling is temporarily disabled due to memory consumption.")
+                return None
                 content = self.symutils.extractDirText(file_path)
                 if content is None:
                     log(f"No content found in directory: {file_path}")
@@ -1600,14 +1723,20 @@ class symChat():
         if match:
             ipinfo = self.getIp()
             report = self.ifaceReport(ipinfo)
+            self.memory.create("getip_command", report)
+
             print(Panel(Text(report), title=f"Network Info:"))
 
             content = str()
             content = f"\n```network_info\n{ipinfo}\n```"
-            #user_input = user_input[:match.start()] + content + user_input[match.end():]
+            
+            if _checkCommand:
+                self.writeHistory('user', content)
+                return None
 
-            self.writeHistory('user', content)
-            return None
+            user_input = user_input[:match.start()] + content + user_input[match.end():]
+
+            return user_input
 
         # Trigger for get:URL processing. Load website content into user_input for model consumption.
         self.registerCommand("get::")
@@ -1621,13 +1750,15 @@ class symChat():
             else:
                 url = self.textPrompt("URL to load:")
             
-            if url == None:
+            if url is None:
+                log(f"No URL given: {url}")
                 return None 
 
             content = str()
             css = str()
             script = str()
             links = str()
+            link_list = []
             
             log(f"Fetching {url}...")
             import symbiote.WebCrawler as webcrawler
@@ -1638,6 +1769,7 @@ class symChat():
             if pages:
                 for md5, item in pages.items():
                     content += item['content']
+                    link_list = link_list + item['links']
                     links += "\n".join(item['links'])
                     css += "\n".join(item['css'])
                     script += "\n".join(item['scripts'])
@@ -1645,15 +1777,18 @@ class symChat():
                 log(f"No content gathered for {url}")
                 return None
 
+            self.memory.create("get_command",
+                               {"content": content,
+                                "links": link_list,
+                                "css": css,
+                                "scripts": script
+                                })
+
             content = self.cleanText(content)
             css = self.cleanText(css)
             script = self.cleanText(script)
 
-            log(len(content))
-            log(len(css))
-            log(len(script))
-            log(len(links))
-
+            '''
             print(Panel(Text(content[:1000]), title=f"Content: {url}"))
             if css:
                 print(Panel(Text(css[:1000]), title=f"CSS: {url}"))
@@ -1661,10 +1796,9 @@ class symChat():
                 print(Panel(Text(script[:1000]), title=f"Scripts: {url}"))
             if len(links) > 0:
                 print(Panel(Text(links), title=f"Links: {url}"))
-            
+            '''
             user_input = user_input[:match.start()] + content + user_input[match.end():]
 
-            print()
             return user_input 
 
         # Trigger for fake news analysis fake_news::
@@ -2422,7 +2556,6 @@ class symChat():
             "external_ip": "", 
         }
 
-
         try:
             # Format the URL for wttr.in with the specified location
             url = f'https://api.ipify.org'
@@ -2559,3 +2692,77 @@ class symChat():
 
         # Join the report list into a single string
         return "\n".join(report)
+
+    def getSearchResults(self, search_term=None):
+        if search_term.startswith("/") and search_term.endswith("/"):
+            search_pattern = rf"{search_term[1:-1]}" 
+            try:
+                search_for = re.compile(search_pattern)
+            except Exception as e:
+                log(f"Invalid regex pattern: {e}")
+                return None
+        elif search_term is None:
+            log(f"Variable search_term is empty.")
+            return None
+        else:
+            search_for = search_term
+
+        results = self.memory.search(search_for)
+
+        json_results = []
+
+        if results:
+            for result in results:
+                result_entry = {
+                    "search_term": search_term,
+                    "key": result['key'],
+                    "parent": result['parent'],
+                    "type": result['type'],
+                    "snippets": []  # This will hold each highlighted snippet
+                }
+
+                parent = []
+                header_text = Text.from_markup(
+                    f"[bold bright_cyan]Key:[/bold bright_cyan] {result['key']}\n"
+                    f"[bold bright_cyan]Parent:[/bold bright_cyan] {result['parent']}\n"
+                    f"[bold bright_cyan]Type:[/bold bright_cyan] {result['type']}()\n"
+                    f"[bold bright_cyan]Matched:[/bold bright_cyan] {search_term}\n"
+                    )
+                parent.append(header_text)
+
+                # Loop through each snippet in the result
+                for idx, snip in enumerate(result['snippets']):
+                    snip = escape(snip.strip())
+                    if len(snip) > 0:
+                        if isinstance(search_for, re.Pattern):
+                            highlighted_text = re.sub(
+                                search_pattern,
+                                f"[bold bright_green underline]\\g<0>[/bold bright_green underline]",
+                                snip,
+                                flags=re.IGNORECASE
+                            )
+                        else:
+                            highlighted_text = re.sub(
+                                re.escape(search_for),
+                                f"[bold bright_green underline]{search_term}[/bold bright_green underline]",
+                                snip,
+                                flags=re.IGNORECASE
+                            )
+
+                        snippet = Text.from_markup(f"{highlighted_text.strip()}") 
+                        parent.append(Padding(snippet, (1, 0, 1, 4), style="on grey15"))
+                        parent.append(Text(""))
+
+                        result_entry["snippets"].append(snip)
+
+                parent.pop() 
+                panel_group = Group(*parent)
+                print(Panel(panel_group, title=f"Key: {result['key']}", padding=(1, 2)))
+
+                if len(result_entry["snippets"]) > 0:
+                    json_results.append(result_entry)
+        else:
+            console.log(f"No results for: {search_term}")
+            return None
+
+        return escape(json.dumps(json_results, indent=4)) 

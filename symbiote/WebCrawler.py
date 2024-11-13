@@ -158,7 +158,6 @@ class WebCrawler:
         """Close the WebDriver and clean up resources."""
         if self.driver:
             self.driver.quit()
-            log("WebDriver closed.")
 
     def __enter__(self):
         """Support context manager entry."""

@@ -21,12 +21,15 @@ class MemoryStore:
     def create(self, path, value):
         parent, key = self._get_nested_data(path, create_missing=True, create_new=True)
         if key in parent:
-            log(f"Key '{path}' already exists.")
-            return None
+            log(f"Overwriting '{path}'.")
+
         parent[key] = value
         self.save()
 
-    def read(self, path):
+    def read(self, path=None):
+        if path is None:
+            return self.store
+
         try:
             parent, key = self._get_nested_data(path)
             return parent[key]
@@ -87,63 +90,98 @@ class MemoryStore:
     def _parse_path(self, path):
         return re.findall(r"\w+|\[\d+\]", path)
 
-    def search(self, query):
+        results = []
+        query = re.compile(query)
+        is_regex = isinstance(query, re.Pattern)
+
+        # Start the recursive search at the top level of the store
+        self._recursive_search(self.store, query, results, path="store", parent=None, is_regex=is_regex)
+        return results
+
+    def search(self, query, n=50, x=50):
         results = []
         is_regex = isinstance(query, re.Pattern)
 
-        self._recursive_search(self.store, query, results, path="store", is_regex=is_regex)
+        # Start the recursive search at the top level of the store
+        self._recursive_search(self.store, query, results, path="store", parent=None, is_regex=is_regex, n=n, x=x)
         return results
 
-    def _recursive_search(self, data, query, results, path, is_regex=False):
+    def _recursive_search(self, data, query, results, path, parent, is_regex=False, n=0, x=0):
         if isinstance(data, dict):
             for key, value in data.items():
-                # Generate the dot notation path for this key
                 current_path = f"{path}.{key}"
-                key_match = (
-                    re.search(query, key) if is_regex else query.lower() in key.lower()
-                )
                 
-                # If the key matches, add to results with type and location
-                if key_match:
+                if self._matches(query, key, is_regex):
                     results.append({
-                        "path": current_path,
-                        "type": type(value).__name__,
-                        "location": current_path,
-                        "value": value
+                        "key": current_path,
+                        "value": key,
+                        "type": type(data).__name__,
+                        "parent": path,
+                        "snippets": []  # No snippets for dictionary keys, just the key name
                     })
 
                 if isinstance(value, (dict, list, set, tuple)):
-                    self._recursive_search(value, query, results, current_path, is_regex)
-                elif isinstance(value, str):
-                    value_match = (
-                        re.search(query, value) if is_regex else query.lower() in value.lower()
-                    )
-                    if value_match:
-                        results.append({
-                            "path": current_path,
-                            "type": type(value).__name__,
-                            "location": current_path,
-                            "value": value
-                        })
-        elif isinstance(data, list):
+                    self._recursive_search(value, query, results, current_path, path, is_regex, n, x)
+                elif isinstance(value, str) and self._matches(query, value, is_regex):
+                    snippets = self._extract_snippets(value, query, is_regex, n, x)
+                    results.append({
+                        "key": current_path,
+                        "value": value,  # Full content of the matching value
+                        "type": type(value).__name__,
+                        "parent": path,
+                        "snippets": snippets  # List of snippets with context
+                    })
+
+        elif isinstance(data, (list, tuple)):
             for index, item in enumerate(data):
-                # Use index notation for list elements in the path
                 current_path = f"{path}[{index}]"
                 
-                # Recursively search or check for value match
                 if isinstance(item, (dict, list, set, tuple)):
-                    self._recursive_search(item, query, results, current_path, is_regex)
-                elif isinstance(item, str):
-                    item_match = (
-                        re.search(query, item) if is_regex else query.lower() in item.lower()
-                    )
-                    if item_match:
-                        results.append({
-                            "path": current_path,
-                            "type": type(item).__name__,
-                            "location": current_path,
-                            "value": item
-                        })
+                    self._recursive_search(item, query, results, current_path, path, is_regex, n, x)
+                elif isinstance(item, str) and self._matches(query, item, is_regex):
+                    snippets = self._extract_snippets(item, query, is_regex, n, x)
+                    results.append({
+                        "key": current_path,
+                        "value": item,  # Full content of the matching value
+                        "type": type(item).__name__,
+                        "parent": path,
+                        "snippets": snippets  # List of snippets with context
+                    })
+
+        elif isinstance(data, set):
+            for item in data:
+                current_path = f"{path}"
+                if isinstance(item, str) and self._matches(query, item, is_regex):
+                    snippets = self._extract_snippets(item, query, is_regex, n, x)
+                    results.append({
+                        "key": current_path,
+                        "value": item,  # Full content of the matching value
+                        "type": type(item).__name__,
+                        "parent": path,
+                        "snippets": snippets  # List of snippets with context
+                    })
+
+    def _extract_snippets(self, text, query, is_regex, n, x):
+        snippets = []
+        matches = re.finditer(query, text) if is_regex else re.finditer(re.escape(query), text, re.IGNORECASE)
+
+        for match in matches:
+            start = max(match.start() - n, 0)
+            end = min(match.end() + x, len(text))
+            snippet = text[start:end]
+            snippet = re.sub(r' +', ' ', snippet)
+            snippet = re.sub(r'\n+', '\n', snippet)
+            if snippet:
+                snippets.append(snippet)
+            else:
+                log(f"Mangled snippet @ not recorded.")
+
+        return snippets
+
+    def _matches(self, query, text, is_regex):
+        if is_regex:
+            return re.search(query, text) is not None
+        return query.lower() in text.lower()
 
     def structure(self, path=None):
         try:
@@ -262,6 +300,7 @@ if __name__ == "__main__":
     memory.update("user1", {
         "name": "Alice", 
         "age": 31,
+        "stuff": "There is a lot of gaming and other things to find.  Imagine some settings you need to find also.",
         "details": {
             "hobbies": ["python", "hiking", "setting and other"],
             "education": {"degree": "Computer Science", "field": "AI development"}
@@ -281,11 +320,13 @@ if __name__ == "__main__":
     search_results = memory.search("python")
     for result in search_results:
         log(result)
-        log(f"Path: {result['path']}")
-        log(f"Type: {result['type']}")
-        log(f"Location: {result['location']}")
+        log(f"Key: {result['key']}")
         log(f"Value: {result['value']}")
-        log()
+        log(f"Type: {result['type']}")
+        log(f"Parent: {result['parent']}")
+        for snippet in result["snippets"]:
+            log(f"  - {snippet}")
+        log() 
 
     log()
     log("6. Get structure:")
@@ -293,15 +334,17 @@ if __name__ == "__main__":
     log(f"Nested: {memory.structure('user1.details')}")
 
     log()
-    log(f"7. Testing regex search.")
-    regex_query = re.compile(r"setting$|user2")
-    search_results = memory.search(regex_query)
+    log(f"7. Testing regex search. settings|user2|hobb|gaming")
+    regex_query = r"setting|user2|hobb|gaming"
+    search_results = memory.search(re.compile(regex_query))
     for result in search_results:
         log(result)
-        log(f"Path: {result['path']}")
-        log(f"Type: {result['type']}")
-        log(f"Location: {result['location']}")
+        log(f"Key: {result['key']}")
         log(f"Value: {result['value']}")
+        log(f"Type: {result['type']}")
+        log(f"Parent: {result['parent']}")
+        for snippet in result["snippets"]:
+            log(f"  - {snippet}")
         log() 
 
     log()

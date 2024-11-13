@@ -51,7 +51,7 @@ log = console.log
 import warnings
 warnings.filterwarnings("ignore", category=UserWarning, module="sumy")
 
-class utilities():
+class Utilities():
     def __init__(self, settings):
         self.settings = settings
         return
