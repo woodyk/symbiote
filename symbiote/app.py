@@ -142,7 +142,7 @@ def main():
         schat.chat(user_input="", prompt_only=args.prompt_only)
 
 def checkLibmagic():
-    log(f"Checking for libmagic...")
+    log(f"Checking for libmagic.")
     installed = False
     try:
         subprocess.check_output(["file", "--version"])

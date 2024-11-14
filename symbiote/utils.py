@@ -268,8 +268,6 @@ class Utilities():
             doc_id = self.getSHA256(file)
 
             content = json.dumps(self.summarizeFile(file),indent=4, sort_keys=True)
-            print(content)
-
         return content
 
     def analyze_text(self, text, meta=""):

@@ -13,7 +13,7 @@ import os
 
 class MemoryStore:
     def __init__(self, save_path=None):
-        self.store = {}
+        self.MemoryStorage = {}
         self.save_path = save_path
         if self.save_path and os.path.exists(self.save_path):
             self.load()
@@ -28,7 +28,7 @@ class MemoryStore:
 
     def read(self, path=None):
         if path is None:
-            return self.store
+            return self.MemoryStorage
 
         try:
             parent, key = self._get_nested_data(path)
@@ -64,7 +64,7 @@ class MemoryStore:
 
     def _get_nested_data(self, path, create_missing=False, create_new=False):
         keys = self._parse_path(path)
-        data = self.store
+        data = self.MemoryStorage
 
         for i, key in enumerate(keys[:-1]):
             if isinstance(data, dict):
@@ -95,7 +95,7 @@ class MemoryStore:
         is_regex = isinstance(query, re.Pattern)
 
         # Start the recursive search at the top level of the store
-        self._recursive_search(self.store, query, results, path="store", parent=None, is_regex=is_regex)
+        self._recursive_search(self.MemoryStorage, query, results, path="MemoryStorage", parent=None, is_regex=is_regex)
         return results
 
     def search(self, query, n=50, x=50):
@@ -103,8 +103,17 @@ class MemoryStore:
         is_regex = isinstance(query, re.Pattern)
 
         # Start the recursive search at the top level of the store
-        self._recursive_search(self.store, query, results, path="store", parent=None, is_regex=is_regex, n=n, x=x)
+        self._recursive_search(self.MemoryStorage, query, results, path="MemoryStorage", parent=None, is_regex=is_regex, n=n, x=x)
         return results
+
+    def _check_parent(self, value):
+        if value == "MemoryStorage":
+            value = "."
+
+        if value.startswith("MemoryStorage."):
+            value = re.sub(r"^MemoryStorage\.", '', value)
+
+        return value
 
     def _recursive_search(self, data, query, results, path, parent, is_regex=False, n=0, x=0):
         if isinstance(data, dict):
@@ -113,10 +122,10 @@ class MemoryStore:
                 
                 if self._matches(query, key, is_regex):
                     results.append({
-                        "key": current_path,
+                        "key": self._check_parent(current_path),
                         "value": key,
                         "type": type(data).__name__,
-                        "parent": path,
+                        "parent": self._check_parent(path),
                         "snippets": []  # No snippets for dictionary keys, just the key name
                     })
 
@@ -125,10 +134,10 @@ class MemoryStore:
                 elif isinstance(value, str) and self._matches(query, value, is_regex):
                     snippets = self._extract_snippets(value, query, is_regex, n, x)
                     results.append({
-                        "key": current_path,
+                        "key": self._check_parent(current_path),
                         "value": value,  # Full content of the matching value
                         "type": type(value).__name__,
-                        "parent": path,
+                        "parent": self._check_parent(path),
                         "snippets": snippets  # List of snippets with context
                     })
 
@@ -141,10 +150,10 @@ class MemoryStore:
                 elif isinstance(item, str) and self._matches(query, item, is_regex):
                     snippets = self._extract_snippets(item, query, is_regex, n, x)
                     results.append({
-                        "key": current_path,
+                        "key": self._check_parent(current_path),
                         "value": item,  # Full content of the matching value
                         "type": type(item).__name__,
-                        "parent": path,
+                        "parent": self._check_parent(path),
                         "snippets": snippets  # List of snippets with context
                     })
 
@@ -154,10 +163,10 @@ class MemoryStore:
                 if isinstance(item, str) and self._matches(query, item, is_regex):
                     snippets = self._extract_snippets(item, query, is_regex, n, x)
                     results.append({
-                        "key": current_path,
+                        "key": self._check_parent(current_path),
                         "value": item,  # Full content of the matching value
                         "type": type(item).__name__,
-                        "parent": path,
+                        "parent": self._check_parent(path),
                         "snippets": snippets  # List of snippets with context
                     })
 
@@ -191,7 +200,7 @@ class MemoryStore:
                 target = parent[key]
             else:
                 # If no path specified, start with the entire store
-                target = self.store
+                target = self.MemoryStorage
 
             # Generate and return the template of structure
             return self._generate_structure_template(target)
@@ -233,14 +242,14 @@ class MemoryStore:
             return type(data).__name__
 
     def clear(self):
-        self.store.clear()
+        self.MemoryStorage.clear()
         self.save()
 
     def save(self):
         if self.save_path:
             try:
                 with open(self.save_path, 'w') as file:
-                    json.dump(self.store, file, indent=4)
+                    json.dump(self.MemoryStorage, file, indent=4)
                 return True
             except Exception as e:
                 log(f"Error saving data: {e}")
@@ -250,11 +259,11 @@ class MemoryStore:
         if self.save_path:
             try:
                 with open(self.save_path, 'r') as file:
-                    self.store = json.load(file)
+                    self.MemoryStorage = json.load(file)
                 return True
             except Exception as e:
                 log(f"Error loading data: {e}")
-                self.store = {}
+                self.MemoryStorage = {}
                 return False
 
 if __name__ == "__main__":

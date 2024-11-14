@@ -136,10 +136,11 @@ command_list = {
         "file::": "Load a file for submission.",
         "memory::": "CRUD access to symbiote memory",
         "search::": "Search symbiote memory for information",
+        "memget::": "Pull contents from symbiote memory for analysis.",
         "reload::": "Reload running python modules.",
         "weather::": "Display the current weater.",
         "inspect::": "Realtime python object inspector for current running session.",
-        "webvuln::": "Run and summarize a web vulnerability scan on a given URL.",
+        "vscan::": "Run and summarize a web vulnerability scan on a given URL.",
         "deception::": "Run deception analysis on the given text",
         "geo::": "Check the geo location of an IP or a domains IP.",
         "fake_news::": "Run fake news analysis on the given text",
@@ -150,9 +151,9 @@ command_list = {
         "qr::": "Generate a QR code from the given text.",
         "extract::": "Extract data features for a given file or directory and summarize.",
         "code::": "Extract code and write files.",
-        "get::": "Get remote data based on uri http, ftp, ssh, etc...",
+        "get::": "Get remote data based on uri http, ftp, ssh, etc.",
         "getip::": "Get your IP address information.",
-        "crawl::": "Crawl remote data based on uri http, ftp, ssh, etc...",
+        "crawl::": "Crawl remote data based on uri http, ftp, ssh, etc.",
         "shell::": "Work in shell mode and execute commands.",
         "clipboard::": "Load clipboard contents into symbiote.",
         "history::": "Show discussion history.",
@@ -251,8 +252,6 @@ class symChat():
         # initialize memory manager
         self.memory = MemoryStore()
 
-        self.return_input = True
-
         if 'debug' in kwargs:
             self.settings['debug'] = kwargs['debug']
             
@@ -330,7 +329,6 @@ class symChat():
             table.add_row(key, str(val))
 
         print(table)
-        print()
 
     def displayHelp(self):
         table = Table(show_header=True, expand=True, header_style="bold magenta")
@@ -341,7 +339,6 @@ class symChat():
             table.add_row(cmd, desc)
 
         print(table)
-        print()
 
     def displayConvo(self, convo=False):
         conversations = sorted(self.getConversations(self.conversations_dir))
@@ -543,10 +540,12 @@ class symChat():
                 self.enable = False
                 self.run = False
                 continue
-
+            
             returned = self.sendMessage(user_input)
+
             if returned is None:
-                print(f"No response.")
+                log(f"No response.")
+
             print()
             print(Rule(title=f"{current_date} {current_time}", style="gray54"))
 
@@ -647,6 +646,11 @@ class symChat():
         return response
 
     def sendMessage(self, user_input):
+        print()
+        if self.settings['model'] is None:
+            log(f"No model selected.  Issue model::")
+            return None
+
         assistant_prompt = "symbiote> "
         if self.settings['think'] is True:
             self.think(user_input)
@@ -839,8 +843,17 @@ class symChat():
         return history
 
     def processCommands(self, user_input):
-        def _checkCommand(user_input):
-            command_pattern = r"(^|\b| )(?P<command_name>\w+):(?P<content>.*?):($|\b| )"
+        def _registerCommand(command=None):
+            if command is None: 
+                return None
+
+            self.command_register.append(command)
+
+        def _checkCommand(input_text=None):
+            if input_text is None:
+                return None
+
+            command_pattern = r"(^|\b| )(?P<command_name>(\$|\w+)):(?P<content>.*?):($|\b| )"
 
             # Lists to store the results
             commands = []
@@ -848,7 +861,7 @@ class symChat():
             last_end = 0
 
             # Find all command matches
-            for match in re.finditer(command_pattern, user_input):
+            for match in re.finditer(command_pattern, input_text):
                 # Extract command name and content
                 command_name = match.group("command_name")
                 if match.group("content"):
@@ -867,21 +880,21 @@ class symChat():
                 # Capture surrounding text before each command
                 start, end = match.span()
                 if start > last_end:
-                    surrounding_texts.append(user_input[last_end:start].strip())
+                    surrounding_texts.append(input_text[last_end:start].strip())
 
                 last_end = end
 
             # Append any remaining text after the last command
-            if last_end < len(user_input):
-                surrounding_texts.append(user_input[last_end:].strip())
+            if last_end < len(input_text):
+                surrounding_texts.append(input_text[last_end:].strip())
 
             # If there is no surrounding text, return None
             if not any(surrounding_texts):
-                return False
+                return None
             else:
                 return True
-            '''
-            # Process each command and replace it in the user_input
+
+            # Process each command and replace it in the input_text
             offset = 0  # Track character offset for replacement
             for command in commands:
                 command_name = command["command_name"]
@@ -897,7 +910,7 @@ class symChat():
 
                         start = command["start"] + offset
                         end = command["end"] + offset
-                        user_input = user_input[:start] + replacement + user_input[end:]
+                        input_text = input_text[:start] + replacement + input_text[end:]
 
                         offset += len(replacement) - (end - start)
                     else:
@@ -905,10 +918,7 @@ class symChat():
                 except Exception as e:
                     log(f"Error calling function {command_name}: {e}")
 
-            return user_input
-            '''
-
-        self.return_input = _checkCommand(user_input)
+            return intput_text
 
         # Audio keyword triggers
         for keyword in self.audio_triggers:
@@ -916,14 +926,14 @@ class symChat():
                 user_input = self.audio_triggers[keyword][1]
                 break
 
-        self.registerCommand("test::")
+        _registerCommand("test::")
         if user_input.startswith('test::'):
             print(Panel(Text("hello world", justify="center"), title="test"))
             print()
             print("[red]hello world[/red]")
             return None
 
-        self.registerCommand("perifious::")
+        _registerCommand("perifious::")
         if re.search(r'^perifious::', user_input):
             self.symspeech = speech.SymSpeech(debug=self.settings['debug'])
             self.symspeech.say('Your wish is my command!')
@@ -932,7 +942,7 @@ class symChat():
             else:
                 user_input = 'settings:perifious:1:'
 
-        self.registerCommand("shell::")
+        _registerCommand("shell::")
         if re.search(r'^shell::', user_input):
             if self.shell_mode is False:
                 self.shell_mode = True
@@ -947,30 +957,30 @@ class symChat():
             #shell.symBash().launch_shell()
             return None
 
-        self.registerCommand("help::")
+        _registerCommand("help::")
         if re.search(r'^help::', user_input):
             self.displayHelp()
             return None 
 
-        self.registerCommand("clear::")
-        self.registerCommand("reset::")
+        _registerCommand("clear::")
+        _registerCommand("reset::")
         if re.search(r"^clear::|^reset::", user_input):
             os.system('reset')
             return None
 
-        self.registerCommand("save::")
+        _registerCommand("save::")
         if re.search(r"^save::", user_input):
             self.saveSettings()
             return None
 
-        self.registerCommand("exit::")
+        _registerCommand("exit::")
         if re.search(r'^exit::', user_input):
             self.saveSettings()
             os.system('reset')
             sys.exit(0)
 
         # Trigger to read clipboard contents
-        self.registerCommand("clipboard::")
+        _registerCommand("clipboard::")
         clipboard_pattern = r'clipboard::|clipboard:(.*):'
         match = re.search(clipboard_pattern, user_input)
         if match:
@@ -998,7 +1008,7 @@ class symChat():
             return user_input
 
         # Trigger to reload modules
-        self.registerCommand("reload::")
+        _registerCommand("reload::")
         reload_pattern = r"reload::|reload:(.*):"
         match = re.search(reload_pattern, user_input)
         if match:
@@ -1020,7 +1030,7 @@ class symChat():
             return None
 
         # Trigger to choose role
-        self.registerCommand("roles::")
+        _registerCommand("roles::")
         role_pattern = r'^roles::|roles:(.*):'
         match = re.search(role_pattern, user_input)
         if match:
@@ -1053,7 +1063,7 @@ class symChat():
             return None
 
         # Trigger to display openai settings  
-        self.registerCommand("settings::")
+        _registerCommand("settings::")
         setting_pattern = r'^settings::|settings:(.*):(.*):'
         match = re.search(setting_pattern, user_input)
         if match:
@@ -1098,7 +1108,7 @@ class symChat():
             return None 
 
         # Trigger for changing gpt model 
-        self.registerCommand("model::")
+        _registerCommand("model::")
         model_pattern = r'^model::|model:(.*):'
         match = re.search(model_pattern, user_input)
         if match:
@@ -1111,7 +1121,7 @@ class symChat():
             return None 
 
         # Trigger for changing the conversation file
-        self.registerCommand("convo::")
+        _registerCommand("convo::")
         convo_pattern = r'^convo::|convo:(.*):'
         match = re.search(convo_pattern, user_input)
         if match:
@@ -1124,7 +1134,7 @@ class symChat():
             return None 
 
         # Trigger for changing working directory in chat
-        self.registerCommand("cd::")
+        _registerCommand("cd::")
         cd_pattern = r'^cd::|cd:(.*):'
         match = re.search(cd_pattern, user_input)
         if match:
@@ -1148,7 +1158,7 @@ class symChat():
             return None 
 
         # Trigger to list verbal keywords prompts.
-        self.registerCommand("keywords::")
+        _registerCommand("keywords::")
         keywords_pattern = r'^keywords::'
         match = re.search(keywords_pattern, user_input)
         if match:
@@ -1160,7 +1170,7 @@ class symChat():
             return None 
 
         # Trigger for extract:: processing. Load file content and generate a json object about the file.
-        self.registerCommand("extract::")
+        _registerCommand("extract::")
         summary_pattern = r'^extract::|^extract:(.*):(.*):|^extract:(.*):'
         match = re.search(summary_pattern, user_input)
         file_path = None
@@ -1210,7 +1220,7 @@ class symChat():
             return user_input 
 
         # Trigger to flush current running conversation from memory.
-        self.registerCommand("flush::")
+        _registerCommand("flush::")
         flush_pattern = r'^flush::'
         match = re.search(flush_pattern, user_input)
         if match:
@@ -1218,7 +1228,7 @@ class symChat():
             return None 
 
         # Trigger for history::. Show the history of the messages.
-        self.registerCommand("history::")
+        _registerCommand("history::")
         history_pattern = r'^history::|^history:(.*):'
         match = re.search(history_pattern, user_input)
         if self.settings['conversation'] == '/dev/null':
@@ -1242,7 +1252,7 @@ class symChat():
             return None
 
         # Trigger for code:: extraction from provided text
-        self.registerCommand("code::")
+        _registerCommand("code::")
         code_pattern = r'code::|code:(.*):'
         match = re.search(code_pattern, user_input)
         if match:
@@ -1275,7 +1285,7 @@ class symChat():
             return files
 
         # Trigger for note:: taking.
-        self.registerCommand("note::")
+        _registerCommand("note::")
         note_pattern = r'^note::|^note:([\s\S]*?):'
         match = re.search(note_pattern, user_input)
         if match:
@@ -1289,7 +1299,7 @@ class symChat():
             return None
 
         # Trigger menu for cli theme change
-        self.registerCommand("theme::")
+        _registerCommand("theme::")
         theme_pattern = r'theme::|theme:(.*):'
         match = re.search(theme_pattern, user_input)
         if match:
@@ -1306,7 +1316,7 @@ class symChat():
             return None 
 
         # trigger terminal image rendering view:: 
-        self.registerCommand("view::")
+        _registerCommand("view::")
         view_pattern = r'view::|^view:(.*):|^view:(https?:\/\/\S+):'
         match = re.search(view_pattern, user_input)
         file_path = None
@@ -1331,7 +1341,7 @@ class symChat():
             return None
 
         # Trigger image analysis and reporting analyse_image::
-        self.registerCommand("analyze_image::")
+        _registerCommand("analyze_image::")
         analyze_image_pattern = r'^analyze_image::|^analyze_image:(.*):'
         match = re.search(analyze_image_pattern, user_input)
 
@@ -1357,7 +1367,7 @@ class symChat():
             return content
 
         # Trigger to find files by search find::
-        self.registerCommand("find::")
+        _registerCommand("find::")
         find_pattern = r'^find::|^find:(.*):'
         match = re.search(find_pattern, user_input)
         if match:
@@ -1371,7 +1381,7 @@ class symChat():
             return None
 
         # Trigger to init scrolling
-        self.registerCommand("scroll::")
+        _registerCommand("scroll::")
         scroll_pattern = r'scroll::|scroll:(.*):'
         match = re.search(scroll_pattern, user_input)
         if match:
@@ -1394,7 +1404,7 @@ class symChat():
             return None
 
         # Trigger for wikipedia search wiki::
-        self.registerCommand("wiki::")
+        _registerCommand("wiki::")
         wiki_pattern = r'wiki:(.*):'
         match = re.search(wiki_pattern, user_input)
         if match:
@@ -1418,8 +1428,8 @@ class symChat():
                 return None
 
         # Trigger for headline analysis
-        self.registerCommand("news::")
-        self.registerCommand("headlines::")
+        _registerCommand("news::")
+        _registerCommand("headlines::")
         news_pattern = r'\bnews::|\bheadlines::'
         match = re.search(news_pattern, user_input)
         if match:
@@ -1434,7 +1444,7 @@ class symChat():
             return user_input
 
         # Trigger for google search or dorking
-        self.registerCommand("google::")
+        _registerCommand("google::")
         google_pattern = r'google:(.*):'
         match = re.search(google_pattern, user_input)
         if match:
@@ -1458,7 +1468,7 @@ class symChat():
                 return None
 
         # Trigger for define::
-        self.registerCommand("define::")
+        _registerCommand("define::")
         define_pattern = r'define:(.*):'
         match = re.search(define_pattern, user_input)
         if match:
@@ -1476,7 +1486,7 @@ class symChat():
                 return user_input
 
         # Trigger for imap mail checker mail::
-        self.registerCommand("mail::")
+        _registerCommand("mail::")
         mail_pattern = r'mail::'
         match = re.search(mail_pattern, user_input)
         if match:
@@ -1519,8 +1529,8 @@ class symChat():
             return user_input
 
         # Trigger for w3m web browser functionality browser::
-        self.registerCommand("w3m::")
-        self.registerCommand("browser::")
+        _registerCommand("w3m::")
+        _registerCommand("browser::")
         browser_pattern = r'w3m:(.*):|browser:(.*):'
         match = re.search(browser_pattern, user_input)
         if match:
@@ -1533,7 +1543,7 @@ class symChat():
             return None
 
         # Trigger to extract images from a url image_extract::
-        self.registerCommand("image_extract::")
+        _registerCommand("image_extract::")
         image_extract_pattern = r'^image_extract:(.*):'
         match = re.search(image_extract_pattern, user_input)
         if match:
@@ -1546,7 +1556,7 @@ class symChat():
             return None
 
         # Trigger for qr code generation qr::
-        self.registerCommand("qr::")
+        _registerCommand("qr::")
         qr_pattern = r'qr:([\s\S]*?):'
         match = re.search(qr_pattern, user_input)
         if match:
@@ -1559,7 +1569,7 @@ class symChat():
             return None
 
         # Trigger for weather::
-        self.registerCommand("weather::")
+        _registerCommand("weather::")
         weather_pattern = r"weather::|weather:(.*):"
         match = re.search(weather_pattern, user_input)
         if match:
@@ -1587,7 +1597,7 @@ class symChat():
             return user_input
 
         # Trigger for inspect:: command to inspect running python objects.
-        self.registerCommand("inspect::")
+        _registerCommand("inspect::")
         inspect_pattern = r'inspect::|inspect:(.*):'
         match = re.search(inspect_pattern, user_input)
         if match:
@@ -1606,8 +1616,45 @@ class symChat():
             print()
             return None
 
+        # Trigger for memget:: management
+        _registerCommand("memget::")
+        memget_pattern = r"memget::|memget:(.*):"
+        match = re.search(memget_pattern, user_input)
+        if match:
+            json_dat = None
+            if match.group(1):
+                getobj = match.group(1)
+            else:
+                getobj = textPrompt("Object>") 
+
+            if getobj is None:
+                log(f"Empty object requeted.")
+                return None
+
+            results = self.memory.read(getobj)
+
+            if isinstance(results, str):
+                json_data = results
+            else:
+                json_data = json.dumps(results, intent=4)
+
+            if json_data:
+                print(Panel(Text(json_data[:5000]), title=f"Content: {getobj}"))
+
+                if _checkCommand(user_input) is None:
+                    log(f"Results written to history")
+                    self.writeHistory("user", json_data)
+                    return None
+
+                content = f"\n```\n{json_data}\n```"
+                user_input = user_input[:match.start()] + content + user_input[match.end():]
+
+                return user_input
+
+            return None
+
         # Trigger for memory:: management
-        self.registerCommand("memory::")
+        _registerCommand("memory::")
         memory_pattern = r"^memory::|^memory:(.*):"
         match = re.search(memory_pattern, user_input)
         if match:
@@ -1619,7 +1666,7 @@ class symChat():
             return None
 
         # Trigger for search:: on memory 
-        self.registerCommand("search::")
+        _registerCommand("search::")
         search_pattern = r"search::|search:(.*):"
         match = re.search(search_pattern, user_input)
         if match:
@@ -1632,8 +1679,10 @@ class symChat():
 
             if text_result:
                 self.memory.create("search_command", str(text_result))
-                if self.return_input:
+                if _checkCommand(user_input) is None:
+                    log(f"Results written to history")
                     self.writeHistory("user", text_result)
+                    return None
                 else:
                     content = f"```json\n{text_result}\n```"
                     user_input = user_input[:match.start()] + content + user_input[match.end():]
@@ -1643,7 +1692,7 @@ class symChat():
 
         # Trigger for file:: processing. Load file content into user_input for ai consumption.
         # file:: - opens file or directory to be pulled into the conversation
-        self.registerCommand("file::")
+        _registerCommand("file::")
         file_pattern = r'file::|file:(.*):'
         match = re.search(file_pattern, user_input)
         if match: 
@@ -1681,7 +1730,7 @@ class symChat():
             return user_input
 
         # Trigger image:: execution for AI image generation
-        self.registerCommand("image::")
+        _registerCommand("image::")
         image_pattern = r'^image:([\s\S]*?):'
         match = re.search(image_pattern, user_input)
         if match:
@@ -1694,30 +1743,33 @@ class symChat():
             return None
 
         # Trigger system execution of a command
-        self.registerCommand("$")
-        self.registerCommand("run::")
-        exec_pattern = r'^\$(.*)|run:(.*):'
+        _registerCommand("$")
+        exec_pattern = r'\$:(.*):'
         match = re.search(exec_pattern, user_input)
         if match:
             if match.group(1):
                 command = match.group(1)
                 result = self.execCommand(command)
-                if result:
-                    print(Panel(Text(result), title=f"Command: {command}"))
-                    self.writeHistory('user', result)
-                return None
-            elif match.group(2):
-                command = match.group(2)
-                result = self.execCommand(command)
-                print(Panel(Text(result), title=f"Command: {command}"))
-                content = f"\n```{command}\n{result}\n```\n"
-                user_input = user_input[:match.start()] + content + user_input[match.end():]
-                return user_input
 
-            return None
+                if result:
+                    self.memory.create("exec_command", result)
+
+                    if _checkCommand(user_input) is None:
+                        log(f"Results written to history")
+                        self.writeHistory('user', result)
+                        print(Panel(Text(result), title=f"Command: {command}"))
+                        return None
+
+                    print(Panel(Text(result), title=f"Command: {command}"))
+                    content = f"\n```{command}\n{result}\n```\n"
+                    user_input = user_input[:match.start()] + content + user_input[match.end():]
+                    return user_input
+            else:
+                log(f"No commands specified.")
+                return None
 
         # Trigger for getip::
-        self.registerCommand("getip::")
+        _registerCommand("getip::")
         getip_pattern = r'getip::'
         match = re.search(getip_pattern, user_input)
         if match:
@@ -1730,7 +1782,8 @@ class symChat():
             content = str()
             content = f"\n```network_info\n{ipinfo}\n```"
             
-            if _checkCommand:
+            if _checkCommand(user_input) is None:
+                log(f"Results written to history")
                 self.writeHistory('user', content)
                 return None
 
@@ -1739,7 +1792,7 @@ class symChat():
             return user_input
 
         # Trigger for get:URL processing. Load website content into user_input for model consumption.
-        self.registerCommand("get::")
+        _registerCommand("get::")
         get_pattern = r'get::|get:(https?://\S+):'
         match = re.search(get_pattern, user_input)
         if match:
@@ -1760,7 +1813,7 @@ class symChat():
             links = str()
             link_list = []
             
-            log(f"Fetching {url}...")
+            log(f"Fetching {url}.")
             import symbiote.WebCrawler as webcrawler
             crawler = webcrawler.WebCrawler(browser='firefox')
             pages = crawler.pull_website_content(url, search_term=None, crawl=crawl, depth=None)
@@ -1797,12 +1850,18 @@ class symChat():
             if len(links) > 0:
                 print(Panel(Text(links), title=f"Links: {url}"))
             '''
-            user_input = user_input[:match.start()] + content + user_input[match.end():]
+            if _checkCommand(user_input) is None:
+                log(f"Results written to history")
+                self.writeHistory("user", content)
+                return None
+            else:
+                user_input = user_input[:match.start()] + content + user_input[match.end():]
+                return user_input
 
-            return user_input 
+            return None 
 
         # Trigger for fake news analysis fake_news::
-        self.registerCommand("fake_news::")
+        _registerCommand("fake_news::")
         fake_news_pattern = r'\bfake_news::|\bfake_news:(.*):'
         match = re.search(fake_news_pattern, user_input)
         if match:
@@ -1826,6 +1885,7 @@ class symChat():
 
             result = detector.analyze_text(text)
             self.spinner.succeed('Completed')
+
             if result:
                 output = json.dumps(result, indent=4)
                 print(Panel(Text(output), title=f"FakeNew Analysis: {data}"))
@@ -1837,7 +1897,7 @@ class symChat():
             return user_input
 
         # Trigger for downloading youtube transcripts yt_transcript::
-        self.registerCommand("yt_transcript::")
+        _registerCommand("yt_transcript::")
         yt_transcript_pattern = r'yt_transcript::|yt_transcript:(.*):'
         match = re.search(yt_transcript_pattern, user_input)
         if match:
@@ -1864,10 +1924,10 @@ class symChat():
 
             return user_input
 
-        # Trigger web vulnerability scan webvuln::
-        self.registerCommand("webvuln::")
-        webvuln_pattern = r'webvuln::|webvuln:(.*):'
-        match = re.search(webvuln_pattern, user_input)
+        # Trigger web vulnerability scan vscan::
+        _registerCommand("vscan::")
+        vscan_pattern = r'vscan::|vscan:(.*):'
+        match = re.search(vscan_pattern, user_input)
         if match:
             if match.group(1):
                 url = match.group(1)
@@ -1879,14 +1939,19 @@ class symChat():
                 scanner = web_vuln.SecurityScanner(headless=True, browser='firefox')
                 scanner.scan(url)
                 report = scanner.generate_report()
+                self.memory.create("vscan_command", report)
                 print(Panel(Text(report), title=f"Report: {url}"))
-                user_input = f"Review the following web vulnerability scan and provide details and action items.\n{report}"
+                
+                if _checkCommand(user_input) is None:
+                    log(f"Results written to history")
+                    self.writeHistory("user", report)
+                    return None
+
+                user_input = user_input[:match.start()] + report + user_input[match.end():]
                 return user_input
-            else:
-                return None
 
         # Trigger for textual deception analysis deception::
-        self.registerCommand("deception::")
+        _registerCommand("deception::")
         deception_pattern = r'deception::|deception:(.*):'
         match = re.search(deception_pattern, user_input)
         analysis_src = None
@@ -1899,24 +1964,31 @@ class symChat():
             if analysis_src == None:
                 log("No content to analyze.")
                 return None
-
+            
             self.spinner.start()
             import symbiote.DeceptionDetection as deception
             detector = deception.DeceptionDetector()
             results = detector.analyze_text(analysis_src)
             self.spinner.succeed('Completed')
+
             if results:
+                self.memory.create("deception_command", results)
                 content = json.dumps(results, indent=4)
                 print(Panel(Text(content), title=f"Deception Analysis Summary"))
-                user_input = f"Review the following JSON and create a report on the deceptive findings.\n{content}"
+
+                if _checkCommand(user_input) is None:
+                    log(f"Results written to history")
+                    self.writeHistory("user", content) 
+                    return None
+
+                user_input = user_input[:match.start()] + report + user_input[match.end():]
+                return user_input
             else:
                 log("No results returned.")
                 return None
 
-            return user_input
-
         # Trigger for crawl:URL processing. Load website content into user_input for model consumption.
-        self.registerCommand("crawl::")
+        _registerCommand("crawl::")
         crawl_pattern = r'crawl::|crawl:(https?://\S+):'
         match = re.search(crawl_pattern, user_input)
         if match:
@@ -1928,7 +2000,7 @@ class symChat():
                 url = self.textPrompt("URL to load:")
             
             if url == None:
-                log(f"No URL specified...")
+                log(f"No URL specified.")
                 return None 
 
             crawler = webcrawler.WebCrawler(browser='firefox')
@@ -2482,8 +2554,6 @@ class symChat():
         self.conversation_history = []
         self.current_conversation = []
 
-    def registerCommand(self, command):
-        self.command_register.append(command)
 
     def getConversations(self, path):
         files = os.listdir(path)
