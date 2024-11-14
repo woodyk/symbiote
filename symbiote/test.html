@@ -1,0 +1,2248 @@
+
+        <html>
+        <head>
+            <style>
+                body {
+                    font-family: Arial, sans-serif;
+                    background-color: #1e1e1e;
+                    color: #d4d4d4;
+                    line-height: 1.5;
+                }
+                h1, h2, h3, h4 {
+                    color: #569cd6;
+                }
+                .module h2 {
+                    color: #4ec9b0;
+                }
+                .class h3 {
+                    color: #dcdcaa;
+                }
+                .function h3 {
+                    color: #569cd6;
+                }
+                .attribute h3 {
+                    color: #9cdcfe;
+                }
+                .method h4 {
+                    color: #c586c0;
+                }
+                .panel {
+                    padding: 0px 10px 10px 20px;
+                    border: 1px solid #444;
+                    border-radius: 5px;
+                    margin: 10px 0;
+                    background-color: #2d2d2d;
+                }
+                .panel.module {
+                    border-color: #4ec9b0;
+                }
+                .panel.class {
+                    border-color: #dcdcaa;
+                }
+                .panel.method {
+                    border-color: #c586c0;
+                }
+                .panel.function {
+                    border-color: #569cd6;
+                }
+                .attribute {
+                    color: #9cdcfe;
+                }
+                .table {
+                    width: 100%;
+                    border-collapse: collapse;
+                    margin: 10px 0;
+                }
+                .table th, .table td {
+                    padding: 8px;
+                    border: 1px solid #444;
+                    text-align: left;
+                }
+                .table th {
+                    background-color: #3b3b3b;
+                    color: #9cdcfe;
+                }
+                .indent-1 { margin-left: 20px; }
+                .indent-2 { margin-left: 40px; }
+                .indent-3 { margin-left: 60px; }
+                .indent-4 { margin-left: 80px; }
+                .library-name { color: #FFFFFF; }
+            </style>
+        </head>
+        <body>
+            <h1><span class="library-name">rich.markdown</span></h1>
+            
+                <div class="panel class indent-1">
+                    <h3>Class: <span class='library-name'>markdown.</span><span style='color: #dcdcaa;'>BlockQuote</span></h3>
+                    <div class="panel">A block quote.</div>
+                    
+        <div class="panel method indent-3">
+            <h4 >Methods:</h4>
+            <table class="table">
+                <tr><th>Method</th><th>Description</th></tr>
+        <tr><td><span class='library-name'>markdown.</span><span style='color: #dcdcaa;'>BlockQuote.</span><span style='color: 
+#c586c0;'>__init__</span></td><td>Initialize self.  See help(type(self)) for accurate signature.</td></tr><tr><td><span 
+class='library-name'>markdown.</span><span style='color: #dcdcaa;'>BlockQuote.</span><span style='color: 
+#c586c0;'>__rich_console__</span></td><td>No description</td></tr><tr><td><span class='library-name'>markdown.</span><span style='color: 
+#dcdcaa;'>BlockQuote.</span><span style='color: #c586c0;'>on_child_close</span></td><td>Called when a child element is closed.
+
+This method allows a parent element to take over rendering of its children.
+
+Args:
+    context (MarkdownContext): The markdown context.
+    child (MarkdownElement): The child markdown element.
+
+Returns:
+    bool: Return True to render the element, or False to not render the element.</td></tr><tr><td><span 
+class='library-name'>markdown.</span><span style='color: #dcdcaa;'>BlockQuote.</span><span style='color: 
+#c586c0;'>on_enter</span></td><td>Called when the node is entered.
+
+Args:
+    context (MarkdownContext): The markdown context.</td></tr><tr><td><span class='library-name'>markdown.</span><span style='color: 
+#dcdcaa;'>BlockQuote.</span><span style='color: #c586c0;'>on_leave</span></td><td>Called when the parser leaves the element.
+
+Args:
+    context (MarkdownContext): </td></tr><tr><td><span class='library-name'>markdown.</span><span style='color: 
+#dcdcaa;'>BlockQuote.</span><span style='color: #c586c0;'>on_text</span></td><td>Called when text is parsed.
+
+Args:
+    context (MarkdownContext): The markdown context.</td></tr></table></div>
+                </div>
+                
+                <div class="panel attribute indent-1">
+                    <p><strong>Attribute:</strong> ClassVar - Attribute or Variable</p>
+                </div>
+                
+                <div class="panel class indent-1">
+                    <h3>Class: <span class='library-name'>markdown.</span><span style='color: #dcdcaa;'>CodeBlock</span></h3>
+                    <div class="panel">A code block with syntax highlighting.</div>
+                    
+        <div class="panel method indent-3">
+            <h4 >Methods:</h4>
+            <table class="table">
+                <tr><th>Method</th><th>Description</th></tr>
+        <tr><td><span class='library-name'>markdown.</span><span style='color: #dcdcaa;'>CodeBlock.</span><span style='color: 
+#c586c0;'>__init__</span></td><td>Initialize self.  See help(type(self)) for accurate signature.</td></tr><tr><td><span 
+class='library-name'>markdown.</span><span style='color: #dcdcaa;'>CodeBlock.</span><span style='color: 
+#c586c0;'>__rich_console__</span></td><td>No description</td></tr><tr><td><span class='library-name'>markdown.</span><span style='color: 
+#dcdcaa;'>CodeBlock.</span><span style='color: #c586c0;'>on_child_close</span></td><td>Called when a child element is closed.
+
+This method allows a parent element to take over rendering of its children.
+
+Args:
+    context (MarkdownContext): The markdown context.
+    child (MarkdownElement): The child markdown element.
+
+Returns:
+    bool: Return True to render the element, or False to not render the element.</td></tr><tr><td><span 
+class='library-name'>markdown.</span><span style='color: #dcdcaa;'>CodeBlock.</span><span style='color: 
+#c586c0;'>on_enter</span></td><td>Called when the node is entered.
+
+Args:
+    context (MarkdownContext): The markdown context.</td></tr><tr><td><span class='library-name'>markdown.</span><span style='color: 
+#dcdcaa;'>CodeBlock.</span><span style='color: #c586c0;'>on_leave</span></td><td>Called when the parser leaves the element.
+
+Args:
+    context (MarkdownContext): </td></tr><tr><td><span class='library-name'>markdown.</span><span style='color: 
+#dcdcaa;'>CodeBlock.</span><span style='color: #c586c0;'>on_text</span></td><td>Called when text is parsed.
+
+Args:
+    context (MarkdownContext): The markdown context.</td></tr></table></div>
+                </div>
+                
+                <div class="panel class indent-1">
+                    <h3>Class: <span class='library-name'>markdown.</span><span style='color: #dcdcaa;'>Console</span></h3>
+                    <div class="panel">A high level console interface.
+
+Args:
+    color_system (str, optional): The color system supported by your terminal,
+        either ``&quot;standard&quot;``, ``&quot;256&quot;`` or ``&quot;truecolor&quot;``. Leave as ``&quot;auto&quot;`` to autodetect.
+    force_terminal (Optional, optional): Enable/disable terminal control codes, or None to auto-detect terminal. Defaults to None.
+    force_jupyter (Optional, optional): Enable/disable Jupyter rendering, or None to auto-detect Jupyter. Defaults to None.
+    force_interactive (Optional, optional): Enable/disable interactive mode, or None to auto detect. Defaults to None.
+    soft_wrap (Optional, optional): Set soft wrap default on print method. Defaults to False.
+    theme (Theme, optional): An optional style theme object, or ``None`` for default theme.
+    stderr (bool, optional): Use stderr rather than stdout if ``file`` is not specified. Defaults to False.
+    file (IO, optional): A file object where the console should write to. Defaults to stdout.
+    quiet (bool, Optional): Boolean to suppress all output. Defaults to False.
+    width (int, optional): The width of the terminal. Leave as default to auto-detect width.
+    height (int, optional): The height of the terminal. Leave as default to auto-detect height.
+    style (StyleType, optional): Style to apply to all output, or None for no style. Defaults to None.
+    no_color (Optional, optional): Enabled no color mode, or None to auto detect. Defaults to None.
+    tab_size (int, optional): Number of spaces used to replace a tab character. Defaults to 8.
+    record (bool, optional): Boolean to enable recording of terminal output,
+        required to call :meth:`export_html`, :meth:`export_svg`, and :meth:`export_text`. Defaults to False.
+    markup (bool, optional): Boolean to enable :ref:`console_markup`. Defaults to True.
+    emoji (bool, optional): Enable emoji code. Defaults to True.
+    emoji_variant (str, optional): Optional emoji variant, either &quot;text&quot; or &quot;emoji&quot;. Defaults to None.
+    highlight (bool, optional): Enable automatic highlighting. Defaults to True.
+    log_time (bool, optional): Boolean to enable logging of time by :meth:`log` methods. Defaults to True.
+    log_path (bool, optional): Boolean to enable the logging of the caller by :meth:`log`. Defaults to True.
+    log_time_format (Union, optional): If ``log_time`` is enabled, either string for strftime or callable that formats the time. Defaults
+to &quot;[%X] &quot;.
+    highlighter (HighlighterType, optional): Default highlighter.
+    legacy_windows (bool, optional): Enable legacy Windows mode, or ``None`` to auto detect. Defaults to ``None``.
+    safe_box (bool, optional): Restrict box options that don&#x27;t render on legacy Windows.
+    get_datetime (Callable[[], datetime], optional): Callable that gets the current time as a datetime.datetime object (used by 
+Console.log),
+        or None for datetime.now.
+    get_time (Callable[[], time], optional): Callable that gets the current time in seconds, default uses time.monotonic.</div>
+                    
+        <div class="panel method indent-3">
+            <h4 >Methods:</h4>
+            <table class="table">
+                <tr><th>Method</th><th>Description</th></tr>
+        <tr><td><span class='library-name'>markdown.</span><span style='color: #dcdcaa;'>Console.</span><span style='color: 
+#c586c0;'>__enter__</span></td><td>Own context manager to enter buffer context.</td></tr><tr><td><span 
+class='library-name'>markdown.</span><span style='color: #dcdcaa;'>Console.</span><span style='color: 
+#c586c0;'>__exit__</span></td><td>Exit buffer context.</td></tr><tr><td><span class='library-name'>markdown.</span><span style='color: 
+#dcdcaa;'>Console.</span><span style='color: #c586c0;'>__init__</span></td><td>Initialize self.  See help(type(self)) for accurate 
+signature.</td></tr><tr><td><span class='library-name'>markdown.</span><span style='color: #dcdcaa;'>Console.</span><span style='color: 
+#c586c0;'>__repr__</span></td><td>Return repr(self).</td></tr><tr><td><span class='library-name'>markdown.</span><span style='color: 
+#dcdcaa;'>Console.</span><span style='color: #c586c0;'>_caller_frame_info</span></td><td>Get caller frame information.
+
+Args:
+    offset (int): the caller offset within the current frame stack.
+    currentframe (Callable[[], Optional[FrameType]], optional): the callable to use to
+        retrieve the current frame. Defaults to ``inspect.currentframe``.
+
+Returns:
+    Tuple[str, int, Dict]: A tuple containing the filename, the line number and
+        the dictionary of local variables associated with the caller frame.
+
+Raises:
+    RuntimeError: If the stack offset is invalid.</td></tr><tr><td><span class='library-name'>markdown.</span><span style='color: 
+#dcdcaa;'>Console.</span><span style='color: #c586c0;'>_check_buffer</span></td><td>Check if the buffer may be rendered. Render it if it 
+can (e.g. Console.quiet is False)
+Rendering is supported on Windows, Unix and Jupyter environments. For
+legacy Windows consoles, the win32 API is called directly.
+This method will also record what it renders if recording is enabled via Console.record.</td></tr><tr><td><span 
+class='library-name'>markdown.</span><span style='color: #dcdcaa;'>Console.</span><span style='color: 
+#c586c0;'>_collect_renderables</span></td><td>Combine a number of renderables and text into one renderable.
+
+Args:
+    objects (Iterable[Any]): Anything that Rich can render.
+    sep (str): String to write between print data.
+    end (str): String to write at end of print data.
+    justify (str, optional): One of &quot;left&quot;, &quot;right&quot;, &quot;center&quot;, or &quot;full&quot;. Defaults to ``None``.
+    emoji (Optional, optional): Enable emoji code, or ``None`` to use console default.
+    markup (Optional, optional): Enable markup, or ``None`` to use console default.
+    highlight (Optional, optional): Enable automatic highlighting, or ``None`` to use console default.
+
+Returns:
+    List[ConsoleRenderable]: A list of things to render.</td></tr><tr><td><span class='library-name'>markdown.</span><span style='color: 
+#dcdcaa;'>Console.</span><span style='color: #c586c0;'>_detect_color_system</span></td><td>Detect color system from env 
+vars.</td></tr><tr><td><span class='library-name'>markdown.</span><span style='color: #dcdcaa;'>Console.</span><span style='color: 
+#c586c0;'>_enter_buffer</span></td><td>Enter in to a buffer context, and buffer all output.</td></tr><tr><td><span 
+class='library-name'>markdown.</span><span style='color: #dcdcaa;'>Console.</span><span style='color: 
+#c586c0;'>_exit_buffer</span></td><td>Leave buffer context, and render content if required.</td></tr><tr><td><span 
+class='library-name'>markdown.</span><span style='color: #dcdcaa;'>Console.</span><span style='color: 
+#c586c0;'>_render_buffer</span></td><td>Render buffered output, and clear buffer.</td></tr><tr><td><span 
+class='library-name'>markdown.</span><span style='color: #dcdcaa;'>Console.</span><span style='color: 
+#c586c0;'>_write_buffer</span></td><td>Write the buffer to the output file.</td></tr><tr><td><span 
+class='library-name'>markdown.</span><span style='color: #dcdcaa;'>Console.</span><span style='color: 
+#c586c0;'>begin_capture</span></td><td>Begin capturing console output. Call :meth:`end_capture` to exit capture mode and return 
+output.</td></tr><tr><td><span class='library-name'>markdown.</span><span style='color: #dcdcaa;'>Console.</span><span style='color: 
+#c586c0;'>bell</span></td><td>Play a &#x27;bell&#x27; sound (if supported by the terminal).</td></tr><tr><td><span 
+class='library-name'>markdown.</span><span style='color: #dcdcaa;'>Console.</span><span style='color: #c586c0;'>capture</span></td><td>A 
+context manager to *capture* the result of print() or log() in a string,
+rather than writing it to the console.
+
+Example:
+    &gt;&gt;&gt; from rich.console import Console
+    &gt;&gt;&gt; console = Console()
+    &gt;&gt;&gt; with console.capture() as capture:
+    ...     console.print(&quot;Hello World&quot;)
+    &gt;&gt;&gt; print(capture.get())
+
+Returns:
+    Capture: Context manager with disables writing to the terminal.</td></tr><tr><td><span class='library-name'>markdown.</span><span 
+style='color: #dcdcaa;'>Console.</span><span style='color: #c586c0;'>clear</span></td><td>Clear the screen.
+
+Args:
+    home (bool, optional): Also move the cursor to &#x27;home&#x27; position. Defaults to True.</td></tr><tr><td><span 
+class='library-name'>markdown.</span><span style='color: #dcdcaa;'>Console.</span><span style='color: 
+#c586c0;'>clear_live</span></td><td>Clear the Live instance.</td></tr><tr><td><span class='library-name'>markdown.</span><span 
+style='color: #dcdcaa;'>Console.</span><span style='color: #c586c0;'>control</span></td><td>Insert non-printing control codes.
+
+Args:
+    control_codes (str): Control codes, such as those that may move the cursor.</td></tr><tr><td><span 
+class='library-name'>markdown.</span><span style='color: #dcdcaa;'>Console.</span><span style='color: 
+#c586c0;'>end_capture</span></td><td>End capture mode and return captured string.
+
+Returns:
+    str: Console output.</td></tr><tr><td><span class='library-name'>markdown.</span><span style='color: #dcdcaa;'>Console.</span><span 
+style='color: #c586c0;'>export_html</span></td><td>Generate HTML from console contents (requires record=True argument in constructor).
+
+Args:
+    theme (TerminalTheme, optional): TerminalTheme object containing console colors.
+    clear (bool, optional): Clear record buffer after exporting. Defaults to ``True``.
+    code_format (str, optional): Format string to render HTML. In addition to &#x27;{foreground}&#x27;,
+        &#x27;{background}&#x27;, and &#x27;{code}&#x27;, should contain &#x27;{stylesheet}&#x27; if inline_styles is ``False``.
+    inline_styles (bool, optional): If ``True`` styles will be inlined in to spans, which makes files
+        larger but easier to cut and paste markup. If ``False``, styles will be embedded in a style tag.
+        Defaults to False.
+
+Returns:
+    str: String containing console contents as HTML.</td></tr><tr><td><span class='library-name'>markdown.</span><span style='color: 
+#dcdcaa;'>Console.</span><span style='color: #c586c0;'>export_svg</span></td><td>Generate an SVG from the console contents (requires 
+record=True in Console constructor).
+
+Args:
+    title (str, optional): The title of the tab in the output image
+    theme (TerminalTheme, optional): The ``TerminalTheme`` object to use to style the terminal
+    clear (bool, optional): Clear record buffer after exporting. Defaults to ``True``
+    code_format (str, optional): Format string used to generate the SVG. Rich will inject a number of variables
+        into the string in order to form the final SVG output. The default template used and the variables
+        injected by Rich can be found by inspecting the ``console.CONSOLE_SVG_FORMAT`` variable.
+    font_aspect_ratio (float, optional): The width to height ratio of the font used in the ``code_format``
+        string. Defaults to 0.61, which is the width to height ratio of Fira Code (the default font).
+        If you aren&#x27;t specifying a different font inside ``code_format``, you probably don&#x27;t need this.
+    unique_id (str, optional): unique id that is used as the prefix for various elements (CSS styles, node
+        ids). If not set, this defaults to a computed value based on the recorded content.</td></tr><tr><td><span 
+class='library-name'>markdown.</span><span style='color: #dcdcaa;'>Console.</span><span style='color: 
+#c586c0;'>export_text</span></td><td>Generate text from console contents (requires record=True argument in constructor).
+
+Args:
+    clear (bool, optional): Clear record buffer after exporting. Defaults to ``True``.
+    styles (bool, optional): If ``True``, ansi escape codes will be included. ``False`` for plain text.
+        Defaults to ``False``.
+
+Returns:
+    str: String containing console contents.</td></tr><tr><td><span class='library-name'>markdown.</span><span style='color: 
+#dcdcaa;'>Console.</span><span style='color: #c586c0;'>get_style</span></td><td>Get a Style instance by its theme name or parse a 
+definition.
+
+Args:
+    name (str): The name of a style or a style definition.
+
+Returns:
+    Style: A Style object.
+
+Raises:
+    MissingStyle: If no style could be parsed from name.</td></tr><tr><td><span class='library-name'>markdown.</span><span style='color: 
+#dcdcaa;'>Console.</span><span style='color: #c586c0;'>input</span></td><td>Displays a prompt and waits for input from the user. The 
+prompt may contain color / style.
+
+It works in the same way as Python&#x27;s builtin :func:`input` function and provides elaborate line editing and history features if 
+Python&#x27;s builtin :mod:`readline` module is previously loaded.
+
+Args:
+    prompt (Union): Text to render in the prompt.
+    markup (bool, optional): Enable console markup (requires a str prompt). Defaults to True.
+    emoji (bool, optional): Enable emoji (requires a str prompt). Defaults to True.
+    password: (bool, optional): Hide typed text. Defaults to False.
+    stream: (TextIO, optional): Optional file to read input from (rather than stdin). Defaults to None.
+
+Returns:
+    str: Text read from stdin.</td></tr><tr><td><span class='library-name'>markdown.</span><span style='color: 
+#dcdcaa;'>Console.</span><span style='color: #c586c0;'>line</span></td><td>Write new line(s).
+
+Args:
+    count (int, optional): Number of new lines. Defaults to 1.</td></tr><tr><td><span class='library-name'>markdown.</span><span 
+style='color: #dcdcaa;'>Console.</span><span style='color: #c586c0;'>log</span></td><td>Log rich content to the terminal.
+
+Args:
+    objects (positional args): Objects to log to the terminal.
+    sep (str, optional): String to write between print data. Defaults to &quot; &quot;.
+    end (str, optional): String to write at end of print data. Defaults to &quot;\\n&quot;.
+    style (Union, optional): A style to apply to output. Defaults to None.
+    justify (str, optional): One of &quot;left&quot;, &quot;right&quot;, &quot;center&quot;, or &quot;full&quot;. Defaults to ``None``.
+    emoji (Optional, optional): Enable emoji code, or ``None`` to use console default. Defaults to None.
+    markup (Optional, optional): Enable markup, or ``None`` to use console default. Defaults to None.
+    highlight (Optional, optional): Enable automatic highlighting, or ``None`` to use console default. Defaults to None.
+    log_locals (bool, optional): Boolean to enable logging of locals where ``log()``
+        was called. Defaults to False.
+    _stack_offset (int, optional): Offset of caller from end of call stack. Defaults to 1.</td></tr><tr><td><span 
+class='library-name'>markdown.</span><span style='color: #dcdcaa;'>Console.</span><span style='color: 
+#c586c0;'>measure</span></td><td>Measure a renderable. Returns a :class:`~rich.measure.Measurement` object which contains
+information regarding the number of characters required to print the renderable.
+
+Args:
+    renderable (RenderableType): Any renderable or string.
+    options (Optional[ConsoleOptions], optional): Options to use when measuring, or None
+        to use default options. Defaults to None.
+
+Returns:
+    Measurement: A measurement of the renderable.</td></tr><tr><td><span class='library-name'>markdown.</span><span style='color: 
+#dcdcaa;'>Console.</span><span style='color: #c586c0;'>on_broken_pipe</span></td><td>This function is called when a `BrokenPipeError` is 
+raised.
+
+This can occur when piping Textual output in Linux and macOS.
+The default implementation is to exit the app, but you could implement
+this method in a subclass to change the behavior.
+
+See https://docs.python.org/3/library/signal.html#note-on-sigpipe for details.</td></tr><tr><td><span 
+class='library-name'>markdown.</span><span style='color: #dcdcaa;'>Console.</span><span style='color: #c586c0;'>out</span></td><td>Output
+to the terminal. This is a low-level way of writing to the terminal which unlike
+:meth:`~rich.console.Console.print` won&#x27;t pretty print, wrap text, or apply markup, but will
+optionally apply highlighting and a basic style.
+
+Args:
+    sep (str, optional): String to write between print data. Defaults to &quot; &quot;.
+    end (str, optional): String to write at end of print data. Defaults to &quot;\\n&quot;.
+    style (Union, optional): A style to apply to output. Defaults to None.
+    highlight (Optional, optional): Enable automatic highlighting, or ``None`` to use
+        console default. Defaults to ``None``.</td></tr><tr><td><span class='library-name'>markdown.</span><span style='color: 
+#dcdcaa;'>Console.</span><span style='color: #c586c0;'>pager</span></td><td>A context manager to display anything printed within a 
+&quot;pager&quot;. The pager application
+is defined by the system and will typically support at least pressing a key to scroll.
+
+Args:
+    pager (Pager, optional): A pager object, or None to use :class:`~rich.pager.SystemPager`. Defaults to None.
+    styles (bool, optional): Show styles in pager. Defaults to False.
+    links (bool, optional): Show links in pager. Defaults to False.
+
+Example:
+    &gt;&gt;&gt; from rich.console import Console
+    &gt;&gt;&gt; from rich.__main__ import make_test_card
+    &gt;&gt;&gt; console = Console()
+    &gt;&gt;&gt; with console.pager():
+            console.print(make_test_card())
+
+Returns:
+    PagerContext: A context manager.</td></tr><tr><td><span class='library-name'>markdown.</span><span style='color: 
+#dcdcaa;'>Console.</span><span style='color: #c586c0;'>pop_render_hook</span></td><td>Pop the last renderhook from the 
+stack.</td></tr><tr><td><span class='library-name'>markdown.</span><span style='color: #dcdcaa;'>Console.</span><span style='color: 
+#c586c0;'>pop_theme</span></td><td>Remove theme from top of stack, restoring previous theme.</td></tr><tr><td><span 
+class='library-name'>markdown.</span><span style='color: #dcdcaa;'>Console.</span><span style='color: 
+#c586c0;'>print</span></td><td>Print to the console.
+
+Args:
+    objects (positional args): Objects to log to the terminal.
+    sep (str, optional): String to write between print data. Defaults to &quot; &quot;.
+    end (str, optional): String to write at end of print data. Defaults to &quot;\\n&quot;.
+    style (Union, optional): A style to apply to output. Defaults to None.
+    justify (str, optional): Justify method: &quot;default&quot;, &quot;left&quot;, &quot;right&quot;, &quot;center&quot;, or 
+&quot;full&quot;. Defaults to ``None``.
+    overflow (str, optional): Overflow method: &quot;ignore&quot;, &quot;crop&quot;, &quot;fold&quot;, or &quot;ellipsis&quot;. Defaults 
+to None.
+    no_wrap (Optional, optional): Disable word wrapping. Defaults to None.
+    emoji (Optional, optional): Enable emoji code, or ``None`` to use console default. Defaults to ``None``.
+    markup (Optional, optional): Enable markup, or ``None`` to use console default. Defaults to ``None``.
+    highlight (Optional, optional): Enable automatic highlighting, or ``None`` to use console default. Defaults to ``None``.
+    width (Optional, optional): Width of output, or ``None`` to auto-detect. Defaults to ``None``.
+    crop (Optional, optional): Crop output to width of terminal. Defaults to True.
+    soft_wrap (bool, optional): Enable soft wrap mode which disables word wrapping and cropping of text or ``None`` for
+        Console default. Defaults to ``None``.
+    new_line_start (bool, False): Insert a new line at the start if the output contains more than one line. Defaults to 
+``False``.</td></tr><tr><td><span class='library-name'>markdown.</span><span style='color: #dcdcaa;'>Console.</span><span style='color: 
+#c586c0;'>print_exception</span></td><td>Prints a rich render of the last exception and traceback.
+
+Args:
+    width (Optional, optional): Number of characters used to render code. Defaults to 100.
+    extra_lines (int, optional): Additional lines of code to render. Defaults to 3.
+    theme (str, optional): Override pygments theme used in traceback
+    word_wrap (bool, optional): Enable word wrapping of long lines. Defaults to False.
+    show_locals (bool, optional): Enable display of local variables. Defaults to False.
+    suppress (Iterable[Union]): Optional sequence of modules or paths to exclude from traceback.
+    max_frames (int): Maximum number of frames to show in a traceback, 0 for no maximum. Defaults to 100.</td></tr><tr><td><span 
+class='library-name'>markdown.</span><span style='color: #dcdcaa;'>Console.</span><span style='color: 
+#c586c0;'>print_json</span></td><td>Pretty prints JSON. Output will be valid JSON.
+
+Args:
+    json (Optional): A string containing JSON.
+    data (Any): If json is not supplied, then encode this data.
+    indent (Union[None, int, str], optional): Number of spaces to indent. Defaults to 2.
+    highlight (bool, optional): Enable highlighting of output: Defaults to True.
+    skip_keys (bool, optional): Skip keys not of a basic type. Defaults to False.
+    ensure_ascii (bool, optional): Escape all non-ascii characters. Defaults to False.
+    check_circular (bool, optional): Check for circular references. Defaults to True.
+    allow_nan (bool, optional): Allow NaN and Infinity values. Defaults to True.
+    default (Callable, optional): A callable that converts values that can not be encoded
+        in to something that can be JSON encoded. Defaults to None.
+    sort_keys (bool, optional): Sort dictionary keys. Defaults to False.</td></tr><tr><td><span 
+class='library-name'>markdown.</span><span style='color: #dcdcaa;'>Console.</span><span style='color: 
+#c586c0;'>push_render_hook</span></td><td>Add a new render hook to the stack.
+
+Args:
+    hook (RenderHook): Render hook instance.</td></tr><tr><td><span class='library-name'>markdown.</span><span style='color: 
+#dcdcaa;'>Console.</span><span style='color: #c586c0;'>push_theme</span></td><td>Push a new theme on to the top of the stack, replacing 
+the styles from the previous theme.
+Generally speaking, you should call :meth:`~rich.console.Console.use_theme` to get a context manager, rather
+than calling this method directly.
+
+Args:
+    theme (Theme): A theme instance.
+    inherit (bool, optional): Inherit existing styles. Defaults to True.</td></tr><tr><td><span 
+class='library-name'>markdown.</span><span style='color: #dcdcaa;'>Console.</span><span style='color: 
+#c586c0;'>render</span></td><td>Render an object in to an iterable of `Segment` instances.
+
+This method contains the logic for rendering objects with the console protocol.
+You are unlikely to need to use it directly, unless you are extending the library.
+
+Args:
+    renderable (RenderableType): An object supporting the console protocol, or
+        an object that may be converted to a string.
+    options (ConsoleOptions, optional): An options object, or None to use self.options. Defaults to None.
+
+Returns:
+    Iterable[Segment]: An iterable of segments that may be rendered.</td></tr><tr><td><span class='library-name'>markdown.</span><span 
+style='color: #dcdcaa;'>Console.</span><span style='color: #c586c0;'>render_lines</span></td><td>Render objects in to a list of lines.
+
+        The output of render_lines is useful when further formatting of rendered console text
+        is required, such as the Panel class which draws a border around any renderable object.
+
+        Args:
+            renderable (RenderableType): Any object renderable in the console.
+            options (Optional[ConsoleOptions], optional): Console options, or None to use self.options. Default to ``None``.
+            style (Style, optional): Optional style to apply to renderables. Defaults to ``None``.
+            pad (bool, optional): Pad lines shorter than render width. Defaults to ``True``.
+            new_lines (bool, optional): Include &quot;
+&quot; characters at end of lines.
+
+        Returns:
+            List[List[Segment]]: A list of lines, where a line is a list of Segment objects.
+        </td></tr><tr><td><span class='library-name'>markdown.</span><span style='color: #dcdcaa;'>Console.</span><span style='color: 
+#c586c0;'>render_str</span></td><td>Convert a string to a Text instance. This is called automatically if
+you print or log a string.
+
+Args:
+    text (str): Text to render.
+    style (Union, optional): Style to apply to rendered text.
+    justify (str, optional): Justify method: &quot;default&quot;, &quot;left&quot;, &quot;center&quot;, &quot;full&quot;, or 
+&quot;right&quot;. Defaults to ``None``.
+    overflow (str, optional): Overflow method: &quot;crop&quot;, &quot;fold&quot;, or &quot;ellipsis&quot;. Defaults to ``None``.
+    emoji (Optional, optional): Enable emoji, or ``None`` to use Console default.
+    markup (Optional, optional): Enable markup, or ``None`` to use Console default.
+    highlight (Optional, optional): Enable highlighting, or ``None`` to use Console default.
+    highlighter (HighlighterType, optional): Optional highlighter to apply.
+Returns:
+    ConsoleRenderable: Renderable object.</td></tr><tr><td><span class='library-name'>markdown.</span><span style='color: 
+#dcdcaa;'>Console.</span><span style='color: #c586c0;'>rule</span></td><td>Draw a line with optional centered title.
+
+Args:
+    title (str, optional): Text to render over the rule. Defaults to &quot;&quot;.
+    characters (str, optional): Character(s) to form the line. Defaults to &quot;─&quot;.
+    style (str, optional): Style of line. Defaults to &quot;rule.line&quot;.
+    align (str, optional): How to align the title, one of &quot;left&quot;, &quot;center&quot;, or &quot;right&quot;. Defaults to 
+&quot;center&quot;.</td></tr><tr><td><span class='library-name'>markdown.</span><span style='color: #dcdcaa;'>Console.</span><span 
+style='color: #c586c0;'>save_html</span></td><td>Generate HTML from console contents and write to a file (requires record=True argument 
+in constructor).
+
+Args:
+    path (str): Path to write html file.
+    theme (TerminalTheme, optional): TerminalTheme object containing console colors.
+    clear (bool, optional): Clear record buffer after exporting. Defaults to ``True``.
+    code_format (str, optional): Format string to render HTML. In addition to &#x27;{foreground}&#x27;,
+        &#x27;{background}&#x27;, and &#x27;{code}&#x27;, should contain &#x27;{stylesheet}&#x27; if inline_styles is ``False``.
+    inline_styles (bool, optional): If ``True`` styles will be inlined in to spans, which makes files
+        larger but easier to cut and paste markup. If ``False``, styles will be embedded in a style tag.
+        Defaults to False.</td></tr><tr><td><span class='library-name'>markdown.</span><span style='color: #dcdcaa;'>Console.</span><span
+style='color: #c586c0;'>save_svg</span></td><td>Generate an SVG file from the console contents (requires record=True in Console 
+constructor).
+
+Args:
+    path (str): The path to write the SVG to.
+    title (str, optional): The title of the tab in the output image
+    theme (TerminalTheme, optional): The ``TerminalTheme`` object to use to style the terminal
+    clear (bool, optional): Clear record buffer after exporting. Defaults to ``True``
+    code_format (str, optional): Format string used to generate the SVG. Rich will inject a number of variables
+        into the string in order to form the final SVG output. The default template used and the variables
+        injected by Rich can be found by inspecting the ``console.CONSOLE_SVG_FORMAT`` variable.
+    font_aspect_ratio (float, optional): The width to height ratio of the font used in the ``code_format``
+        string. Defaults to 0.61, which is the width to height ratio of Fira Code (the default font).
+        If you aren&#x27;t specifying a different font inside ``code_format``, you probably don&#x27;t need this.
+    unique_id (str, optional): unique id that is used as the prefix for various elements (CSS styles, node
+        ids). If not set, this defaults to a computed value based on the recorded content.</td></tr><tr><td><span 
+class='library-name'>markdown.</span><span style='color: #dcdcaa;'>Console.</span><span style='color: 
+#c586c0;'>save_text</span></td><td>Generate text from console and save to a given location (requires record=True argument in 
+constructor).
+
+Args:
+    path (str): Path to write text files.
+    clear (bool, optional): Clear record buffer after exporting. Defaults to ``True``.
+    styles (bool, optional): If ``True``, ansi style codes will be included. ``False`` for plain text.
+        Defaults to ``False``.</td></tr><tr><td><span class='library-name'>markdown.</span><span style='color: 
+#dcdcaa;'>Console.</span><span style='color: #c586c0;'>screen</span></td><td>Context manager to enable and disable &#x27;alternative 
+screen&#x27; mode.
+
+Args:
+    hide_cursor (bool, optional): Also hide the cursor. Defaults to False.
+    style (Style, optional): Optional style for screen. Defaults to None.
+
+Returns:
+    ~ScreenContext: Context which enables alternate screen on enter, and disables it on exit.</td></tr><tr><td><span 
+class='library-name'>markdown.</span><span style='color: #dcdcaa;'>Console.</span><span style='color: 
+#c586c0;'>set_alt_screen</span></td><td>Enables alternative screen mode.
+
+Note, if you enable this mode, you should ensure that is disabled before
+the application exits. See :meth:`~rich.Console.screen` for a context manager
+that handles this for you.
+
+Args:
+    enable (bool, optional): Enable (True) or disable (False) alternate screen. Defaults to True.
+
+Returns:
+    bool: True if the control codes were written.</td></tr><tr><td><span class='library-name'>markdown.</span><span style='color: 
+#dcdcaa;'>Console.</span><span style='color: #c586c0;'>set_live</span></td><td>Set Live instance. Used by Live context manager.
+
+Args:
+    live (Live): Live instance using this Console.
+
+Raises:
+    errors.LiveError: If this Console has a Live context currently active.</td></tr><tr><td><span 
+class='library-name'>markdown.</span><span style='color: #dcdcaa;'>Console.</span><span style='color: 
+#c586c0;'>set_window_title</span></td><td>Set the title of the console terminal window.
+
+Warning: There is no means within Rich of &quot;resetting&quot; the window title to its
+previous value, meaning the title you set will persist even after your application
+exits.
+
+``fish`` shell resets the window title before and after each command by default,
+negating this issue. Windows Terminal and command prompt will also reset the title for you.
+Most other shells and terminals, however, do not do this.
+
+Some terminals may require configuration changes before you can set the title.
+Some terminals may not support setting the title at all.
+
+Other software (including the terminal itself, the shell, custom prompts, plugins, etc.)
+may also set the terminal window title. This could result in whatever value you write
+using this method being overwritten.
+
+Args:
+    title (str): The new title of the terminal window.
+
+Returns:
+    bool: True if the control code to change the terminal title was
+        written, otherwise False. Note that a return value of True
+        does not guarantee that the window title has actually changed,
+        since the feature may be unsupported/disabled in some terminals.</td></tr><tr><td><span 
+class='library-name'>markdown.</span><span style='color: #dcdcaa;'>Console.</span><span style='color: 
+#c586c0;'>show_cursor</span></td><td>Show or hide the cursor.
+
+Args:
+    show (bool, optional): Set visibility of the cursor.</td></tr><tr><td><span class='library-name'>markdown.</span><span style='color: 
+#dcdcaa;'>Console.</span><span style='color: #c586c0;'>status</span></td><td>Display a status and spinner.
+
+Args:
+    status (RenderableType): A status renderable (str or Text typically).
+    spinner (str, optional): Name of spinner animation (see python -m rich.spinner). Defaults to &quot;dots&quot;.
+    spinner_style (StyleType, optional): Style of spinner. Defaults to &quot;status.spinner&quot;.
+    speed (float, optional): Speed factor for spinner animation. Defaults to 1.0.
+    refresh_per_second (float, optional): Number of refreshes per second. Defaults to 12.5.
+
+Returns:
+    Status: A Status object that may be used as a context manager.</td></tr><tr><td><span class='library-name'>markdown.</span><span 
+style='color: #dcdcaa;'>Console.</span><span style='color: #c586c0;'>update_screen</span></td><td>Update the screen at a given offset.
+
+Args:
+    renderable (RenderableType): A Rich renderable.
+    region (Region, optional): Region of screen to update, or None for entire screen. Defaults to None.
+    x (int, optional): x offset. Defaults to 0.
+    y (int, optional): y offset. Defaults to 0.
+
+Raises:
+    errors.NoAltScreen: If the Console isn&#x27;t in alt screen mode.</td></tr><tr><td><span class='library-name'>markdown.</span><span 
+style='color: #dcdcaa;'>Console.</span><span style='color: #c586c0;'>update_screen_lines</span></td><td>Update lines of the screen at a 
+given offset.
+
+Args:
+    lines (List[List[Segment]]): Rendered lines (as produced by :meth:`~rich.Console.render_lines`).
+    x (int, optional): x offset (column no). Defaults to 0.
+    y (int, optional): y offset (column no). Defaults to 0.
+
+Raises:
+    errors.NoAltScreen: If the Console isn&#x27;t in alt screen mode.</td></tr><tr><td><span class='library-name'>markdown.</span><span 
+style='color: #dcdcaa;'>Console.</span><span style='color: #c586c0;'>use_theme</span></td><td>Use a different theme for the duration of 
+the context manager.
+
+Args:
+    theme (Theme): Theme instance to user.
+    inherit (bool, optional): Inherit existing console styles. Defaults to True.
+
+Returns:
+    ThemeContext: </td></tr></table></div>
+                </div>
+                
+                <div class="panel class indent-1">
+                    <h3>Class: <span class='library-name'>markdown.</span><span style='color: #dcdcaa;'>ConsoleOptions</span></h3>
+                    <div class="panel">Options for __rich_console__ method.</div>
+                    
+        <div class="panel method indent-3">
+            <h4 >Methods:</h4>
+            <table class="table">
+                <tr><th>Method</th><th>Description</th></tr>
+        <tr><td><span class='library-name'>markdown.</span><span style='color: #dcdcaa;'>ConsoleOptions.</span><span style='color: 
+#c586c0;'>__eq__</span></td><td>Return self==value.</td></tr><tr><td><span class='library-name'>markdown.</span><span style='color: 
+#dcdcaa;'>ConsoleOptions.</span><span style='color: #c586c0;'>__init__</span></td><td>Initialize self.  See help(type(self)) for accurate
+signature.</td></tr><tr><td><span class='library-name'>markdown.</span><span style='color: #dcdcaa;'>ConsoleOptions.</span><span 
+style='color: #c586c0;'>__repr__</span></td><td>Return repr(self).</td></tr><tr><td><span class='library-name'>markdown.</span><span 
+style='color: #dcdcaa;'>ConsoleOptions.</span><span style='color: #c586c0;'>copy</span></td><td>Return a copy of the options.
+
+Returns:
+    ConsoleOptions: a copy of self.</td></tr><tr><td><span class='library-name'>markdown.</span><span style='color: 
+#dcdcaa;'>ConsoleOptions.</span><span style='color: #c586c0;'>reset_height</span></td><td>Return a copy of the options with height set to
+``None``.
+
+Returns:
+    ~ConsoleOptions: New console options instance.</td></tr><tr><td><span class='library-name'>markdown.</span><span style='color: 
+#dcdcaa;'>ConsoleOptions.</span><span style='color: #c586c0;'>update</span></td><td>Update values, return a copy.</td></tr><tr><td><span 
+class='library-name'>markdown.</span><span style='color: #dcdcaa;'>ConsoleOptions.</span><span style='color: 
+#c586c0;'>update_dimensions</span></td><td>Update the width and height, and return a copy.
+
+Args:
+    width (int): New width (sets both min_width and max_width).
+    height (int): New height.
+
+Returns:
+    ~ConsoleOptions: New console options instance.</td></tr><tr><td><span class='library-name'>markdown.</span><span style='color: 
+#dcdcaa;'>ConsoleOptions.</span><span style='color: #c586c0;'>update_height</span></td><td>Update the height, and return a copy.
+
+Args:
+    height (int): New height
+
+Returns:
+    ~ConsoleOptions: New Console options instance.</td></tr><tr><td><span class='library-name'>markdown.</span><span style='color: 
+#dcdcaa;'>ConsoleOptions.</span><span style='color: #c586c0;'>update_width</span></td><td>Update just the width, return a copy.
+
+Args:
+    width (int): New width (sets both min_width and max_width)
+
+Returns:
+    ~ConsoleOptions: New console options instance.</td></tr></table></div>
+                </div>
+                
+                <div class="panel class indent-1">
+                    <h3>Class: <span class='library-name'>markdown.</span><span style='color: #dcdcaa;'>Heading</span></h3>
+                    <div class="panel">A heading.</div>
+                    
+        <div class="panel method indent-3">
+            <h4 >Methods:</h4>
+            <table class="table">
+                <tr><th>Method</th><th>Description</th></tr>
+        <tr><td><span class='library-name'>markdown.</span><span style='color: #dcdcaa;'>Heading.</span><span style='color: 
+#c586c0;'>__init__</span></td><td>Initialize self.  See help(type(self)) for accurate signature.</td></tr><tr><td><span 
+class='library-name'>markdown.</span><span style='color: #dcdcaa;'>Heading.</span><span style='color: 
+#c586c0;'>__rich_console__</span></td><td>No description</td></tr><tr><td><span class='library-name'>markdown.</span><span style='color: 
+#dcdcaa;'>Heading.</span><span style='color: #c586c0;'>on_child_close</span></td><td>Called when a child element is closed.
+
+This method allows a parent element to take over rendering of its children.
+
+Args:
+    context (MarkdownContext): The markdown context.
+    child (MarkdownElement): The child markdown element.
+
+Returns:
+    bool: Return True to render the element, or False to not render the element.</td></tr><tr><td><span 
+class='library-name'>markdown.</span><span style='color: #dcdcaa;'>Heading.</span><span style='color: 
+#c586c0;'>on_enter</span></td><td>Called when the node is entered.
+
+Args:
+    context (MarkdownContext): The markdown context.</td></tr><tr><td><span class='library-name'>markdown.</span><span style='color: 
+#dcdcaa;'>Heading.</span><span style='color: #c586c0;'>on_leave</span></td><td>Called when the parser leaves the element.
+
+Args:
+    context (MarkdownContext): </td></tr><tr><td><span class='library-name'>markdown.</span><span style='color: 
+#dcdcaa;'>Heading.</span><span style='color: #c586c0;'>on_text</span></td><td>Called when text is parsed.
+
+Args:
+    context (MarkdownContext): The markdown context.</td></tr></table></div>
+                </div>
+                
+                <div class="panel class indent-1">
+                    <h3>Class: <span class='library-name'>markdown.</span><span style='color: #dcdcaa;'>HorizontalRule</span></h3>
+                    <div class="panel">A horizontal rule to divide sections.</div>
+                    
+        <div class="panel method indent-3">
+            <h4 >Methods:</h4>
+            <table class="table">
+                <tr><th>Method</th><th>Description</th></tr>
+        <tr><td><span class='library-name'>markdown.</span><span style='color: #dcdcaa;'>HorizontalRule.</span><span style='color: 
+#c586c0;'>__rich_console__</span></td><td>No description</td></tr><tr><td><span class='library-name'>markdown.</span><span style='color: 
+#dcdcaa;'>HorizontalRule.</span><span style='color: #c586c0;'>on_child_close</span></td><td>Called when a child element is closed.
+
+This method allows a parent element to take over rendering of its children.
+
+Args:
+    context (MarkdownContext): The markdown context.
+    child (MarkdownElement): The child markdown element.
+
+Returns:
+    bool: Return True to render the element, or False to not render the element.</td></tr><tr><td><span 
+class='library-name'>markdown.</span><span style='color: #dcdcaa;'>HorizontalRule.</span><span style='color: 
+#c586c0;'>on_enter</span></td><td>Called when the node is entered.
+
+Args:
+    context (MarkdownContext): The markdown context.</td></tr><tr><td><span class='library-name'>markdown.</span><span style='color: 
+#dcdcaa;'>HorizontalRule.</span><span style='color: #c586c0;'>on_leave</span></td><td>Called when the parser leaves the element.
+
+Args:
+    context (MarkdownContext): </td></tr><tr><td><span class='library-name'>markdown.</span><span style='color: 
+#dcdcaa;'>HorizontalRule.</span><span style='color: #c586c0;'>on_text</span></td><td>Called when text is parsed.
+
+Args:
+    context (MarkdownContext): The markdown context.</td></tr></table></div>
+                </div>
+                
+                <div class="panel class indent-1">
+                    <h3>Class: <span class='library-name'>markdown.</span><span style='color: #dcdcaa;'>ImageItem</span></h3>
+                    <div class="panel">Renders a placeholder for an image.</div>
+                    
+        <div class="panel method indent-3">
+            <h4 >Methods:</h4>
+            <table class="table">
+                <tr><th>Method</th><th>Description</th></tr>
+        <tr><td><span class='library-name'>markdown.</span><span style='color: #dcdcaa;'>ImageItem.</span><span style='color: 
+#c586c0;'>__init__</span></td><td>Initialize self.  See help(type(self)) for accurate signature.</td></tr><tr><td><span 
+class='library-name'>markdown.</span><span style='color: #dcdcaa;'>ImageItem.</span><span style='color: 
+#c586c0;'>__rich_console__</span></td><td>No description</td></tr><tr><td><span class='library-name'>markdown.</span><span style='color: 
+#dcdcaa;'>ImageItem.</span><span style='color: #c586c0;'>on_child_close</span></td><td>Called when a child element is closed.
+
+This method allows a parent element to take over rendering of its children.
+
+Args:
+    context (MarkdownContext): The markdown context.
+    child (MarkdownElement): The child markdown element.
+
+Returns:
+    bool: Return True to render the element, or False to not render the element.</td></tr><tr><td><span 
+class='library-name'>markdown.</span><span style='color: #dcdcaa;'>ImageItem.</span><span style='color: 
+#c586c0;'>on_enter</span></td><td>Called when the node is entered.
+
+Args:
+    context (MarkdownContext): The markdown context.</td></tr><tr><td><span class='library-name'>markdown.</span><span style='color: 
+#dcdcaa;'>ImageItem.</span><span style='color: #c586c0;'>on_leave</span></td><td>Called when the parser leaves the element.
+
+Args:
+    context (MarkdownContext): </td></tr><tr><td><span class='library-name'>markdown.</span><span style='color: 
+#dcdcaa;'>ImageItem.</span><span style='color: #c586c0;'>on_text</span></td><td>Called when text is parsed.
+
+Args:
+    context (MarkdownContext): The markdown context.</td></tr></table></div>
+                </div>
+                
+                <div class="panel attribute indent-1">
+                    <p><strong>Attribute:</strong> Iterable - Attribute or Variable</p>
+                </div>
+                
+                <div class="panel class indent-1">
+                    <h3>Class: <span class='library-name'>markdown.</span><span style='color: #dcdcaa;'>JupyterMixin</span></h3>
+                    <div class="panel">Add to an Rich renderable to make it render in Jupyter notebook.</div>
+                    
+        <div class="panel method indent-3">
+            <h4 >Methods:</h4>
+            <table class="table">
+                <tr><th>Method</th><th>Description</th></tr>
+        <tr><td><span class='library-name'>markdown.</span><span style='color: #dcdcaa;'>JupyterMixin.</span><span style='color: 
+#c586c0;'>_repr_mimebundle_</span></td><td>No description</td></tr></table></div>
+                </div>
+                
+                <div class="panel attribute indent-1">
+                    <p><strong>Attribute:</strong> JustifyMethod - Attribute or Variable</p>
+                </div>
+                
+                <div class="panel class indent-1">
+                    <h3>Class: <span class='library-name'>markdown.</span><span style='color: #dcdcaa;'>Link</span></h3>
+                    <div class="panel">Base class for elements that render text.</div>
+                    
+        <div class="panel method indent-3">
+            <h4 >Methods:</h4>
+            <table class="table">
+                <tr><th>Method</th><th>Description</th></tr>
+        <tr><td><span class='library-name'>markdown.</span><span style='color: #dcdcaa;'>Link.</span><span style='color: 
+#c586c0;'>__init__</span></td><td>Initialize self.  See help(type(self)) for accurate signature.</td></tr><tr><td><span 
+class='library-name'>markdown.</span><span style='color: #dcdcaa;'>Link.</span><span style='color: 
+#c586c0;'>__rich_console__</span></td><td>No description</td></tr><tr><td><span class='library-name'>markdown.</span><span style='color: 
+#dcdcaa;'>Link.</span><span style='color: #c586c0;'>on_child_close</span></td><td>Called when a child element is closed.
+
+This method allows a parent element to take over rendering of its children.
+
+Args:
+    context (MarkdownContext): The markdown context.
+    child (MarkdownElement): The child markdown element.
+
+Returns:
+    bool: Return True to render the element, or False to not render the element.</td></tr><tr><td><span 
+class='library-name'>markdown.</span><span style='color: #dcdcaa;'>Link.</span><span style='color: 
+#c586c0;'>on_enter</span></td><td>Called when the node is entered.
+
+Args:
+    context (MarkdownContext): The markdown context.</td></tr><tr><td><span class='library-name'>markdown.</span><span style='color: 
+#dcdcaa;'>Link.</span><span style='color: #c586c0;'>on_leave</span></td><td>Called when the parser leaves the element.
+
+Args:
+    context (MarkdownContext): </td></tr><tr><td><span class='library-name'>markdown.</span><span style='color: 
+#dcdcaa;'>Link.</span><span style='color: #c586c0;'>on_text</span></td><td>Called when text is parsed.
+
+Args:
+    context (MarkdownContext): The markdown context.</td></tr></table></div>
+                </div>
+                
+                <div class="panel class indent-1">
+                    <h3>Class: <span class='library-name'>markdown.</span><span style='color: #dcdcaa;'>ListElement</span></h3>
+                    <div class="panel">A list element.</div>
+                    
+        <div class="panel method indent-3">
+            <h4 >Methods:</h4>
+            <table class="table">
+                <tr><th>Method</th><th>Description</th></tr>
+        <tr><td><span class='library-name'>markdown.</span><span style='color: #dcdcaa;'>ListElement.</span><span style='color: 
+#c586c0;'>__init__</span></td><td>Initialize self.  See help(type(self)) for accurate signature.</td></tr><tr><td><span 
+class='library-name'>markdown.</span><span style='color: #dcdcaa;'>ListElement.</span><span style='color: 
+#c586c0;'>__rich_console__</span></td><td>No description</td></tr><tr><td><span class='library-name'>markdown.</span><span style='color: 
+#dcdcaa;'>ListElement.</span><span style='color: #c586c0;'>on_child_close</span></td><td>Called when a child element is closed.
+
+This method allows a parent element to take over rendering of its children.
+
+Args:
+    context (MarkdownContext): The markdown context.
+    child (MarkdownElement): The child markdown element.
+
+Returns:
+    bool: Return True to render the element, or False to not render the element.</td></tr><tr><td><span 
+class='library-name'>markdown.</span><span style='color: #dcdcaa;'>ListElement.</span><span style='color: 
+#c586c0;'>on_enter</span></td><td>Called when the node is entered.
+
+Args:
+    context (MarkdownContext): The markdown context.</td></tr><tr><td><span class='library-name'>markdown.</span><span style='color: 
+#dcdcaa;'>ListElement.</span><span style='color: #c586c0;'>on_leave</span></td><td>Called when the parser leaves the element.
+
+Args:
+    context (MarkdownContext): </td></tr><tr><td><span class='library-name'>markdown.</span><span style='color: 
+#dcdcaa;'>ListElement.</span><span style='color: #c586c0;'>on_text</span></td><td>Called when text is parsed.
+
+Args:
+    context (MarkdownContext): The markdown context.</td></tr></table></div>
+                </div>
+                
+                <div class="panel class indent-1">
+                    <h3>Class: <span class='library-name'>markdown.</span><span style='color: #dcdcaa;'>ListItem</span></h3>
+                    <div class="panel">An item in a list.</div>
+                    
+        <div class="panel method indent-3">
+            <h4 >Methods:</h4>
+            <table class="table">
+                <tr><th>Method</th><th>Description</th></tr>
+        <tr><td><span class='library-name'>markdown.</span><span style='color: #dcdcaa;'>ListItem.</span><span style='color: 
+#c586c0;'>__init__</span></td><td>Initialize self.  See help(type(self)) for accurate signature.</td></tr><tr><td><span 
+class='library-name'>markdown.</span><span style='color: #dcdcaa;'>ListItem.</span><span style='color: 
+#c586c0;'>__rich_console__</span></td><td>No description</td></tr><tr><td><span class='library-name'>markdown.</span><span style='color: 
+#dcdcaa;'>ListItem.</span><span style='color: #c586c0;'>on_child_close</span></td><td>Called when a child element is closed.
+
+This method allows a parent element to take over rendering of its children.
+
+Args:
+    context (MarkdownContext): The markdown context.
+    child (MarkdownElement): The child markdown element.
+
+Returns:
+    bool: Return True to render the element, or False to not render the element.</td></tr><tr><td><span 
+class='library-name'>markdown.</span><span style='color: #dcdcaa;'>ListItem.</span><span style='color: 
+#c586c0;'>on_enter</span></td><td>Called when the node is entered.
+
+Args:
+    context (MarkdownContext): The markdown context.</td></tr><tr><td><span class='library-name'>markdown.</span><span style='color: 
+#dcdcaa;'>ListItem.</span><span style='color: #c586c0;'>on_leave</span></td><td>Called when the parser leaves the element.
+
+Args:
+    context (MarkdownContext): </td></tr><tr><td><span class='library-name'>markdown.</span><span style='color: 
+#dcdcaa;'>ListItem.</span><span style='color: #c586c0;'>on_text</span></td><td>Called when text is parsed.
+
+Args:
+    context (MarkdownContext): The markdown context.</td></tr><tr><td><span class='library-name'>markdown.</span><span style='color: 
+#dcdcaa;'>ListItem.</span><span style='color: #c586c0;'>render_bullet</span></td><td>No description</td></tr><tr><td><span 
+class='library-name'>markdown.</span><span style='color: #dcdcaa;'>ListItem.</span><span style='color: 
+#c586c0;'>render_number</span></td><td>No description</td></tr></table></div>
+                </div>
+                
+                <div class="panel class indent-1">
+                    <h3>Class: <span class='library-name'>markdown.</span><span style='color: #dcdcaa;'>Markdown</span></h3>
+                    <div class="panel">A Markdown renderable.
+
+Args:
+    markup (str): A string containing markdown.
+    code_theme (str, optional): Pygments theme for code blocks. Defaults to &quot;monokai&quot;. See https://pygments.org/styles/ for 
+code themes.
+    justify (JustifyMethod, optional): Justify value for paragraphs. Defaults to None.
+    style (Union, optional): Optional style to apply to markdown.
+    hyperlinks (bool, optional): Enable hyperlinks. Defaults to ``True``.
+    inline_code_lexer: (str, optional): Lexer to use if inline code highlighting is
+        enabled. Defaults to None.
+    inline_code_theme: (Optional, optional): Pygments theme for inline code
+        highlighting, or None for no highlighting. Defaults to None.</div>
+                    
+        <div class="panel method indent-3">
+            <h4 >Methods:</h4>
+            <table class="table">
+                <tr><th>Method</th><th>Description</th></tr>
+        <tr><td><span class='library-name'>markdown.</span><span style='color: #dcdcaa;'>Markdown.</span><span style='color: 
+#c586c0;'>__init__</span></td><td>Initialize self.  See help(type(self)) for accurate signature.</td></tr><tr><td><span 
+class='library-name'>markdown.</span><span style='color: #dcdcaa;'>Markdown.</span><span style='color: 
+#c586c0;'>__rich_console__</span></td><td>Render markdown to the console.</td></tr><tr><td><span 
+class='library-name'>markdown.</span><span style='color: #dcdcaa;'>Markdown.</span><span style='color: 
+#c586c0;'>_flatten_tokens</span></td><td>Flattens the token stream.</td></tr><tr><td><span class='library-name'>markdown.</span><span 
+style='color: #dcdcaa;'>Markdown.</span><span style='color: #c586c0;'>_repr_mimebundle_</span></td><td>No 
+description</td></tr></table></div>
+                </div>
+                
+                <div class="panel class indent-1">
+                    <h3>Class: <span class='library-name'>markdown.</span><span style='color: #dcdcaa;'>MarkdownContext</span></h3>
+                    <div class="panel">Manages the console render state.</div>
+                    
+        <div class="panel method indent-3">
+            <h4 >Methods:</h4>
+            <table class="table">
+                <tr><th>Method</th><th>Description</th></tr>
+        <tr><td><span class='library-name'>markdown.</span><span style='color: #dcdcaa;'>MarkdownContext.</span><span style='color: 
+#c586c0;'>__init__</span></td><td>Initialize self.  See help(type(self)) for accurate signature.</td></tr><tr><td><span 
+class='library-name'>markdown.</span><span style='color: #dcdcaa;'>MarkdownContext.</span><span style='color: 
+#c586c0;'>enter_style</span></td><td>Enter a style context.</td></tr><tr><td><span class='library-name'>markdown.</span><span 
+style='color: #dcdcaa;'>MarkdownContext.</span><span style='color: #c586c0;'>leave_style</span></td><td>Leave a style 
+context.</td></tr><tr><td><span class='library-name'>markdown.</span><span style='color: #dcdcaa;'>MarkdownContext.</span><span 
+style='color: #c586c0;'>on_text</span></td><td>Called when the parser visits text.</td></tr></table></div>
+                </div>
+                
+                <div class="panel class indent-1">
+                    <h3>Class: <span class='library-name'>markdown.</span><span style='color: #dcdcaa;'>MarkdownElement</span></h3>
+                    <div class="panel">No description available</div>
+                    
+        <div class="panel method indent-3">
+            <h4 >Methods:</h4>
+            <table class="table">
+                <tr><th>Method</th><th>Description</th></tr>
+        <tr><td><span class='library-name'>markdown.</span><span style='color: #dcdcaa;'>MarkdownElement.</span><span style='color: 
+#c586c0;'>__rich_console__</span></td><td>No description</td></tr><tr><td><span class='library-name'>markdown.</span><span style='color: 
+#dcdcaa;'>MarkdownElement.</span><span style='color: #c586c0;'>on_child_close</span></td><td>Called when a child element is closed.
+
+This method allows a parent element to take over rendering of its children.
+
+Args:
+    context (MarkdownContext): The markdown context.
+    child (MarkdownElement): The child markdown element.
+
+Returns:
+    bool: Return True to render the element, or False to not render the element.</td></tr><tr><td><span 
+class='library-name'>markdown.</span><span style='color: #dcdcaa;'>MarkdownElement.</span><span style='color: 
+#c586c0;'>on_enter</span></td><td>Called when the node is entered.
+
+Args:
+    context (MarkdownContext): The markdown context.</td></tr><tr><td><span class='library-name'>markdown.</span><span style='color: 
+#dcdcaa;'>MarkdownElement.</span><span style='color: #c586c0;'>on_leave</span></td><td>Called when the parser leaves the element.
+
+Args:
+    context (MarkdownContext): </td></tr><tr><td><span class='library-name'>markdown.</span><span style='color: 
+#dcdcaa;'>MarkdownElement.</span><span style='color: #c586c0;'>on_text</span></td><td>Called when text is parsed.
+
+Args:
+    context (MarkdownContext): The markdown context.</td></tr></table></div>
+                </div>
+                
+                <div class="panel class indent-1">
+                    <h3>Class: <span class='library-name'>markdown.</span><span style='color: #dcdcaa;'>MarkdownIt</span></h3>
+                    <div class="panel">No description available</div>
+                    
+        <div class="panel method indent-3">
+            <h4 >Methods:</h4>
+            <table class="table">
+                <tr><th>Method</th><th>Description</th></tr>
+        <tr><td><span class='library-name'>markdown.</span><span style='color: #dcdcaa;'>MarkdownIt.</span><span style='color: 
+#c586c0;'>__getitem__</span></td><td>No description</td></tr><tr><td><span class='library-name'>markdown.</span><span style='color: 
+#dcdcaa;'>MarkdownIt.</span><span style='color: #c586c0;'>__init__</span></td><td>Main parser class
+
+:param config: name of configuration to load or a pre-defined dictionary
+:param options_update: dictionary that will be merged into ``config[&quot;options&quot;]``
+:param renderer_cls: the class to load as the renderer:
+    ``self.renderer = renderer_cls(self)</td></tr><tr><td><span class='library-name'>markdown.</span><span style='color: 
+#dcdcaa;'>MarkdownIt.</span><span style='color: #c586c0;'>__repr__</span></td><td>Return repr(self).</td></tr><tr><td><span 
+class='library-name'>markdown.</span><span style='color: #dcdcaa;'>MarkdownIt.</span><span style='color: 
+#c586c0;'>add_render_rule</span></td><td>Add a rule for rendering a particular Token type.
+
+Only applied when ``renderer.__output__ == fmt``</td></tr><tr><td><span class='library-name'>markdown.</span><span style='color: 
+#dcdcaa;'>MarkdownIt.</span><span style='color: #c586c0;'>configure</span></td><td>Batch load of all options and component settings.
+This is an internal method, and you probably will not need it.
+But if you will - see available presets and data structure
+(https://github.com/markdown-it/markdown-it/tree/master/lib/presets)
+
+We strongly recommend to use presets instead of direct config loads.
+That will give better compatibility with next versions.</td></tr><tr><td><span class='library-name'>markdown.</span><span style='color: 
+#dcdcaa;'>MarkdownIt.</span><span style='color: #c586c0;'>disable</span></td><td>The same as [[MarkdownIt.enable]], but turn specified 
+rules off. (chainable)
+
+:param names: rule name or list of rule names to disable.
+:param ignoreInvalid: set `true` to ignore errors when rule not found.</td></tr><tr><td><span class='library-name'>markdown.</span><span 
+style='color: #dcdcaa;'>MarkdownIt.</span><span style='color: #c586c0;'>enable</span></td><td>Enable list or rules. (chainable)
+
+:param names: rule name or list of rule names to enable.
+:param ignoreInvalid: set `true` to ignore errors when rule not found.
+
+It will automatically find appropriate components,
+containing rules with given names. If rule not found, and `ignoreInvalid`
+not set - throws exception.
+
+Example::
+
+    md = MarkdownIt().enable([&#x27;sub&#x27;, &#x27;sup&#x27;]).disable(&#x27;smartquotes&#x27;)</td></tr><tr><td><span 
+class='library-name'>markdown.</span><span style='color: #dcdcaa;'>MarkdownIt.</span><span style='color: 
+#c586c0;'>get_active_rules</span></td><td>Return the names of all active rules.</td></tr><tr><td><span 
+class='library-name'>markdown.</span><span style='color: #dcdcaa;'>MarkdownIt.</span><span style='color: 
+#c586c0;'>get_all_rules</span></td><td>Return the names of all active rules.</td></tr><tr><td><span 
+class='library-name'>markdown.</span><span style='color: #dcdcaa;'>MarkdownIt.</span><span style='color: 
+#c586c0;'>normalizeLink</span></td><td>Normalize destination URLs in links
+
+::
+
+    :   destination   &#x27;title&#x27;
+            ^^^^^^^^^^^</td></tr><tr><td><span class='library-name'>markdown.</span><span style='color: #dcdcaa;'>MarkdownIt.</span><span
+style='color: #c586c0;'>normalizeLinkText</span></td><td>Normalize autolink content
+
+::
+
+    &lt;destination&gt;
+    ~~~~~~~~~~~</td></tr><tr><td><span class='library-name'>markdown.</span><span style='color: #dcdcaa;'>MarkdownIt.</span><span 
+style='color: #c586c0;'>parse</span></td><td>Parse the source string to a token stream
+
+:param src: source string
+:param env: environment sandbox
+
+Parse input string and return list of block tokens (special token type
+&quot;inline&quot; will contain list of inline tokens).
+
+`env` is used to pass data between &quot;distributed&quot; rules and return additional
+metadata like reference info, needed for the renderer. It also can be used to
+inject data in specific cases. Usually, you will be ok to pass `{}`,
+and then pass updated object to renderer.</td></tr><tr><td><span class='library-name'>markdown.</span><span style='color: 
+#dcdcaa;'>MarkdownIt.</span><span style='color: #c586c0;'>parseInline</span></td><td>The same as [[MarkdownIt.parse]] but skip all block 
+rules.
+
+:param src: source string
+:param env: environment sandbox
+
+It returns the
+block tokens list with the single `inline` element, containing parsed inline
+tokens in `children` property. Also updates `env` object.</td></tr><tr><td><span class='library-name'>markdown.</span><span style='color:
+#dcdcaa;'>MarkdownIt.</span><span style='color: #c586c0;'>render</span></td><td>Render markdown string into html. It does all magic for 
+you :).
+
+:param src: source string
+:param env: environment sandbox
+:returns: The output of the loaded renderer
+
+`env` can be used to inject additional metadata (`{}` by default).
+But you will not need it with high probability. See also comment
+in [[MarkdownIt.parse]].</td></tr><tr><td><span class='library-name'>markdown.</span><span style='color: 
+#dcdcaa;'>MarkdownIt.</span><span style='color: #c586c0;'>renderInline</span></td><td>Similar to [[MarkdownIt.render]] but for single 
+paragraph content.
+
+:param src: source string
+:param env: environment sandbox
+
+Similar to [[MarkdownIt.render]] but for single paragraph content. Result
+will NOT be wrapped into `&lt;p&gt;` tags.</td></tr><tr><td><span class='library-name'>markdown.</span><span style='color: 
+#dcdcaa;'>MarkdownIt.</span><span style='color: #c586c0;'>reset_rules</span></td><td>A context manager, that will reset the current 
+enabled rules on exit.</td></tr><tr><td><span class='library-name'>markdown.</span><span style='color: #dcdcaa;'>MarkdownIt.</span><span 
+style='color: #c586c0;'>set</span></td><td>Set parser options (in the same format as in constructor).
+Probably, you will never need it, but you can change options after constructor call.
+
+__Note:__ To achieve the best possible performance, don&#x27;t modify a
+`markdown-it` instance options on the fly. If you need multiple configurations
+it&#x27;s best to create multiple instances and initialize each with separate config.</td></tr><tr><td><span 
+class='library-name'>markdown.</span><span style='color: #dcdcaa;'>MarkdownIt.</span><span style='color: 
+#c586c0;'>use</span></td><td>Load specified plugin with given params into current parser instance. (chainable)
+
+It&#x27;s just a sugar to call `plugin(md, params)` with curring.
+
+Example::
+
+    def func(tokens, idx):
+        tokens.content = tokens.content.replace(&#x27;foo&#x27;, &#x27;bar&#x27;)
+    md = MarkdownIt().use(plugin, &#x27;foo_replace&#x27;, &#x27;text&#x27;, func)</td></tr><tr><td><span 
+class='library-name'>markdown.</span><span style='color: #dcdcaa;'>MarkdownIt.</span><span style='color: 
+#c586c0;'>validateLink</span></td><td>Validate if the URL link is allowed in output.
+
+This validator can prohibit more than really needed to prevent XSS.
+It&#x27;s a tradeoff to keep code simple and to be secure by default.
+
+Note: the url should be normalized at this point, and existing entities decoded.</td></tr></table></div>
+                </div>
+                
+                <div class="panel class indent-1">
+                    <h3>Class: <span class='library-name'>markdown.</span><span style='color: #dcdcaa;'>Panel</span></h3>
+                    <div class="panel">A console renderable that draws a border around its contents.
+
+Example:
+    &gt;&gt;&gt; console.print(Panel(&quot;Hello, World!&quot;))
+
+Args:
+    renderable (RenderableType): A console renderable object.
+    box (Box, optional): A Box instance that defines the look of the border (see :ref:`appendix_box`. Defaults to box.ROUNDED.
+    title (Optional[TextType], optional): Optional title displayed in panel header. Defaults to None.
+    title_align (AlignMethod, optional): Alignment of title. Defaults to &quot;center&quot;.
+    subtitle (Optional[TextType], optional): Optional subtitle displayed in panel footer. Defaults to None.
+    subtitle_align (AlignMethod, optional): Alignment of subtitle. Defaults to &quot;center&quot;.
+    safe_box (bool, optional): Disable box characters that don&#x27;t display on windows legacy terminal with *raster* fonts. Defaults to
+True.
+    expand (bool, optional): If True the panel will stretch to fill the console width, otherwise it will be sized to fit the contents. 
+Defaults to True.
+    style (str, optional): The style of the panel (border and contents). Defaults to &quot;none&quot;.
+    border_style (str, optional): The style of the border. Defaults to &quot;none&quot;.
+    width (Optional, optional): Optional width of panel. Defaults to None to auto-detect.
+    height (Optional, optional): Optional height of panel. Defaults to None to auto-detect.
+    padding (Optional[PaddingDimensions]): Optional padding around renderable. Defaults to 0.
+    highlight (bool, optional): Enable automatic highlighting of panel title (if str). Defaults to False.</div>
+                    
+        <div class="panel method indent-3">
+            <h4 >Methods:</h4>
+            <table class="table">
+                <tr><th>Method</th><th>Description</th></tr>
+        <tr><td><span class='library-name'>markdown.</span><span style='color: #dcdcaa;'>Panel.</span><span style='color: 
+#c586c0;'>__init__</span></td><td>Initialize self.  See help(type(self)) for accurate signature.</td></tr><tr><td><span 
+class='library-name'>markdown.</span><span style='color: #dcdcaa;'>Panel.</span><span style='color: 
+#c586c0;'>__rich_console__</span></td><td>No description</td></tr><tr><td><span class='library-name'>markdown.</span><span style='color: 
+#dcdcaa;'>Panel.</span><span style='color: #c586c0;'>__rich_measure__</span></td><td>No description</td></tr><tr><td><span 
+class='library-name'>markdown.</span><span style='color: #dcdcaa;'>Panel.</span><span style='color: 
+#c586c0;'>_repr_mimebundle_</span></td><td>No description</td></tr></table></div>
+                </div>
+                
+                <div class="panel class indent-1">
+                    <h3>Class: <span class='library-name'>markdown.</span><span style='color: #dcdcaa;'>Paragraph</span></h3>
+                    <div class="panel">A Paragraph.</div>
+                    
+        <div class="panel method indent-3">
+            <h4 >Methods:</h4>
+            <table class="table">
+                <tr><th>Method</th><th>Description</th></tr>
+        <tr><td><span class='library-name'>markdown.</span><span style='color: #dcdcaa;'>Paragraph.</span><span style='color: 
+#c586c0;'>__init__</span></td><td>Initialize self.  See help(type(self)) for accurate signature.</td></tr><tr><td><span 
+class='library-name'>markdown.</span><span style='color: #dcdcaa;'>Paragraph.</span><span style='color: 
+#c586c0;'>__rich_console__</span></td><td>No description</td></tr><tr><td><span class='library-name'>markdown.</span><span style='color: 
+#dcdcaa;'>Paragraph.</span><span style='color: #c586c0;'>on_child_close</span></td><td>Called when a child element is closed.
+
+This method allows a parent element to take over rendering of its children.
+
+Args:
+    context (MarkdownContext): The markdown context.
+    child (MarkdownElement): The child markdown element.
+
+Returns:
+    bool: Return True to render the element, or False to not render the element.</td></tr><tr><td><span 
+class='library-name'>markdown.</span><span style='color: #dcdcaa;'>Paragraph.</span><span style='color: 
+#c586c0;'>on_enter</span></td><td>Called when the node is entered.
+
+Args:
+    context (MarkdownContext): The markdown context.</td></tr><tr><td><span class='library-name'>markdown.</span><span style='color: 
+#dcdcaa;'>Paragraph.</span><span style='color: #c586c0;'>on_leave</span></td><td>Called when the parser leaves the element.
+
+Args:
+    context (MarkdownContext): </td></tr><tr><td><span class='library-name'>markdown.</span><span style='color: 
+#dcdcaa;'>Paragraph.</span><span style='color: #c586c0;'>on_text</span></td><td>Called when text is parsed.
+
+Args:
+    context (MarkdownContext): The markdown context.</td></tr></table></div>
+                </div>
+                
+                <div class="panel attribute indent-1">
+                    <p><strong>Attribute:</strong> RenderResult - Attribute or Variable</p>
+                </div>
+                
+                <div class="panel class indent-1">
+                    <h3>Class: <span class='library-name'>markdown.</span><span style='color: #dcdcaa;'>Renderables</span></h3>
+                    <div class="panel">A list subclass which renders its contents to the console.</div>
+                    
+        <div class="panel method indent-3">
+            <h4 >Methods:</h4>
+            <table class="table">
+                <tr><th>Method</th><th>Description</th></tr>
+        <tr><td><span class='library-name'>markdown.</span><span style='color: #dcdcaa;'>Renderables.</span><span style='color: 
+#c586c0;'>__init__</span></td><td>Initialize self.  See help(type(self)) for accurate signature.</td></tr><tr><td><span 
+class='library-name'>markdown.</span><span style='color: #dcdcaa;'>Renderables.</span><span style='color: 
+#c586c0;'>__iter__</span></td><td>No description</td></tr><tr><td><span class='library-name'>markdown.</span><span style='color: 
+#dcdcaa;'>Renderables.</span><span style='color: #c586c0;'>__rich_console__</span></td><td>Console render method to insert 
+line-breaks.</td></tr><tr><td><span class='library-name'>markdown.</span><span style='color: #dcdcaa;'>Renderables.</span><span 
+style='color: #c586c0;'>__rich_measure__</span></td><td>No description</td></tr><tr><td><span class='library-name'>markdown.</span><span 
+style='color: #dcdcaa;'>Renderables.</span><span style='color: #c586c0;'>append</span></td><td>No description</td></tr></table></div>
+                </div>
+                
+                <div class="panel class indent-1">
+                    <h3>Class: <span class='library-name'>markdown.</span><span style='color: #dcdcaa;'>Rule</span></h3>
+                    <div class="panel">A console renderable to draw a horizontal rule (line).
+
+Args:
+    title (Union, optional): Text to render in the rule. Defaults to &quot;&quot;.
+    characters (str, optional): Character(s) used to draw the line. Defaults to &quot;─&quot;.
+    style (StyleType, optional): Style of Rule. Defaults to &quot;rule.line&quot;.
+    end (str, optional): Character at end of Rule. defaults to &quot;\\n&quot;
+    align (str, optional): How to align the title, one of &quot;left&quot;, &quot;center&quot;, or &quot;right&quot;. Defaults to 
+&quot;center&quot;.</div>
+                    
+        <div class="panel method indent-3">
+            <h4 >Methods:</h4>
+            <table class="table">
+                <tr><th>Method</th><th>Description</th></tr>
+        <tr><td><span class='library-name'>markdown.</span><span style='color: #dcdcaa;'>Rule.</span><span style='color: 
+#c586c0;'>__init__</span></td><td>Initialize self.  See help(type(self)) for accurate signature.</td></tr><tr><td><span 
+class='library-name'>markdown.</span><span style='color: #dcdcaa;'>Rule.</span><span style='color: 
+#c586c0;'>__repr__</span></td><td>Return repr(self).</td></tr><tr><td><span class='library-name'>markdown.</span><span style='color: 
+#dcdcaa;'>Rule.</span><span style='color: #c586c0;'>__rich_console__</span></td><td>No description</td></tr><tr><td><span 
+class='library-name'>markdown.</span><span style='color: #dcdcaa;'>Rule.</span><span style='color: 
+#c586c0;'>__rich_measure__</span></td><td>No description</td></tr><tr><td><span class='library-name'>markdown.</span><span style='color: 
+#dcdcaa;'>Rule.</span><span style='color: #c586c0;'>_repr_mimebundle_</span></td><td>No description</td></tr><tr><td><span 
+class='library-name'>markdown.</span><span style='color: #dcdcaa;'>Rule.</span><span style='color: #c586c0;'>_rule_line</span></td><td>No
+description</td></tr></table></div>
+                </div>
+                
+                <div class="panel class indent-1">
+                    <h3>Class: <span class='library-name'>markdown.</span><span style='color: #dcdcaa;'>Segment</span></h3>
+                    <div class="panel">A piece of text with associated style. Segments are produced by the Console render process and
+are ultimately converted in to strings to be written to the terminal.
+
+Args:
+    text (str): A piece of text.
+    style (:class:`~rich.style.Style`, optional): An optional style to apply to the text.
+    control (Tuple[ControlCode], optional): Optional sequence of control codes.
+
+Attributes:
+    cell_length (int): The cell length of this Segment.</div>
+                    
+        <div class="panel method indent-3">
+            <h4 >Methods:</h4>
+            <table class="table">
+                <tr><th>Method</th><th>Description</th></tr>
+        <tr><td><span class='library-name'>markdown.</span><span style='color: #dcdcaa;'>Segment.</span><span style='color: 
+#c586c0;'>__bool__</span></td><td>Check if the segment contains text.</td></tr><tr><td><span class='library-name'>markdown.</span><span 
+style='color: #dcdcaa;'>Segment.</span><span style='color: #c586c0;'>__getnewargs__</span></td><td>Return self as a plain tuple.  Used by
+copy and pickle.</td></tr><tr><td><span class='library-name'>markdown.</span><span style='color: #dcdcaa;'>Segment.</span><span 
+style='color: #c586c0;'>__new__</span></td><td>Create new instance of Segment(text, style, control)</td></tr><tr><td><span 
+class='library-name'>markdown.</span><span style='color: #dcdcaa;'>Segment.</span><span style='color: 
+#c586c0;'>__repr__</span></td><td>Return repr(self)</td></tr><tr><td><span class='library-name'>markdown.</span><span style='color: 
+#dcdcaa;'>Segment.</span><span style='color: #c586c0;'>__rich_repr__</span></td><td>No description</td></tr><tr><td><span 
+class='library-name'>markdown.</span><span style='color: #dcdcaa;'>Segment.</span><span style='color: 
+#c586c0;'>_asdict</span></td><td>Return a new dict which maps field names to their values.</td></tr><tr><td><span 
+class='library-name'>markdown.</span><span style='color: #dcdcaa;'>Segment.</span><span style='color: 
+#c586c0;'>_replace</span></td><td>Return a new Segment object replacing specified fields with new values</td></tr><tr><td><span 
+class='library-name'>markdown.</span><span style='color: #dcdcaa;'>Segment.</span><span style='color: 
+#c586c0;'>split_cells</span></td><td>Split segment in to two segments at the specified column.
+
+If the cut point falls in the middle of a 2-cell wide character then it is replaced
+by two spaces, to preserve the display width of the parent segment.
+
+Args:
+    cut (int): Offset within the segment to cut.
+
+Returns:
+    Tuple[Segment, Segment]: Two segments.</td></tr></table></div>
+                </div>
+                
+                <div class="panel class indent-1">
+                    <h3>Class: <span class='library-name'>markdown.</span><span style='color: #dcdcaa;'>Stack</span></h3>
+                    <div class="panel">A small shim over builtin list.</div>
+                    
+        <div class="panel method indent-3">
+            <h4 >Methods:</h4>
+            <table class="table">
+                <tr><th>Method</th><th>Description</th></tr>
+        <tr><td><span class='library-name'>markdown.</span><span style='color: #dcdcaa;'>Stack.</span><span style='color: 
+#c586c0;'>push</span></td><td>Push an item on to the stack (append in stack nomenclature).</td></tr></table></div>
+                </div>
+                
+                <div class="panel class indent-1">
+                    <h3>Class: <span class='library-name'>markdown.</span><span style='color: #dcdcaa;'>Style</span></h3>
+                    <div class="panel">A terminal style.
+
+A terminal style consists of a color (`color`), a background color (`bgcolor`), and a number of attributes, such
+as bold, italic etc. The attributes have 3 states: they can either be on
+(``True``), off (``False``), or not set (``None``).
+
+Args:
+    color (Union[Color, str], optional): Color of terminal text. Defaults to None.
+    bgcolor (Union[Color, str], optional): Color of terminal background. Defaults to None.
+    bold (bool, optional): Enable bold text. Defaults to None.
+    dim (bool, optional): Enable dim text. Defaults to None.
+    italic (bool, optional): Enable italic text. Defaults to None.
+    underline (bool, optional): Enable underlined text. Defaults to None.
+    blink (bool, optional): Enabled blinking text. Defaults to None.
+    blink2 (bool, optional): Enable fast blinking text. Defaults to None.
+    reverse (bool, optional): Enabled reverse text. Defaults to None.
+    conceal (bool, optional): Enable concealed text. Defaults to None.
+    strike (bool, optional): Enable strikethrough text. Defaults to None.
+    underline2 (bool, optional): Enable doubly underlined text. Defaults to None.
+    frame (bool, optional): Enable framed text. Defaults to None.
+    encircle (bool, optional): Enable encircled text. Defaults to None.
+    overline (bool, optional): Enable overlined text. Defaults to None.
+    link (str, link): Link URL. Defaults to None.</div>
+                    
+        <div class="panel method indent-3">
+            <h4 >Methods:</h4>
+            <table class="table">
+                <tr><th>Method</th><th>Description</th></tr>
+        <tr><td><span class='library-name'>markdown.</span><span style='color: #dcdcaa;'>Style.</span><span style='color: 
+#c586c0;'>__add__</span></td><td>No description</td></tr><tr><td><span class='library-name'>markdown.</span><span style='color: 
+#dcdcaa;'>Style.</span><span style='color: #c586c0;'>__bool__</span></td><td>A Style is false if it has no attributes, colors, or 
+links.</td></tr><tr><td><span class='library-name'>markdown.</span><span style='color: #dcdcaa;'>Style.</span><span style='color: 
+#c586c0;'>__eq__</span></td><td>Return self==value.</td></tr><tr><td><span class='library-name'>markdown.</span><span style='color: 
+#dcdcaa;'>Style.</span><span style='color: #c586c0;'>__hash__</span></td><td>Return hash(self).</td></tr><tr><td><span 
+class='library-name'>markdown.</span><span style='color: #dcdcaa;'>Style.</span><span style='color: 
+#c586c0;'>__init__</span></td><td>Initialize self.  See help(type(self)) for accurate signature.</td></tr><tr><td><span 
+class='library-name'>markdown.</span><span style='color: #dcdcaa;'>Style.</span><span style='color: 
+#c586c0;'>__ne__</span></td><td>Return self!=value.</td></tr><tr><td><span class='library-name'>markdown.</span><span style='color: 
+#dcdcaa;'>Style.</span><span style='color: #c586c0;'>__repr__</span></td><td>Return repr(self)</td></tr><tr><td><span 
+class='library-name'>markdown.</span><span style='color: #dcdcaa;'>Style.</span><span style='color: 
+#c586c0;'>__rich_repr__</span></td><td>No description</td></tr><tr><td><span class='library-name'>markdown.</span><span style='color: 
+#dcdcaa;'>Style.</span><span style='color: #c586c0;'>__str__</span></td><td>Re-generate style definition from 
+attributes.</td></tr><tr><td><span class='library-name'>markdown.</span><span style='color: #dcdcaa;'>Style.</span><span style='color: 
+#c586c0;'>_make_ansi_codes</span></td><td>Generate ANSI codes for this style.
+
+Args:
+    color_system (ColorSystem): Color system.
+
+Returns:
+    str: String containing codes.</td></tr><tr><td><span class='library-name'>markdown.</span><span style='color: 
+#dcdcaa;'>Style.</span><span style='color: #c586c0;'>copy</span></td><td>Get a copy of this style.
+
+Returns:
+    Style: A new Style instance with identical attributes.</td></tr><tr><td><span class='library-name'>markdown.</span><span 
+style='color: #dcdcaa;'>Style.</span><span style='color: #c586c0;'>render</span></td><td>Render the ANSI codes for the style.
+
+Args:
+    text (str, optional): A string to style. Defaults to &quot;&quot;.
+    color_system (Optional[ColorSystem], optional): Color system to render to. Defaults to ColorSystem.TRUECOLOR.
+
+Returns:
+    str: A string containing ANSI style codes.</td></tr><tr><td><span class='library-name'>markdown.</span><span style='color: 
+#dcdcaa;'>Style.</span><span style='color: #c586c0;'>test</span></td><td>Write text with style directly to terminal.
+
+This method is for testing purposes only.
+
+Args:
+    text (Optional, optional): Text to style or None for style name.</td></tr><tr><td><span class='library-name'>markdown.</span><span 
+style='color: #dcdcaa;'>Style.</span><span style='color: #c586c0;'>update_link</span></td><td>Get a copy with a different value for link.
+
+Args:
+    link (str, optional): New value for link. Defaults to None.
+
+Returns:
+    Style: A new Style instance.</td></tr></table></div>
+                </div>
+                
+                <div class="panel class indent-1">
+                    <h3>Class: <span class='library-name'>markdown.</span><span style='color: #dcdcaa;'>StyleStack</span></h3>
+                    <div class="panel">A stack of styles.</div>
+                    
+        <div class="panel method indent-3">
+            <h4 >Methods:</h4>
+            <table class="table">
+                <tr><th>Method</th><th>Description</th></tr>
+        <tr><td><span class='library-name'>markdown.</span><span style='color: #dcdcaa;'>StyleStack.</span><span style='color: 
+#c586c0;'>__init__</span></td><td>Initialize self.  See help(type(self)) for accurate signature.</td></tr><tr><td><span 
+class='library-name'>markdown.</span><span style='color: #dcdcaa;'>StyleStack.</span><span style='color: 
+#c586c0;'>__repr__</span></td><td>Return repr(self).</td></tr><tr><td><span class='library-name'>markdown.</span><span style='color: 
+#dcdcaa;'>StyleStack.</span><span style='color: #c586c0;'>pop</span></td><td>Pop last style and discard.
+
+Returns:
+    Style: New current style (also available as stack.current)</td></tr><tr><td><span class='library-name'>markdown.</span><span 
+style='color: #dcdcaa;'>StyleStack.</span><span style='color: #c586c0;'>push</span></td><td>Push a new style on to the stack.
+
+Args:
+    style (Style): New style to combine with current style.</td></tr></table></div>
+                </div>
+                
+                <div class="panel class indent-1">
+                    <h3>Class: <span class='library-name'>markdown.</span><span style='color: #dcdcaa;'>Syntax</span></h3>
+                    <div class="panel">Construct a Syntax object to render syntax highlighted code.
+
+Args:
+    code (str): Code to highlight.
+    lexer (Lexer | str): Lexer to use (see https://pygments.org/docs/lexers/)
+    theme (str, optional): Color theme, aka Pygments style (see https://pygments.org/docs/styles/#getting-a-list-of-available-styles). 
+Defaults to &quot;monokai&quot;.
+    dedent (bool, optional): Enable stripping of initial whitespace. Defaults to False.
+    line_numbers (bool, optional): Enable rendering of line numbers. Defaults to False.
+    start_line (int, optional): Starting number for line numbers. Defaults to 1.
+    line_range (Tuple, optional): If given should be a tuple of the start and end line to render.
+        A value of None in the tuple indicates the range is open in that direction.
+    highlight_lines (Set): A set of line numbers to highlight.
+    code_width: Width of code to render (not including line numbers), or ``None`` to use all available width.
+    tab_size (int, optional): Size of tabs. Defaults to 4.
+    word_wrap (bool, optional): Enable word wrapping.
+    background_color (str, optional): Optional background color, or None to use theme color. Defaults to None.
+    indent_guides (bool, optional): Show indent guides. Defaults to False.
+    padding (PaddingDimensions): Padding to apply around the syntax. Defaults to 0 (no padding).</div>
+                    
+        <div class="panel method indent-3">
+            <h4 >Methods:</h4>
+            <table class="table">
+                <tr><th>Method</th><th>Description</th></tr>
+        <tr><td><span class='library-name'>markdown.</span><span style='color: #dcdcaa;'>Syntax.</span><span style='color: 
+#c586c0;'>__init__</span></td><td>Initialize self.  See help(type(self)) for accurate signature.</td></tr><tr><td><span 
+class='library-name'>markdown.</span><span style='color: #dcdcaa;'>Syntax.</span><span style='color: 
+#c586c0;'>__rich_console__</span></td><td>No description</td></tr><tr><td><span class='library-name'>markdown.</span><span style='color: 
+#dcdcaa;'>Syntax.</span><span style='color: #c586c0;'>__rich_measure__</span></td><td>No description</td></tr><tr><td><span 
+class='library-name'>markdown.</span><span style='color: #dcdcaa;'>Syntax.</span><span style='color: 
+#c586c0;'>_apply_stylized_ranges</span></td><td>Apply stylized ranges to a text instance,
+using the given code to determine the right portion to apply the style to.
+
+Args:
+    text (Text): Text instance to apply the style to.</td></tr><tr><td><span class='library-name'>markdown.</span><span style='color: 
+#dcdcaa;'>Syntax.</span><span style='color: #c586c0;'>_get_base_style</span></td><td>Get the base style.</td></tr><tr><td><span 
+class='library-name'>markdown.</span><span style='color: #dcdcaa;'>Syntax.</span><span style='color: 
+#c586c0;'>_get_line_numbers_color</span></td><td>No description</td></tr><tr><td><span class='library-name'>markdown.</span><span 
+style='color: #dcdcaa;'>Syntax.</span><span style='color: #c586c0;'>_get_number_styles</span></td><td>Get background, number, and 
+highlight styles for line numbers.</td></tr><tr><td><span class='library-name'>markdown.</span><span style='color: 
+#dcdcaa;'>Syntax.</span><span style='color: #c586c0;'>_get_syntax</span></td><td>Get the Segments for the Syntax object, excluding any 
+vertical/horizontal padding</td></tr><tr><td><span class='library-name'>markdown.</span><span style='color: #dcdcaa;'>Syntax.</span><span
+style='color: #c586c0;'>_get_token_color</span></td><td>Get a color (if any) for the given token.
+
+Args:
+    token_type (TokenType): A token type tuple from Pygments.
+
+Returns:
+    Optional[Color]: Color from theme, or None for no color.</td></tr><tr><td><span class='library-name'>markdown.</span><span 
+style='color: #dcdcaa;'>Syntax.</span><span style='color: #c586c0;'>_process_code</span></td><td>Applies various processing to a raw code
+string
+(normalises it so it always ends with a line return, dedents it if necessary, etc.)
+
+Args:
+    code (str): The raw code string to process
+
+Returns:
+    Tuple: the boolean indicates whether the raw code ends with a line return,
+        while the string is the processed code.</td></tr><tr><td><span class='library-name'>markdown.</span><span style='color: 
+#dcdcaa;'>Syntax.</span><span style='color: #c586c0;'>_repr_mimebundle_</span></td><td>No description</td></tr><tr><td><span 
+class='library-name'>markdown.</span><span style='color: #dcdcaa;'>Syntax.</span><span style='color: 
+#c586c0;'>highlight</span></td><td>Highlight code and return a Text instance.
+
+Args:
+    code (str): Code to highlight.
+    line_range(Tuple, optional): Optional line range to highlight.
+
+Returns:
+    Text: A text instance containing highlighted syntax.</td></tr><tr><td><span class='library-name'>markdown.</span><span style='color: 
+#dcdcaa;'>Syntax.</span><span style='color: #c586c0;'>stylize_range</span></td><td>Adds a custom style on a part of the code, that will 
+be applied to the syntax display when it&#x27;s rendered.
+Line numbers are 1-based, while column indexes are 0-based.
+
+Args:
+    style (StyleType): The style to apply.
+    start (Tuple): The start of the range, in the form ``.
+    end (Tuple): The end of the range, in the form ``.
+    style_before (bool): Apply the style before any existing styles.</td></tr></table></div>
+                </div>
+                
+                <div class="panel class indent-1">
+                    <h3>Class: <span class='library-name'>markdown.</span><span style='color: #dcdcaa;'>Table</span></h3>
+                    <div class="panel">A console renderable to draw a table.
+
+Args:
+    *headers (Union[Column, str]): Column headers, either as a string, or :class:`~rich.table.Column` instance.
+    title (Union, optional): The title of the table rendered at the top. Defaults to None.
+    caption (Union, optional): The table caption rendered below. Defaults to None.
+    width (int, optional): The width in characters of the table, or ``None`` to automatically fit. Defaults to None.
+    min_width (Optional, optional): The minimum width of the table, or ``None`` for no minimum. Defaults to None.
+    box (box.Box, optional): One of the constants in box.py used to draw the edges (see :ref:`appendix_box`), or ``None`` for no box 
+lines. Defaults to box.HEAVY_HEAD.
+    safe_box (Optional, optional): Disable box characters that don&#x27;t display on windows legacy terminal with *raster* fonts. 
+Defaults to True.
+    padding (PaddingDimensions, optional): Padding for cells (top, right, bottom, left). Defaults to (0, 1).
+    collapse_padding (bool, optional): Enable collapsing of padding around cells. Defaults to False.
+    pad_edge (bool, optional): Enable padding of edge cells. Defaults to True.
+    expand (bool, optional): Expand the table to fit the available space if ``True``, otherwise the table width will be auto-calculated. 
+Defaults to False.
+    show_header (bool, optional): Show a header row. Defaults to True.
+    show_footer (bool, optional): Show a footer row. Defaults to False.
+    show_edge (bool, optional): Draw a box around the outside of the table. Defaults to True.
+    show_lines (bool, optional): Draw lines between every row. Defaults to False.
+    leading (int, optional): Number of blank lines between rows (precludes ``show_lines``). Defaults to 0.
+    style (Union, optional): Default style for the table. Defaults to &quot;none&quot;.
+    row_styles (List[Union, str], optional): Optional list of row styles, if more than one style is given then the styles will alternate.
+Defaults to None.
+    header_style (Union, optional): Style of the header. Defaults to &quot;table.header&quot;.
+    footer_style (Union, optional): Style of the footer. Defaults to &quot;table.footer&quot;.
+    border_style (Union, optional): Style of the border. Defaults to None.
+    title_style (Union, optional): Style of the title. Defaults to None.
+    caption_style (Union, optional): Style of the caption. Defaults to None.
+    title_justify (str, optional): Justify method for title. Defaults to &quot;center&quot;.
+    caption_justify (str, optional): Justify method for caption. Defaults to &quot;center&quot;.
+    highlight (bool, optional): Highlight cell contents (if str). Defaults to False.</div>
+                    
+        <div class="panel method indent-3">
+            <h4 >Methods:</h4>
+            <table class="table">
+                <tr><th>Method</th><th>Description</th></tr>
+        <tr><td><span class='library-name'>markdown.</span><span style='color: #dcdcaa;'>Table.</span><span style='color: 
+#c586c0;'>__init__</span></td><td>Initialize self.  See help(type(self)) for accurate signature.</td></tr><tr><td><span 
+class='library-name'>markdown.</span><span style='color: #dcdcaa;'>Table.</span><span style='color: 
+#c586c0;'>__rich_console__</span></td><td>No description</td></tr><tr><td><span class='library-name'>markdown.</span><span style='color: 
+#dcdcaa;'>Table.</span><span style='color: #c586c0;'>__rich_measure__</span></td><td>No description</td></tr><tr><td><span 
+class='library-name'>markdown.</span><span style='color: #dcdcaa;'>Table.</span><span style='color: 
+#c586c0;'>_calculate_column_widths</span></td><td>Calculate the widths of each column, including padding, not including 
+borders.</td></tr><tr><td><span class='library-name'>markdown.</span><span style='color: #dcdcaa;'>Table.</span><span style='color: 
+#c586c0;'>_get_cells</span></td><td>Get all the cells with padding and optional header.</td></tr><tr><td><span 
+class='library-name'>markdown.</span><span style='color: #dcdcaa;'>Table.</span><span style='color: 
+#c586c0;'>_get_padding_width</span></td><td>Get extra width from padding.</td></tr><tr><td><span 
+class='library-name'>markdown.</span><span style='color: #dcdcaa;'>Table.</span><span style='color: 
+#c586c0;'>_measure_column</span></td><td>Get the minimum and maximum width of the column.</td></tr><tr><td><span 
+class='library-name'>markdown.</span><span style='color: #dcdcaa;'>Table.</span><span style='color: #c586c0;'>_render</span></td><td>No 
+description</td></tr><tr><td><span class='library-name'>markdown.</span><span style='color: #dcdcaa;'>Table.</span><span style='color: 
+#c586c0;'>_repr_mimebundle_</span></td><td>No description</td></tr><tr><td><span class='library-name'>markdown.</span><span style='color:
+#dcdcaa;'>Table.</span><span style='color: #c586c0;'>add_column</span></td><td>Add a column to the table.
+
+Args:
+    header (RenderableType, optional): Text or renderable for the header.
+        Defaults to &quot;&quot;.
+    footer (RenderableType, optional): Text or renderable for the footer.
+        Defaults to &quot;&quot;.
+    header_style (Union, optional): Style for the header, or None for default. Defaults to None.
+    highlight (bool, optional): Whether to highlight the text. The default of None uses the value of the table (self) object.
+    footer_style (Union, optional): Style for the footer, or None for default. Defaults to None.
+    style (Union, optional): Style for the column cells, or None for default. Defaults to None.
+    justify (JustifyMethod, optional): Alignment for cells. Defaults to &quot;left&quot;.
+    vertical (VerticalAlignMethod, optional): Vertical alignment, one of &quot;top&quot;, &quot;middle&quot;, or &quot;bottom&quot;. 
+Defaults to &quot;top&quot;.
+    overflow (OverflowMethod): Overflow method: &quot;crop&quot;, &quot;fold&quot;, &quot;ellipsis&quot;. Defaults to 
+&quot;ellipsis&quot;.
+    width (int, optional): Desired width of column in characters, or None to fit to contents. Defaults to None.
+    min_width (Optional, optional): Minimum width of column, or ``None`` for no minimum. Defaults to None.
+    max_width (Optional, optional): Maximum width of column, or ``None`` for no maximum. Defaults to None.
+    ratio (int, optional): Flexible ratio for the column (requires ``Table.expand`` or ``Table.width``). Defaults to None.
+    no_wrap (bool, optional): Set to ``True`` to disable wrapping of this column.</td></tr><tr><td><span 
+class='library-name'>markdown.</span><span style='color: #dcdcaa;'>Table.</span><span style='color: #c586c0;'>add_row</span></td><td>Add 
+a row of renderables.
+
+Args:
+    *renderables (None or renderable): Each cell in a row must be a renderable object (including str),
+        or ``None`` for a blank cell.
+    style (StyleType, optional): An optional style to apply to the entire row. Defaults to None.
+    end_section (bool, optional): End a section and draw a line. Defaults to False.
+
+Raises:
+    errors.NotRenderableError: If you add something that can&#x27;t be rendered.</td></tr><tr><td><span 
+class='library-name'>markdown.</span><span style='color: #dcdcaa;'>Table.</span><span style='color: 
+#c586c0;'>add_section</span></td><td>Add a new section (draw a line after current row).</td></tr><tr><td><span 
+class='library-name'>markdown.</span><span style='color: #dcdcaa;'>Table.</span><span style='color: 
+#c586c0;'>get_row_style</span></td><td>Get the current row style.</td></tr></table></div>
+                </div>
+                
+                <div class="panel class indent-1">
+                    <h3>Class: <span class='library-name'>markdown.</span><span style='color: #dcdcaa;'>TableBodyElement</span></h3>
+                    <div class="panel">MarkdownElement corresponding to `tbody_open` and `tbody_close`.</div>
+                    
+        <div class="panel method indent-3">
+            <h4 >Methods:</h4>
+            <table class="table">
+                <tr><th>Method</th><th>Description</th></tr>
+        <tr><td><span class='library-name'>markdown.</span><span style='color: #dcdcaa;'>TableBodyElement.</span><span style='color: 
+#c586c0;'>__init__</span></td><td>Initialize self.  See help(type(self)) for accurate signature.</td></tr><tr><td><span 
+class='library-name'>markdown.</span><span style='color: #dcdcaa;'>TableBodyElement.</span><span style='color: 
+#c586c0;'>__rich_console__</span></td><td>No description</td></tr><tr><td><span class='library-name'>markdown.</span><span style='color: 
+#dcdcaa;'>TableBodyElement.</span><span style='color: #c586c0;'>on_child_close</span></td><td>Called when a child element is closed.
+
+This method allows a parent element to take over rendering of its children.
+
+Args:
+    context (MarkdownContext): The markdown context.
+    child (MarkdownElement): The child markdown element.
+
+Returns:
+    bool: Return True to render the element, or False to not render the element.</td></tr><tr><td><span 
+class='library-name'>markdown.</span><span style='color: #dcdcaa;'>TableBodyElement.</span><span style='color: 
+#c586c0;'>on_enter</span></td><td>Called when the node is entered.
+
+Args:
+    context (MarkdownContext): The markdown context.</td></tr><tr><td><span class='library-name'>markdown.</span><span style='color: 
+#dcdcaa;'>TableBodyElement.</span><span style='color: #c586c0;'>on_leave</span></td><td>Called when the parser leaves the element.
+
+Args:
+    context (MarkdownContext): </td></tr><tr><td><span class='library-name'>markdown.</span><span style='color: 
+#dcdcaa;'>TableBodyElement.</span><span style='color: #c586c0;'>on_text</span></td><td>Called when text is parsed.
+
+Args:
+    context (MarkdownContext): The markdown context.</td></tr></table></div>
+                </div>
+                
+                <div class="panel class indent-1">
+                    <h3>Class: <span class='library-name'>markdown.</span><span style='color: #dcdcaa;'>TableDataElement</span></h3>
+                    <div class="panel">MarkdownElement corresponding to `td_open` and `td_close`
+and `th_open` and `th_close`.</div>
+                    
+        <div class="panel method indent-3">
+            <h4 >Methods:</h4>
+            <table class="table">
+                <tr><th>Method</th><th>Description</th></tr>
+        <tr><td><span class='library-name'>markdown.</span><span style='color: #dcdcaa;'>TableDataElement.</span><span style='color: 
+#c586c0;'>__init__</span></td><td>Initialize self.  See help(type(self)) for accurate signature.</td></tr><tr><td><span 
+class='library-name'>markdown.</span><span style='color: #dcdcaa;'>TableDataElement.</span><span style='color: 
+#c586c0;'>__rich_console__</span></td><td>No description</td></tr><tr><td><span class='library-name'>markdown.</span><span style='color: 
+#dcdcaa;'>TableDataElement.</span><span style='color: #c586c0;'>on_child_close</span></td><td>Called when a child element is closed.
+
+This method allows a parent element to take over rendering of its children.
+
+Args:
+    context (MarkdownContext): The markdown context.
+    child (MarkdownElement): The child markdown element.
+
+Returns:
+    bool: Return True to render the element, or False to not render the element.</td></tr><tr><td><span 
+class='library-name'>markdown.</span><span style='color: #dcdcaa;'>TableDataElement.</span><span style='color: 
+#c586c0;'>on_enter</span></td><td>Called when the node is entered.
+
+Args:
+    context (MarkdownContext): The markdown context.</td></tr><tr><td><span class='library-name'>markdown.</span><span style='color: 
+#dcdcaa;'>TableDataElement.</span><span style='color: #c586c0;'>on_leave</span></td><td>Called when the parser leaves the element.
+
+Args:
+    context (MarkdownContext): </td></tr><tr><td><span class='library-name'>markdown.</span><span style='color: 
+#dcdcaa;'>TableDataElement.</span><span style='color: #c586c0;'>on_text</span></td><td>Called when text is parsed.
+
+Args:
+    context (MarkdownContext): The markdown context.</td></tr></table></div>
+                </div>
+                
+                <div class="panel class indent-1">
+                    <h3>Class: <span class='library-name'>markdown.</span><span style='color: #dcdcaa;'>TableElement</span></h3>
+                    <div class="panel">MarkdownElement corresponding to `table_open`.</div>
+                    
+        <div class="panel method indent-3">
+            <h4 >Methods:</h4>
+            <table class="table">
+                <tr><th>Method</th><th>Description</th></tr>
+        <tr><td><span class='library-name'>markdown.</span><span style='color: #dcdcaa;'>TableElement.</span><span style='color: 
+#c586c0;'>__init__</span></td><td>Initialize self.  See help(type(self)) for accurate signature.</td></tr><tr><td><span 
+class='library-name'>markdown.</span><span style='color: #dcdcaa;'>TableElement.</span><span style='color: 
+#c586c0;'>__rich_console__</span></td><td>No description</td></tr><tr><td><span class='library-name'>markdown.</span><span style='color: 
+#dcdcaa;'>TableElement.</span><span style='color: #c586c0;'>on_child_close</span></td><td>Called when a child element is closed.
+
+This method allows a parent element to take over rendering of its children.
+
+Args:
+    context (MarkdownContext): The markdown context.
+    child (MarkdownElement): The child markdown element.
+
+Returns:
+    bool: Return True to render the element, or False to not render the element.</td></tr><tr><td><span 
+class='library-name'>markdown.</span><span style='color: #dcdcaa;'>TableElement.</span><span style='color: 
+#c586c0;'>on_enter</span></td><td>Called when the node is entered.
+
+Args:
+    context (MarkdownContext): The markdown context.</td></tr><tr><td><span class='library-name'>markdown.</span><span style='color: 
+#dcdcaa;'>TableElement.</span><span style='color: #c586c0;'>on_leave</span></td><td>Called when the parser leaves the element.
+
+Args:
+    context (MarkdownContext): </td></tr><tr><td><span class='library-name'>markdown.</span><span style='color: 
+#dcdcaa;'>TableElement.</span><span style='color: #c586c0;'>on_text</span></td><td>Called when text is parsed.
+
+Args:
+    context (MarkdownContext): The markdown context.</td></tr></table></div>
+                </div>
+                
+                <div class="panel class indent-1">
+                    <h3>Class: <span class='library-name'>markdown.</span><span style='color: #dcdcaa;'>TableHeaderElement</span></h3>
+                    <div class="panel">MarkdownElement corresponding to `thead_open` and `thead_close`.</div>
+                    
+        <div class="panel method indent-3">
+            <h4 >Methods:</h4>
+            <table class="table">
+                <tr><th>Method</th><th>Description</th></tr>
+        <tr><td><span class='library-name'>markdown.</span><span style='color: #dcdcaa;'>TableHeaderElement.</span><span style='color: 
+#c586c0;'>__init__</span></td><td>Initialize self.  See help(type(self)) for accurate signature.</td></tr><tr><td><span 
+class='library-name'>markdown.</span><span style='color: #dcdcaa;'>TableHeaderElement.</span><span style='color: 
+#c586c0;'>__rich_console__</span></td><td>No description</td></tr><tr><td><span class='library-name'>markdown.</span><span style='color: 
+#dcdcaa;'>TableHeaderElement.</span><span style='color: #c586c0;'>on_child_close</span></td><td>Called when a child element is closed.
+
+This method allows a parent element to take over rendering of its children.
+
+Args:
+    context (MarkdownContext): The markdown context.
+    child (MarkdownElement): The child markdown element.
+
+Returns:
+    bool: Return True to render the element, or False to not render the element.</td></tr><tr><td><span 
+class='library-name'>markdown.</span><span style='color: #dcdcaa;'>TableHeaderElement.</span><span style='color: 
+#c586c0;'>on_enter</span></td><td>Called when the node is entered.
+
+Args:
+    context (MarkdownContext): The markdown context.</td></tr><tr><td><span class='library-name'>markdown.</span><span style='color: 
+#dcdcaa;'>TableHeaderElement.</span><span style='color: #c586c0;'>on_leave</span></td><td>Called when the parser leaves the element.
+
+Args:
+    context (MarkdownContext): </td></tr><tr><td><span class='library-name'>markdown.</span><span style='color: 
+#dcdcaa;'>TableHeaderElement.</span><span style='color: #c586c0;'>on_text</span></td><td>Called when text is parsed.
+
+Args:
+    context (MarkdownContext): The markdown context.</td></tr></table></div>
+                </div>
+                
+                <div class="panel class indent-1">
+                    <h3>Class: <span class='library-name'>markdown.</span><span style='color: #dcdcaa;'>TableRowElement</span></h3>
+                    <div class="panel">MarkdownElement corresponding to `tr_open` and `tr_close`.</div>
+                    
+        <div class="panel method indent-3">
+            <h4 >Methods:</h4>
+            <table class="table">
+                <tr><th>Method</th><th>Description</th></tr>
+        <tr><td><span class='library-name'>markdown.</span><span style='color: #dcdcaa;'>TableRowElement.</span><span style='color: 
+#c586c0;'>__init__</span></td><td>Initialize self.  See help(type(self)) for accurate signature.</td></tr><tr><td><span 
+class='library-name'>markdown.</span><span style='color: #dcdcaa;'>TableRowElement.</span><span style='color: 
+#c586c0;'>__rich_console__</span></td><td>No description</td></tr><tr><td><span class='library-name'>markdown.</span><span style='color: 
+#dcdcaa;'>TableRowElement.</span><span style='color: #c586c0;'>on_child_close</span></td><td>Called when a child element is closed.
+
+This method allows a parent element to take over rendering of its children.
+
+Args:
+    context (MarkdownContext): The markdown context.
+    child (MarkdownElement): The child markdown element.
+
+Returns:
+    bool: Return True to render the element, or False to not render the element.</td></tr><tr><td><span 
+class='library-name'>markdown.</span><span style='color: #dcdcaa;'>TableRowElement.</span><span style='color: 
+#c586c0;'>on_enter</span></td><td>Called when the node is entered.
+
+Args:
+    context (MarkdownContext): The markdown context.</td></tr><tr><td><span class='library-name'>markdown.</span><span style='color: 
+#dcdcaa;'>TableRowElement.</span><span style='color: #c586c0;'>on_leave</span></td><td>Called when the parser leaves the element.
+
+Args:
+    context (MarkdownContext): </td></tr><tr><td><span class='library-name'>markdown.</span><span style='color: 
+#dcdcaa;'>TableRowElement.</span><span style='color: #c586c0;'>on_text</span></td><td>Called when text is parsed.
+
+Args:
+    context (MarkdownContext): The markdown context.</td></tr></table></div>
+                </div>
+                
+                <div class="panel class indent-1">
+                    <h3>Class: <span class='library-name'>markdown.</span><span style='color: #dcdcaa;'>Text</span></h3>
+                    <div class="panel">Text with color / style.
+
+Args:
+    text (str, optional): Default unstyled text. Defaults to &quot;&quot;.
+    style (Union, optional): Base style for text. Defaults to &quot;&quot;.
+    justify (str, optional): Justify method: &quot;left&quot;, &quot;center&quot;, &quot;full&quot;, &quot;right&quot;. Defaults to None.
+    overflow (str, optional): Overflow method: &quot;crop&quot;, &quot;fold&quot;, &quot;ellipsis&quot;. Defaults to None.
+    no_wrap (bool, optional): Disable text wrapping, or None for default. Defaults to None.
+    end (str, optional): Character to end text with. Defaults to &quot;\\n&quot;.
+    tab_size (int): Number of spaces per tab, or ``None`` to use ``console.tab_size``. Defaults to None.
+    spans (List[Span], optional). A list of predefined style spans. Defaults to None.</div>
+                    
+        <div class="panel method indent-3">
+            <h4 >Methods:</h4>
+            <table class="table">
+                <tr><th>Method</th><th>Description</th></tr>
+        <tr><td><span class='library-name'>markdown.</span><span style='color: #dcdcaa;'>Text.</span><span style='color: 
+#c586c0;'>__add__</span></td><td>No description</td></tr><tr><td><span class='library-name'>markdown.</span><span style='color: 
+#dcdcaa;'>Text.</span><span style='color: #c586c0;'>__bool__</span></td><td>No description</td></tr><tr><td><span 
+class='library-name'>markdown.</span><span style='color: #dcdcaa;'>Text.</span><span style='color: 
+#c586c0;'>__contains__</span></td><td>No description</td></tr><tr><td><span class='library-name'>markdown.</span><span style='color: 
+#dcdcaa;'>Text.</span><span style='color: #c586c0;'>__eq__</span></td><td>Return self==value.</td></tr><tr><td><span 
+class='library-name'>markdown.</span><span style='color: #dcdcaa;'>Text.</span><span style='color: 
+#c586c0;'>__getitem__</span></td><td>No description</td></tr><tr><td><span class='library-name'>markdown.</span><span style='color: 
+#dcdcaa;'>Text.</span><span style='color: #c586c0;'>__init__</span></td><td>Initialize self.  See help(type(self)) for accurate 
+signature.</td></tr><tr><td><span class='library-name'>markdown.</span><span style='color: #dcdcaa;'>Text.</span><span style='color: 
+#c586c0;'>__len__</span></td><td>No description</td></tr><tr><td><span class='library-name'>markdown.</span><span style='color: 
+#dcdcaa;'>Text.</span><span style='color: #c586c0;'>__repr__</span></td><td>Return repr(self).</td></tr><tr><td><span 
+class='library-name'>markdown.</span><span style='color: #dcdcaa;'>Text.</span><span style='color: 
+#c586c0;'>__rich_console__</span></td><td>No description</td></tr><tr><td><span class='library-name'>markdown.</span><span style='color: 
+#dcdcaa;'>Text.</span><span style='color: #c586c0;'>__rich_measure__</span></td><td>No description</td></tr><tr><td><span 
+class='library-name'>markdown.</span><span style='color: #dcdcaa;'>Text.</span><span style='color: 
+#c586c0;'>__str__</span></td><td>Return str(self).</td></tr><tr><td><span class='library-name'>markdown.</span><span style='color: 
+#dcdcaa;'>Text.</span><span style='color: #c586c0;'>_repr_mimebundle_</span></td><td>No description</td></tr><tr><td><span 
+class='library-name'>markdown.</span><span style='color: #dcdcaa;'>Text.</span><span style='color: 
+#c586c0;'>_trim_spans</span></td><td>Remove or modify any spans that are over the end of the text.</td></tr><tr><td><span 
+class='library-name'>markdown.</span><span style='color: #dcdcaa;'>Text.</span><span style='color: #c586c0;'>align</span></td><td>Align 
+text to a given width.
+
+Args:
+    align (AlignMethod): One of &quot;left&quot;, &quot;center&quot;, or &quot;right&quot;.
+    width (int): Desired width.
+    character (str, optional): Character to pad with. Defaults to &quot; &quot;.</td></tr><tr><td><span 
+class='library-name'>markdown.</span><span style='color: #dcdcaa;'>Text.</span><span style='color: #c586c0;'>append</span></td><td>Add 
+text with an optional style.
+
+Args:
+    text (Union[Text, str]): A str or Text to append.
+    style (str, optional): A style name. Defaults to None.
+
+Returns:
+    Text: Returns self for chaining.</td></tr><tr><td><span class='library-name'>markdown.</span><span style='color: 
+#dcdcaa;'>Text.</span><span style='color: #c586c0;'>append_text</span></td><td>Append another Text instance. This method is more 
+performant that Text.append, but
+only works for Text.
+
+Args:
+    text (Text): The Text instance to append to this instance.
+
+Returns:
+    Text: Returns self for chaining.</td></tr><tr><td><span class='library-name'>markdown.</span><span style='color: 
+#dcdcaa;'>Text.</span><span style='color: #c586c0;'>append_tokens</span></td><td>Append iterable of str and style. Style may be a Style 
+instance or a str style definition.
+
+Args:
+    tokens (Iterable[Tuple[str, Optional[StyleType]]]): An iterable of tuples containing str content and style.
+
+Returns:
+    Text: Returns self for chaining.</td></tr><tr><td><span class='library-name'>markdown.</span><span style='color: 
+#dcdcaa;'>Text.</span><span style='color: #c586c0;'>apply_meta</span></td><td>Apply metadata to the text, or a portion of the text.
+
+Args:
+    meta (Dict): A dict of meta information.
+    start (int): Start offset (negative indexing is supported). Defaults to 0.
+    end (Optional, optional): End offset (negative indexing is supported), or None for end of text. Defaults to 
+None.</td></tr><tr><td><span class='library-name'>markdown.</span><span style='color: #dcdcaa;'>Text.</span><span style='color: 
+#c586c0;'>blank_copy</span></td><td>Return a new Text instance with copied metadata (but not the string or spans).</td></tr><tr><td><span
+class='library-name'>markdown.</span><span style='color: #dcdcaa;'>Text.</span><span style='color: #c586c0;'>copy</span></td><td>Return a
+copy of this instance.</td></tr><tr><td><span class='library-name'>markdown.</span><span style='color: #dcdcaa;'>Text.</span><span 
+style='color: #c586c0;'>copy_styles</span></td><td>Copy styles from another Text instance.
+
+Args:
+    text (Text): A Text instance to copy styles from, must be the same length.</td></tr><tr><td><span 
+class='library-name'>markdown.</span><span style='color: #dcdcaa;'>Text.</span><span style='color: 
+#c586c0;'>detect_indentation</span></td><td>Auto-detect indentation of code.
+
+Returns:
+    int: Number of spaces used to indent code.</td></tr><tr><td><span class='library-name'>markdown.</span><span style='color: 
+#dcdcaa;'>Text.</span><span style='color: #c586c0;'>divide</span></td><td>Divide text in to a number of lines at given offsets.
+
+Args:
+    offsets (Iterable): Offsets used to divide text.
+
+Returns:
+    Lines: New RichText instances between offsets.</td></tr><tr><td><span class='library-name'>markdown.</span><span style='color: 
+#dcdcaa;'>Text.</span><span style='color: #c586c0;'>expand_tabs</span></td><td>Converts tabs to spaces.
+
+Args:
+    tab_size (int, optional): Size of tabs. Defaults to 8.</td></tr><tr><td><span class='library-name'>markdown.</span><span 
+style='color: #dcdcaa;'>Text.</span><span style='color: #c586c0;'>extend_style</span></td><td>Extend the Text given number of spaces 
+where the spaces have the same style as the last character.
+
+Args:
+    spaces (int): Number of spaces to add to the Text.</td></tr><tr><td><span class='library-name'>markdown.</span><span style='color: 
+#dcdcaa;'>Text.</span><span style='color: #c586c0;'>fit</span></td><td>Fit the text in to given width by chopping in to lines.
+
+Args:
+    width (int): Maximum characters in a line.
+
+Returns:
+    Lines: Lines container.</td></tr><tr><td><span class='library-name'>markdown.</span><span style='color: #dcdcaa;'>Text.</span><span 
+style='color: #c586c0;'>get_style_at_offset</span></td><td>Get the style of a character at give offset.
+
+Args:
+    console (~Console): Console where text will be rendered.
+    offset (int): Offset in to text (negative indexing supported)
+
+Returns:
+    Style: A Style instance.</td></tr><tr><td><span class='library-name'>markdown.</span><span style='color: #dcdcaa;'>Text.</span><span 
+style='color: #c586c0;'>highlight_regex</span></td><td>Highlight text with a regular expression, where group names are
+translated to styles.
+
+Args:
+    re_highlight (Union): A regular expression object or string.
+    style (Union[GetStyleCallable, StyleType]): Optional style to apply to whole match, or a callable
+        which accepts the matched text and returns a style. Defaults to None.
+    style_prefix (str, optional): Optional prefix to add to style group names.
+
+Returns:
+    int: Number of regex matches</td></tr><tr><td><span class='library-name'>markdown.</span><span style='color: 
+#dcdcaa;'>Text.</span><span style='color: #c586c0;'>highlight_words</span></td><td>Highlight words with a style.
+
+Args:
+    words (Iterable): Words to highlight.
+    style (Union): Style to apply.
+    case_sensitive (bool, optional): Enable case sensitive matching. Defaults to True.
+
+Returns:
+    int: Number of words highlighted.</td></tr><tr><td><span class='library-name'>markdown.</span><span style='color: 
+#dcdcaa;'>Text.</span><span style='color: #c586c0;'>join</span></td><td>Join text together with this instance as the separator.
+
+Args:
+    lines (Iterable[Text]): An iterable of Text instances to join.
+
+Returns:
+    Text: A new text instance containing join text.</td></tr><tr><td><span class='library-name'>markdown.</span><span style='color: 
+#dcdcaa;'>Text.</span><span style='color: #c586c0;'>on</span></td><td>Apply event handlers (used by Textual project).
+
+Example:
+    &gt;&gt;&gt; from rich.text import Text
+    &gt;&gt;&gt; text = Text(&quot;hello world&quot;)
+    &gt;&gt;&gt; text.on(click=&quot;view.toggle(&#x27;world&#x27;)&quot;)
+
+Args:
+    meta (Dict): Mapping of meta information.
+    **handlers: Keyword args are prefixed with &quot;@&quot; to defined handlers.
+
+Returns:
+    Text: Self is returned to method may be chained.</td></tr><tr><td><span class='library-name'>markdown.</span><span style='color: 
+#dcdcaa;'>Text.</span><span style='color: #c586c0;'>pad</span></td><td>Pad left and right with a given number of characters.
+
+Args:
+    count (int): Width of padding.
+    character (str): The character to pad with. Must be a string of length 1.</td></tr><tr><td><span 
+class='library-name'>markdown.</span><span style='color: #dcdcaa;'>Text.</span><span style='color: #c586c0;'>pad_left</span></td><td>Pad 
+the left with a given character.
+
+Args:
+    count (int): Number of characters to pad.
+    character (str, optional): Character to pad with. Defaults to &quot; &quot;.</td></tr><tr><td><span 
+class='library-name'>markdown.</span><span style='color: #dcdcaa;'>Text.</span><span style='color: #c586c0;'>pad_right</span></td><td>Pad
+the right with a given character.
+
+Args:
+    count (int): Number of characters to pad.
+    character (str, optional): Character to pad with. Defaults to &quot; &quot;.</td></tr><tr><td><span 
+class='library-name'>markdown.</span><span style='color: #dcdcaa;'>Text.</span><span style='color: 
+#c586c0;'>remove_suffix</span></td><td>Remove a suffix if it exists.
+
+Args:
+    suffix (str): Suffix to remove.</td></tr><tr><td><span class='library-name'>markdown.</span><span style='color: 
+#dcdcaa;'>Text.</span><span style='color: #c586c0;'>render</span></td><td>Render the text as Segments.
+
+Args:
+    console (Console): Console instance.
+    end (Optional, optional): Optional end character.
+
+Returns:
+    Iterable[Segment]: Result of render that may be written to the console.</td></tr><tr><td><span 
+class='library-name'>markdown.</span><span style='color: #dcdcaa;'>Text.</span><span style='color: 
+#c586c0;'>right_crop</span></td><td>Remove a number of characters from the end of the text.</td></tr><tr><td><span 
+class='library-name'>markdown.</span><span style='color: #dcdcaa;'>Text.</span><span style='color: #c586c0;'>rstrip</span></td><td>Strip 
+whitespace from end of text.</td></tr><tr><td><span class='library-name'>markdown.</span><span style='color: #dcdcaa;'>Text.</span><span 
+style='color: #c586c0;'>rstrip_end</span></td><td>Remove whitespace beyond a certain width at the end of the text.
+
+Args:
+    size (int): The desired size of the text.</td></tr><tr><td><span class='library-name'>markdown.</span><span style='color: 
+#dcdcaa;'>Text.</span><span style='color: #c586c0;'>set_length</span></td><td>Set new length of the text, clipping or padding is 
+required.</td></tr><tr><td><span class='library-name'>markdown.</span><span style='color: #dcdcaa;'>Text.</span><span style='color: 
+#c586c0;'>split</span></td><td>Split rich text in to lines, preserving styles.
+
+Args:
+    separator (str, optional): String to split on. Defaults to &quot;\\n&quot;.
+    include_separator (bool, optional): Include the separator in the lines. Defaults to False.
+    allow_blank (bool, optional): Return a blank line if the text ends with a separator. Defaults to False.
+
+Returns:
+    List[RichText]: A list of rich text, one per line of the original.</td></tr><tr><td><span class='library-name'>markdown.</span><span 
+style='color: #dcdcaa;'>Text.</span><span style='color: #c586c0;'>stylize</span></td><td>Apply a style to the text, or a portion of the 
+text.
+
+Args:
+    style (Union): Style instance or style definition to apply.
+    start (int): Start offset (negative indexing is supported). Defaults to 0.
+    end (Optional, optional): End offset (negative indexing is supported), or None for end of text. Defaults to 
+None.</td></tr><tr><td><span class='library-name'>markdown.</span><span style='color: #dcdcaa;'>Text.</span><span style='color: 
+#c586c0;'>stylize_before</span></td><td>Apply a style to the text, or a portion of the text. Styles will be applied before other styles 
+already present.
+
+Args:
+    style (Union): Style instance or style definition to apply.
+    start (int): Start offset (negative indexing is supported). Defaults to 0.
+    end (Optional, optional): End offset (negative indexing is supported), or None for end of text. Defaults to 
+None.</td></tr><tr><td><span class='library-name'>markdown.</span><span style='color: #dcdcaa;'>Text.</span><span style='color: 
+#c586c0;'>truncate</span></td><td>Truncate text if it is longer that a given width.
+
+Args:
+    max_width (int): Maximum number of characters in text.
+    overflow (str, optional): Overflow method: &quot;crop&quot;, &quot;fold&quot;, or &quot;ellipsis&quot;. Defaults to None, to use 
+self.overflow.
+    pad (bool, optional): Pad with spaces if the length is less than max_width. Defaults to False.</td></tr><tr><td><span 
+class='library-name'>markdown.</span><span style='color: #dcdcaa;'>Text.</span><span style='color: 
+#c586c0;'>with_indent_guides</span></td><td>Adds indent guide lines to text.
+
+Args:
+    indent_size (Optional): Size of indentation, or None to auto detect. Defaults to None.
+    character (str, optional): Character to use for indentation. Defaults to &quot;│&quot;.
+    style (Union[Style, str], optional): Style of indent guides.
+
+Returns:
+    Text: New text with indentation guides.</td></tr><tr><td><span class='library-name'>markdown.</span><span style='color: 
+#dcdcaa;'>Text.</span><span style='color: #c586c0;'>wrap</span></td><td>Word wrap the text.
+
+Args:
+    console (Console): Console instance.
+    width (int): Number of cells available per line.
+    justify (str, optional): Justify method: &quot;default&quot;, &quot;left&quot;, &quot;center&quot;, &quot;full&quot;, 
+&quot;right&quot;. Defaults to &quot;default&quot;.
+    overflow (str, optional): Overflow method: &quot;crop&quot;, &quot;fold&quot;, or &quot;ellipsis&quot;. Defaults to None.
+    tab_size (int, optional): Default tab size. Defaults to 8.
+    no_wrap (bool, optional): Disable wrapping, Defaults to False.
+
+Returns:
+    Lines: Number of lines.</td></tr></table></div>
+                </div>
+                
+                <div class="panel class indent-1">
+                    <h3>Class: <span class='library-name'>markdown.</span><span style='color: #dcdcaa;'>TextElement</span></h3>
+                    <div class="panel">Base class for elements that render text.</div>
+                    
+        <div class="panel method indent-3">
+            <h4 >Methods:</h4>
+            <table class="table">
+                <tr><th>Method</th><th>Description</th></tr>
+        <tr><td><span class='library-name'>markdown.</span><span style='color: #dcdcaa;'>TextElement.</span><span style='color: 
+#c586c0;'>__rich_console__</span></td><td>No description</td></tr><tr><td><span class='library-name'>markdown.</span><span style='color: 
+#dcdcaa;'>TextElement.</span><span style='color: #c586c0;'>on_child_close</span></td><td>Called when a child element is closed.
+
+This method allows a parent element to take over rendering of its children.
+
+Args:
+    context (MarkdownContext): The markdown context.
+    child (MarkdownElement): The child markdown element.
+
+Returns:
+    bool: Return True to render the element, or False to not render the element.</td></tr><tr><td><span 
+class='library-name'>markdown.</span><span style='color: #dcdcaa;'>TextElement.</span><span style='color: 
+#c586c0;'>on_enter</span></td><td>Called when the node is entered.
+
+Args:
+    context (MarkdownContext): The markdown context.</td></tr><tr><td><span class='library-name'>markdown.</span><span style='color: 
+#dcdcaa;'>TextElement.</span><span style='color: #c586c0;'>on_leave</span></td><td>Called when the parser leaves the element.
+
+Args:
+    context (MarkdownContext): </td></tr><tr><td><span class='library-name'>markdown.</span><span style='color: 
+#dcdcaa;'>TextElement.</span><span style='color: #c586c0;'>on_text</span></td><td>Called when text is parsed.
+
+Args:
+    context (MarkdownContext): The markdown context.</td></tr></table></div>
+                </div>
+                
+                <div class="panel attribute indent-1">
+                    <p><strong>Attribute:</strong> TextType - Attribute or Variable</p>
+                </div>
+                
+                <div class="panel class indent-1">
+                    <h3>Class: <span class='library-name'>markdown.</span><span style='color: #dcdcaa;'>Token</span></h3>
+                    <div class="panel">Token(type: &#x27;str&#x27;, tag: &#x27;str&#x27;, nesting: &#x27;Literal[-1, 0, 1]&#x27;, attrs: 
+&#x27;dict&#x27; = &lt;factory&gt;, map: &#x27;list | None&#x27; = None, level: &#x27;int&#x27; = 0, children: &#x27;list[Token] | 
+None&#x27; = None, content: &#x27;str&#x27; = &#x27;&#x27;, markup: &#x27;str&#x27; = &#x27;&#x27;, info: &#x27;str&#x27; = &#x27;&#x27;,
+meta: &#x27;dict[Any, Any]&#x27; = &lt;factory&gt;, block: &#x27;bool&#x27; = False, hidden: &#x27;bool&#x27; = False)</div>
+                    
+        <div class="panel method indent-3">
+            <h4 >Methods:</h4>
+            <table class="table">
+                <tr><th>Method</th><th>Description</th></tr>
+        <tr><td><span class='library-name'>markdown.</span><span style='color: #dcdcaa;'>Token.</span><span style='color: 
+#c586c0;'>__eq__</span></td><td>Return self==value.</td></tr><tr><td><span class='library-name'>markdown.</span><span style='color: 
+#dcdcaa;'>Token.</span><span style='color: #c586c0;'>__init__</span></td><td>Initialize self.  See help(type(self)) for accurate 
+signature.</td></tr><tr><td><span class='library-name'>markdown.</span><span style='color: #dcdcaa;'>Token.</span><span style='color: 
+#c586c0;'>__post_init__</span></td><td>No description</td></tr><tr><td><span class='library-name'>markdown.</span><span style='color: 
+#dcdcaa;'>Token.</span><span style='color: #c586c0;'>__repr__</span></td><td>Return repr(self).</td></tr><tr><td><span 
+class='library-name'>markdown.</span><span style='color: #dcdcaa;'>Token.</span><span style='color: 
+#c586c0;'>as_dict</span></td><td>Return the token as a dictionary.
+
+:param children: Also convert children to dicts
+:param as_upstream: Ensure the output dictionary is equal to that created by markdown-it
+    For example, attrs are converted to null or lists
+:param meta_serializer: hook for serializing ``Token.meta``
+:param filter: A callable whose return code determines whether an
+    attribute or element is included (``True``) or dropped (``False``).
+    Is called with the (key, value) pair.
+:param dict_factory: A callable to produce dictionaries from.
+    For example, to produce ordered dictionaries instead of normal Python
+    dictionaries, pass in ``collections.OrderedDict``.</td></tr><tr><td><span class='library-name'>markdown.</span><span style='color: 
+#dcdcaa;'>Token.</span><span style='color: #c586c0;'>attrGet</span></td><td>Get the value of attribute `name`, or null if it does not 
+exist.</td></tr><tr><td><span class='library-name'>markdown.</span><span style='color: #dcdcaa;'>Token.</span><span style='color: 
+#c586c0;'>attrIndex</span></td><td>No description</td></tr><tr><td><span class='library-name'>markdown.</span><span style='color: 
+#dcdcaa;'>Token.</span><span style='color: #c586c0;'>attrItems</span></td><td>Get (key, value) list of attrs.</td></tr><tr><td><span 
+class='library-name'>markdown.</span><span style='color: #dcdcaa;'>Token.</span><span style='color: 
+#c586c0;'>attrJoin</span></td><td>Join value to existing attribute via space.
+Or create new attribute if not exists.
+Useful to operate with token classes.</td></tr><tr><td><span class='library-name'>markdown.</span><span style='color: 
+#dcdcaa;'>Token.</span><span style='color: #c586c0;'>attrPush</span></td><td>Add `[ name, value ]` attribute to list. Init attrs if 
+necessary.</td></tr><tr><td><span class='library-name'>markdown.</span><span style='color: #dcdcaa;'>Token.</span><span style='color: 
+#c586c0;'>attrSet</span></td><td>Set `name` attribute to `value`. Override old value if exists.</td></tr><tr><td><span 
+class='library-name'>markdown.</span><span style='color: #dcdcaa;'>Token.</span><span style='color: #c586c0;'>copy</span></td><td>Return 
+a shallow copy of the instance.</td></tr></table></div>
+                </div>
+                
+                <div class="panel class indent-1">
+                    <h3>Class: <span class='library-name'>markdown.</span><span style='color: #dcdcaa;'>UnknownElement</span></h3>
+                    <div class="panel">An unknown element.
+
+Hopefully there will be no unknown elements, and we will have a MarkdownElement for
+everything in the document.</div>
+                    
+        <div class="panel method indent-3">
+            <h4 >Methods:</h4>
+            <table class="table">
+                <tr><th>Method</th><th>Description</th></tr>
+        <tr><td><span class='library-name'>markdown.</span><span style='color: #dcdcaa;'>UnknownElement.</span><span style='color: 
+#c586c0;'>__rich_console__</span></td><td>No description</td></tr><tr><td><span class='library-name'>markdown.</span><span style='color: 
+#dcdcaa;'>UnknownElement.</span><span style='color: #c586c0;'>on_child_close</span></td><td>Called when a child element is closed.
+
+This method allows a parent element to take over rendering of its children.
+
+Args:
+    context (MarkdownContext): The markdown context.
+    child (MarkdownElement): The child markdown element.
+
+Returns:
+    bool: Return True to render the element, or False to not render the element.</td></tr><tr><td><span 
+class='library-name'>markdown.</span><span style='color: #dcdcaa;'>UnknownElement.</span><span style='color: 
+#c586c0;'>on_enter</span></td><td>Called when the node is entered.
+
+Args:
+    context (MarkdownContext): The markdown context.</td></tr><tr><td><span class='library-name'>markdown.</span><span style='color: 
+#dcdcaa;'>UnknownElement.</span><span style='color: #c586c0;'>on_leave</span></td><td>Called when the parser leaves the element.
+
+Args:
+    context (MarkdownContext): </td></tr><tr><td><span class='library-name'>markdown.</span><span style='color: 
+#dcdcaa;'>UnknownElement.</span><span style='color: #c586c0;'>on_text</span></td><td>Called when text is parsed.
+
+Args:
+    context (MarkdownContext): The markdown context.</td></tr></table></div>
+                </div>
+                
+                <div class="panel attribute indent-1">
+                    <p><strong>Attribute:</strong> __builtins__ - Attribute or Variable</p>
+                </div>
+                
+                <div class="panel attribute indent-1">
+                    <p><strong>Attribute:</strong> __cached__ - Attribute or Variable</p>
+                </div>
+                
+                <div class="panel attribute indent-1">
+                    <p><strong>Attribute:</strong> __doc__ - Attribute or Variable</p>
+                </div>
+                
+                <div class="panel attribute indent-1">
+                    <p><strong>Attribute:</strong> __file__ - Attribute or Variable</p>
+                </div>
+                
+                <div class="panel attribute indent-1">
+                    <p><strong>Attribute:</strong> __loader__ - Attribute or Variable</p>
+                </div>
+                
+                <div class="panel attribute indent-1">
+                    <p><strong>Attribute:</strong> __name__ - Attribute or Variable</p>
+                </div>
+                
+                <div class="panel attribute indent-1">
+                    <p><strong>Attribute:</strong> __package__ - Attribute or Variable</p>
+                </div>
+                
+                <div class="panel attribute indent-1">
+                    <p><strong>Attribute:</strong> __spec__ - Attribute or Variable</p>
+                </div>
+                
+                <div class="panel attribute indent-1">
+                    <p><strong>Attribute:</strong> annotations - Attribute or Variable</p>
+                </div>
+                
+                <div class="panel attribute indent-1">
+                    <p><strong>Attribute:</strong> box - Attribute or Variable</p>
+                </div>
+                
+                <div class="panel function indent-1">
+                    <h3>Function: <span class='library-name'>markdown.</span><span style='color: #569cd6;'>get_args</span></h3>
+                    <div class="panel">Get type arguments with all substitutions performed.
+
+For unions, basic simplifications used by Union constructor are performed.
+
+Examples::
+
+    &gt;&gt;&gt; T = TypeVar(&#x27;T&#x27;)
+    &gt;&gt;&gt; assert get_args(Dict) == (str, int)
+    &gt;&gt;&gt; assert get_args(int) == ()
+    &gt;&gt;&gt; assert get_args(Union[int, Union[T, int], str]) == (int, str)
+    &gt;&gt;&gt; assert get_args(Union[int, Tuple[T, int]]) == (int, Tuple)
+    &gt;&gt;&gt; assert get_args(Callable[[], T]) == ([], int)</div>
+                </div>
+                
+                <div class="panel function indent-1">
+                    <h3>Function: <span class='library-name'>markdown.</span><span style='color: #569cd6;'>loop_first</span></h3>
+                    <div class="panel">Iterate and generate a tuple with a flag for first value.</div>
+                </div>
+                
+                <div class="panel attribute indent-1">
+                    <p><strong>Attribute:</strong> sys - Attribute or Variable</p>
+                </div>
+                
+        </body>
+        </html>
+        

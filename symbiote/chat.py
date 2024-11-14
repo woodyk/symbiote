@@ -84,6 +84,8 @@ log("Loading symbiote utils.")
 from symbiote.utils import Utilities
 log("Loading symbiote themes.")
 from symbiote.themes import ThemeManager
+log("Loading symbiote ModuleInspector.")
+from symbiote.ModuleInspector import ModuleInspector as Inspect
 log("Loading symbiote MemoryStore.")
 from symbiote.memory import MemoryStore
 
@@ -455,11 +457,10 @@ class symChat():
         self.chat_session = PromptSession(key_bindings=kb, vi_mode=self.settings['vi_mode'], history=self.history, style=self.prompt_style)
 
         def getPrompt():
-            # Bottom toolbar configuration
             if self.prompt_only:
                 self.chat_session.bottom_toolbar = None
             else:
-                self.chat_session.bottom_toolbar = f"Model: {self.settings['model']} | Role: {self.settings['role']}\nEstimated Tokens: {self.estimated_tokens} Shell Mode: {self.shell_mode}"
+                self.chat_session.bottom_toolbar = f"Model: {self.settings['model']} | Role: {self.settings['role']}\nEstimated Tokens: {self.estimated_tokens} | Shell Mode: {self.shell_mode}\nMemoryStore: {sys.getsizeof(self.memory)}b"
 
             if self.shell_mode is True:
                 prompt_content = "shell mode> "
@@ -467,7 +468,6 @@ class symChat():
                 prompt_content = f"{self.settings['role'].lower()}> "
 
             prompt = f"{prompt_content}"
-
             return prompt 
 
         while True:
@@ -513,26 +513,17 @@ class symChat():
                                                    refresh_interval=0.5
                                                 )
 
-            '''
-            try:
-                user_input = self.processCommands(user_input)
-            except Exception as e:
-                log(f"Error processing commands in user_input: {e}")
-                continue
-            '''
             print()
             user_input = self.processCommands(user_input)
-
-            if user_input is None or user_input == "":
-                print()
-                print(Rule(title=f"{current_date} {current_time}", style="gray54"))
-                continue
 
             if check_settings != self.default_hash:
                 self.saveSettings()
                 self.default_hash = check_settings
 
             if user_input is None or re.search(r'^\n+$', user_input) or user_input == "":
+                print()
+                print(Rule(title=f"{current_date} {current_time}", style="gray54"))
+
                 if self.run is True and self.enable is False:
                     return None 
                     break
@@ -544,10 +535,11 @@ class symChat():
             returned = self.sendMessage(user_input)
 
             if returned is None:
-                log(f"No response.")
+                continue
 
             print()
             print(Rule(title=f"{current_date} {current_time}", style="gray54"))
+            print()
 
             if self.shell_mode is True:
                 if returned.startswith("`") and returned.endswith("`"):
@@ -559,8 +551,6 @@ class symChat():
                     print(f"\n{output}\n")
                     self.writeHistory('user', output)
                     continue
-
-            print()
 
             if self.enable is True:
                 self.run = False
@@ -580,8 +570,6 @@ class symChat():
     def think(self, user_input):
         available_roles = roles.get_roles()
         self.writeHistory('user', f"{available_roles['THINKING']}\n\nQUERY:\n{user_input}")
-
-        num_ctx = 8092
 
         print('<THINKING>')
         response = str() 
@@ -687,6 +675,12 @@ class symChat():
         num_ctx = self.settings['max_tokens']
 
         message = self.conversation_history
+        tlen = self.estimateTokenCount(json.dumps(message))
+        if int(tlen) >= 10000:
+            response = self.yesNoPrompt(f"High token estimate {tlen}.\nContinue? ")
+            if response is False:
+                log(f"Canceled request.")
+                return None
 
         if self.shell_mode is True:
             message = []
@@ -852,7 +846,7 @@ class symChat():
         def _checkCommand(input_text=None):
             if input_text is None:
                 return None
-
+            
             command_pattern = r"(^|\b| )(?P<command_name>(\$|\w+)):(?P<content>.*?):($|\b| )"
 
             # Lists to store the results
@@ -864,6 +858,15 @@ class symChat():
             for match in re.finditer(command_pattern, input_text):
                 # Extract command name and content
                 command_name = match.group("command_name")
+
+                # Checking if this is a valid command.
+                '''
+                check = f"{command_name}::"
+                if check not in self.command_register:
+                    log(f"Error invalid command: {check}")
+                    return None
+                '''
+
                 if match.group("content"):
                     content = match.group("content")
                 else:
@@ -919,6 +922,8 @@ class symChat():
                     log(f"Error calling function {command_name}: {e}")
 
             return intput_text
+
+
 
         # Audio keyword triggers
         for keyword in self.audio_triggers:
@@ -1448,20 +1453,40 @@ class symChat():
         google_pattern = r'google:(.*):'
         match = re.search(google_pattern, user_input)
         if match:
+            import symbiote.googleSearch as gs
             if match.group(1):
-                import symbiote.googleSearch as gs
                 search_term = match.group(1)
+            else:
+                search_term = getDisplayText("Search term>")
+
+            if search_term:
                 search = gs.googleSearch()
                 links = search.fetch_links(search_term)
                 result = search.fetch_text_from_urls(links)
                 result = self.cleanText(result)
+                self.memory.create("google_command",
+                                   { "links": links,
+                                     "result": result,
+                                     "search_term": search_term
+                                    })
+
                 print(Panel(Text(result[:5000]), title=f"Search Result: {search_term}"))
                 content = str()
+                link_list = str()
                 for link in links:
-                    content += f"{link}\n"
-                print(Panel(Text(content), title=f"Links:"))
+                    link_list += f"{link}\n"
 
-                user_input = user_input[:match.start()] + result + user_input[match.end():]
+                print(Panel(Text(link_list.strip()), title=f"Links:"))
+
+                content = f"```Search Term: {search_term}\n{result}\n{content}\n```"
+                content += f"```Link Results\n{link_list}\n```"
+
+                if _checkCommand(user_input) is None:
+                    log(f"Results written to history")
+                    self.writeHistory("user", content)
+                    return None
+
+                user_input = user_input[:match.start()] + content + user_input[match.end():]
                 return user_input
             else:
                 log("No search term provided.")
@@ -1608,12 +1633,14 @@ class symChat():
                 obj = self.listSelector("Objects:", all_objs)
 
             if obj:
-                obj = eval(obj, globals(), locals())
-                inspect(obj, methods=True, help=True, all=True)
+                inspector = Inspect(obj)
+                report = inspector.generate_report(output='render')
+                content = json.dumps(report, indent=4)
+                log(content[:1000])
+                del inspector 
             else:
                 log(f"No object selected.")
 
-            print()
             return None
 
         # Trigger for memget:: management
@@ -1711,12 +1738,21 @@ class symChat():
 
             if os.path.isfile(file_path):
                 content = self.symutils.extractText(file_path)
-                print(Panel(Text(content), title=f"Content: {file_path}"))
-                self.memory.create("file_command", content)
+                if content:
+                    print(Panel(Text(content), title=f"Content: {file_path}"))
+                    self.memory.create("file_command", content)
 
-                file_content = f"File name: {file_path}\n"
-                file_content += '\n```\n{}\n```\n'.format(content)
-                user_input = user_input[:match.start()] + file_content + user_input[match.end():]
+                    if _checkCommand(user_input) is None:
+                        log(f"Results written to history")
+                        self.writeHistory('user', f"file name: {file_path}\n" + content)
+                        return None
+
+                    file_content = f'\n```file name: {file_path}\n{content}\n```\n'
+                    user_input = user_input[:match.start()] + file_content + user_input[match.end():]
+                    return user_input
+                else:
+                    log(f"File returned empty content.")
+                    return None
             elif os.path.isdir(file_path):
                 log(f"Directory crawling is temporarily disabled due to memory consumption.")
                 return None
@@ -1726,8 +1762,7 @@ class symChat():
                     return None
                 print(Panel(Text(content), title=f"Content: {file_path}"))
                 user_input = user_input[:match.start()] + dir_content + user_input[match.end():]
-
-            return user_input
+            return None
 
         # Trigger image:: execution for AI image generation
         _registerCommand("image::")
@@ -1852,9 +1887,10 @@ class symChat():
             '''
             if _checkCommand(user_input) is None:
                 log(f"Results written to history")
-                self.writeHistory("user", content)
+                self.writeHistory("user", f"URL: {url}\n" + content)
                 return None
             else:
+                content += f"```URL: {url}\n{content}\n```"
                 user_input = user_input[:match.start()] + content + user_input[match.end():]
                 return user_input
 

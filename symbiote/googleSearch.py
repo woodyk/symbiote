@@ -21,7 +21,7 @@ class googleSearch:
         #query = urllib.parse.quote(query)
         search_url = f"https://www.googleapis.com/customsearch/v1?key={self.api_key}&cx={self.cse_id}&q={query}&num={num_results}"
         try:
-            response = requests.get(search_url)
+            response = requests.get(search_url, timeout=5)
             response.raise_for_status()
             search_results = response.json()
             links = []
@@ -38,9 +38,9 @@ class googleSearch:
         all_text = str() 
         links = list()
         for url in urls:
-            log(f"Fetchting: {url}")
+            log(f"Fetching: {url}")
             try:
-                response = requests.get(url)
+                response = requests.get(url, timeout=5)
                 response.raise_for_status()
                 soup = BeautifulSoup(response.content, 'html.parser')
                 for link in soup.find_all('a', href=True):
