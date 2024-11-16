@@ -11,7 +11,6 @@ import threading
 import tkinter as tk
 import tkinter.messagebox
 import customtkinter as ctk
-import symbiote.chat as chat
 
 ctk.set_appearance_mode("System")  # Modes: "System" (standard), "Dark", "Light"
 ctk.set_default_color_theme("blue")  # Themes: "blue" (standard), "green", "dark-blue"

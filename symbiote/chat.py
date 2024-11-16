@@ -18,6 +18,7 @@ from rich.live import Live
 from rich.rule import Rule
 from rich.theme import Theme
 from rich.highlighter import Highlighter, RegexHighlighter
+p = print
 console = Console()
 print = console.print
 log = console.log
@@ -75,13 +76,22 @@ from prompt_toolkit.cursor_shapes import CursorShape, ModalCursorShapeConfig
 #from symbiote.model_creator import create_model, train_model, evaluate_model
 
 log("Loading symbiote roles.")
-import symbiote.roles as roles
+from symbiote.roles import Roles
+
 #log("Loading symbiote shell.")
 #import symbiote.shell as shell
 log("Loading symbiote speech.")
-from symbiote.speech import SymSpeech
+from symbiote.speech import Speech
 log("Loading symbiote utils.")
-from symbiote.utils import Utilities
+from symbiote.utilities import Utilities
+utils = Utilities()
+is_url = utils.is_url
+is_image = utils.is_image
+cleanPath = utils.cleanPath
+extractText = utils.extractText
+execCommand = utils.execCommand
+extractMetadata = utils.extractMetadata
+
 log("Loading symbiote themes.")
 from symbiote.themes import ThemeManager
 log("Loading symbiote ModuleInspector.")
@@ -298,7 +308,7 @@ class symChat():
         self.current_conversation = []
 
         # Load utils object
-        self.symutils = Utilities(settings=self.settings)
+        #self.utils = Utilities()
 
         # Init the shell theme manager
         self.theme_manager = ThemeManager()
@@ -306,13 +316,12 @@ class symChat():
 
         self.command_list = command_list
 
-        ''' Command completion for the prompt
+        # Command completion for the prompt
         commands = []
         for command in self.command_list:
             commands.append(command)
 
         self.command_completer = WordCompleter(commands)
-        '''
 
         # Get location details
         self.geo = nomi.query_postal_code(self.settings['location'])
@@ -484,8 +493,8 @@ class symChat():
 
             if self.settings['listen'] and self.run is False:
                 if not hasattr(self, 'symspeech'):
-                    self.symspeech = SymSpeech(settings=self.settings)
-                    self.speechQueue = self.symspeech.start_keyword_listen()
+                    speech = Speech(settings=self.settings)
+                    speechQueue = Speech.start_keyword_listen()
 
                 self.spinner.start()
                 user_input = self.symspeech.keyword_listen()
@@ -508,8 +517,10 @@ class symChat():
                                                    multiline=True,
                                                    default=user_input,
                                                    cursor=CursorShape.UNDERLINE,
-                                                   #rprompt="right justified prompt tet",
+                                                   rprompt="",
                                                    vi_mode=self.settings['vi_mode'],
+                                                   completer=self.command_completer,
+                                                   complete_while_typing=False,
                                                    refresh_interval=0.5
                                                 )
 
@@ -547,7 +558,7 @@ class symChat():
                 print(f"{returned}\n")
                 response = self.yesNoPrompt("Execute command?")
                 if response is True:
-                    output = self.execCommand(returned)
+                    output = execCommand(returned)
                     print(f"\n{output}\n")
                     self.writeHistory('user', output)
                     continue
@@ -568,7 +579,7 @@ class symChat():
         self.conversation_history.append(hist_entry)
 
     def think(self, user_input):
-        available_roles = roles.get_roles()
+        available_roles = Roles.get_roles()
         self.writeHistory('user', f"{available_roles['THINKING']}\n\nQUERY:\n{user_input}")
 
         print('<THINKING>')
@@ -644,7 +655,7 @@ class symChat():
             self.think(user_input)
 
         current_role = self.settings['role']
-        available_roles = roles.get_roles()
+        available_roles = Roles.get_roles()
 
         self.geo = nomi.query_postal_code(self.settings['location'])
         now = datetime.now()
@@ -674,13 +685,11 @@ class symChat():
         '''
         num_ctx = self.settings['max_tokens']
 
+        """ Rule of thumb character count for efficent queries """
         message = self.conversation_history
         tlen = self.estimateTokenCount(json.dumps(message))
-        if int(tlen) >= 10000:
-            response = self.yesNoPrompt(f"High token estimate {tlen}.\nContinue? ")
-            if response is False:
-                log(f"Canceled request.")
-                return None
+        if int(tlen) >= 100000:
+            log(f"High token estimate {tlen}: concider flush::")
 
         if self.shell_mode is True:
             message = []
@@ -820,8 +829,8 @@ class symChat():
         self.writeHistory('assistant', response)
 
         if self.settings['speech'] and self.suppress is False:
-            self.symspeech = SymSpeech()
-            speech_thread = threading.Thread(target=self.symspeech.say, args=(response,))
+            speech = Speech()
+            speech_thread = threading.Thread(target=speech.say, args=(response,))
             speech_thread.start()
 
         self.suppress = False
@@ -843,10 +852,25 @@ class symChat():
 
             self.command_register.append(command)
 
+        def _isCommand(command=None):
+            is_command = None
+            command_pattern = r"(^|\b| )(?P<command_name>(\$|\w+)):(?P<content>.*?):($|\b| )"
+            for match in re.finditer(command_pattern, input_text):
+                command_name = match.group("command_name")
+
+                check = f"{command_name}::"
+                if check in self.command_register:
+                    is_command = True
+                else:
+                    is_command = None
+                    log(f"Error command invalid: {check}")
+                    return None
+
         def _checkCommand(input_text=None):
             if input_text is None:
                 return None
-            
+
+            input_text = input_text.strip() 
             command_pattern = r"(^|\b| )(?P<command_name>(\$|\w+)):(?P<content>.*?):($|\b| )"
 
             # Lists to store the results
@@ -924,7 +948,6 @@ class symChat():
             return intput_text
 
 
-
         # Audio keyword triggers
         for keyword in self.audio_triggers:
             if re.search(self.audio_triggers[keyword][0], user_input):
@@ -940,8 +963,8 @@ class symChat():
 
         _registerCommand("perifious::")
         if re.search(r'^perifious::', user_input):
-            self.symspeech = speech.SymSpeech(debug=self.settings['debug'])
-            self.symspeech.say('Your wish is my command!')
+            speech = Speech(debug=self.settings['debug'])
+            speech.say('Your wish is my command!')
             if self.settings['perifious']:
                 user_input = 'settings:perifious:0:'
             else:
@@ -967,6 +990,7 @@ class symChat():
             self.displayHelp()
             return None 
 
+
         _registerCommand("clear::")
         _registerCommand("reset::")
         if re.search(r"^clear::|^reset::", user_input):
@@ -983,6 +1007,18 @@ class symChat():
             self.saveSettings()
             os.system('reset')
             sys.exit(0)
+
+        # Trigger introspect::
+        _registerCommand("introspect::")
+        introspect_pattern = r"introspect::"
+        match = re.search(introspect_pattern, user_input)
+        if match:
+            try:
+                pass
+            except Exception as e:
+                print("An error occurred:", str(e))
+
+            return None
 
         # Trigger to read clipboard contents
         _registerCommand("clipboard::")
@@ -1028,6 +1064,7 @@ class symChat():
             else:
                 for module_name in list(sys.modules.keys()):
                     if module_name.startswith("symbiote."):
+                        del module_name
                         module = sys.modules.get(module_name)
                         log(f"Reloading {module}")
                         importlib.reload(module)
@@ -1040,7 +1077,7 @@ class symChat():
         match = re.search(role_pattern, user_input)
         if match:
             importlib.reload(roles)
-            available_roles = roles.get_roles()
+            available_roles = Roles.get_roles()
 
             if match.group(1):
                 selected_role = match.group(1).strip()
@@ -1104,8 +1141,6 @@ class symChat():
                             
                             self.geo = nomi.query_postal_code(set_value)
                     self.settings[setting] = set_value
-                    #self.sym.update_symbiote_settings(settings=self.settings)
-                    self.symutils = Utilities(settings=self.settings)
                     self.saveSettings()
             else:
                 self.displaySettings()
@@ -1185,7 +1220,7 @@ class symChat():
                 file_path = match.group(1)
                 screenshot_pattern = r'^screenshot$'
                 if re.search(screenshot_pattern, file_path):
-                    file_path = self.symutils.getScreenShot()
+                    file_path = utils.getScreenShot()
                     index = True
 
             if match.group(2):
@@ -1196,7 +1231,6 @@ class symChat():
                     reindex = False
 
             if file_path is None:
-                #file_path = self.fileSelector("Extraction path:")
                 file_path = self.displayFileBrowser()
 
             if file_path is None:
@@ -1204,25 +1238,20 @@ class symChat():
 
             file_path = os.path.expanduser(file_path)
 
-            if os.path.isdir(file_path):
-                # prompt to confirm path indexing
-                index = inquirer.confirm(message=f'Index {file_path}?').execute()
+            if os.path.isfile(file_path):
+                metadata = extractMetadata(file_path)
+                if metadata:
+                    content = extractText(file_path)
 
-                if index is True:
-                    result = self.symutils.analyze_file(file_path)
+                if content:
+                    metadata["contents"] = content
 
-                return result
-            elif not os.path.isfile(file_path):
-                log(f"File not found: {file_path}")
-                return None
+                self.memory.create("extract_command", metadata)
+            else:
+                log(f"Invalid file: {file_path}")
 
-            summary = self.symutils.analyze_file(file_path)
-            #summary = self.symutils.summarizeFile(file_path)
-            #if self.settings['debug']:
-            #    print(json.dumps(summary, indent=4))
-            user_input = user_input[:match.start()] + json.dumps(summary) + user_input[match.end():]
-
-            return user_input 
+            log(f"File details stored: key: extract_command")
+            return None 
 
         # Trigger to flush current running conversation from memory.
         _registerCommand("flush::")
@@ -1261,13 +1290,14 @@ class symChat():
         code_pattern = r'code::|code:(.*):'
         match = re.search(code_pattern, user_input)
         if match:
+            log(f"Disabled...")
+            return None
             import symbiote.CodeExtract as codeextract
             codeRun = False
             if match.group(1):
                 text = match.group(1)
                 if re.search(r'^https?://\S+', text):
                     print(f"Fetching content from: {url}")
-                    website_content = self.symutils.pull_website_content(url, browser="firefox")
                     codeidentify = codeextract.CodeBlockIdentifier(website_content)
                 elif text == 'run':
                     codeRun = True
@@ -1332,16 +1362,35 @@ class symChat():
             else:
                 #file_path = self.fileSelector('File name:')
                 file_path = self.displayFileBrowser()
-            
-            if os.path.isfile(file_path):
-                file_path = os.path.expanduser(file_path)
-                file_path = os.path.abspath(file_path)
-            elif os.path.isdir(file_path):
-                log(f'Must be a file not a directory.')
-                return None
 
-            self.symutils.viewFile(file_path)
-            print()
+            file_path = cleanPath(file_path)
+            if is_image(file_path):
+                content = utils.imageToAscii(file_path)
+                p(content)
+                return None
+            elif is_url(file_path):
+                import symbiote.WebCrawler as webcrawler
+                crawler = webcrawler.WebCrawler(browser='firefox')
+                pages = crawler.pull_website_content(file_path, search_term=None, crawl=False, depth=None)
+                crawler.close()
+                if pages:
+                    content = ""   
+                    css = ""
+                    script = ""
+                    link_list = []
+                    for md5, item in pages.items():
+                        content += item['content']
+                        link_list = link_list + item['links']
+                        css += "\n".join(item['css'])
+                        script += "\n".join(item['scripts'])
+                    links = "\n".join(link_list)
+                else:
+                    log(f"No content gathered for {url}")
+                    return None
+            else:
+                content = extractText(file_path)
+
+            print(Panel(Markdown(content), title=f"Content: {file_path}"))
 
             return None
 
@@ -1404,7 +1453,7 @@ class symChat():
             file_path = os.path.expanduser(file_path)
             absolute_path = os.path.abspath(file_path)
 
-            self.symutils.scrollContent(absolute_path)
+            utils.scrollContent(absolute_path)
 
             return None
 
@@ -1608,14 +1657,20 @@ class symChat():
                 return None
 
             result = self.getWeather(location)
-            self.memory.create("weather_command", result)
 
             if result is None:
                 log(f"Unable to get weather for {location}")
                 return None
 
-            weather = json.dumps(result['current_condition']) 
+            weather = json.dumps(result['current_condition'], indent=4) 
+            self.memory.create("weather_command", weather)
+
             print(Panel(Text(weather), title=f"Weather: {location}"))
+            if _checkCommand(user_input) is None:
+                log(f"Results written to history")
+                self.writeHistory("user", weather)
+                return None
+
             content = f"Analyze the following weather details and provide a well formatted weather report for {location}.\n```json\n{weather}```"
             user_input = user_input[:match.start()] + content + user_input[match.end():]
 
@@ -1636,7 +1691,13 @@ class symChat():
                 inspector = Inspect(obj)
                 report = inspector.generate_report(output='render')
                 content = json.dumps(report, indent=4)
-                log(content[:1000])
+                self.memory.create("inspect_command", content)
+
+                if _checkCommand(user_input) is None:
+                    log(f"Results written to history")
+                    self.writeHistory("user", content)
+                    return None
+
                 del inspector 
             else:
                 log(f"No object selected.")
@@ -1652,9 +1713,9 @@ class symChat():
             if match.group(1):
                 getobj = match.group(1)
             else:
-                getobj = textPrompt("Object>") 
+                getobj = self.textPrompt("Object>") 
 
-            if getobj is None:
+            if getobj is None or getobj == "":
                 log(f"Empty object requeted.")
                 return None
 
@@ -1663,7 +1724,7 @@ class symChat():
             if isinstance(results, str):
                 json_data = results
             else:
-                json_data = json.dumps(results, intent=4)
+                json_data = json.dumps(results, indent=4)
 
             if json_data:
                 print(Panel(Text(json_data[:5000]), title=f"Content: {getobj}"))
@@ -1688,8 +1749,7 @@ class symChat():
             if match.group(1):
                 info = match.group(1)
 
-            inspect(self.memory.structure())
-
+            instpect(self.memory)
             return None
 
         # Trigger for search:: on memory 
@@ -1705,7 +1765,7 @@ class symChat():
             text_result = self.getSearchResults(search_term)
 
             if text_result:
-                self.memory.create("search_command", str(text_result))
+                self.memory.create("search_command", text_result)
                 if _checkCommand(user_input) is None:
                     log(f"Results written to history")
                     self.writeHistory("user", text_result)
@@ -1716,6 +1776,7 @@ class symChat():
                     return user_input
 
             return None
+
 
         # Trigger for file:: processing. Load file content into user_input for ai consumption.
         # file:: - opens file or directory to be pulled into the conversation
@@ -1733,14 +1794,19 @@ class symChat():
                 log(f"No such file or directory: {file_path}")
                 return None 
             
-            file_path = os.path.expanduser(file_path)
-            file_path = os.path.abspath(file_path)
+            file_path = os.path.abspath(os.path.expanduser(file_path))
 
             if os.path.isfile(file_path):
-                content = self.symutils.extractText(file_path)
+                content = extractText(file_path)
+                metadata = extractMetadata(file_path)
+
+                if metadata:
+                    self.memory.create("file_command_metadata", metadata)
+
                 if content:
-                    print(Panel(Text(content), title=f"Content: {file_path}"))
-                    self.memory.create("file_command", content)
+                    display = Markdown(content)
+                    print(Panel(display, title=f"Content: {file_path}"))
+                    self.memory.create("file_command_content", content)
 
                     if _checkCommand(user_input) is None:
                         log(f"Results written to history")
@@ -1753,15 +1819,19 @@ class symChat():
                 else:
                     log(f"File returned empty content.")
                     return None
+
             elif os.path.isdir(file_path):
                 log(f"Directory crawling is temporarily disabled due to memory consumption.")
                 return None
-                content = self.symutils.extractDirText(file_path)
+                '''
+                content = utils.extractDirText(file_path)
                 if content is None:
                     log(f"No content found in directory: {file_path}")
                     return None
-                print(Panel(Text(content), title=f"Content: {file_path}"))
+                print(Panel(display, title=f"Content: {file_path}"))
                 user_input = user_input[:match.start()] + dir_content + user_input[match.end():]
+                '''
+
             return None
 
         # Trigger image:: execution for AI image generation
@@ -1784,7 +1854,7 @@ class symChat():
         if match:
             if match.group(1):
                 command = match.group(1)
-                result = self.execCommand(command)
+                result = execCommand(command)
 
                 if result:
                     self.memory.create("exec_command", result)
@@ -1842,11 +1912,6 @@ class symChat():
                 log(f"No URL given: {url}")
                 return None 
 
-            content = str()
-            css = str()
-            script = str()
-            links = str()
-            link_list = []
             
             log(f"Fetching {url}.")
             import symbiote.WebCrawler as webcrawler
@@ -1855,12 +1920,18 @@ class symChat():
             crawler.close()
 
             if pages:
+                content = str()
+                css = str()
+                script = str()
+                links = str()
+                link_list = []
                 for md5, item in pages.items():
                     content += item['content']
                     link_list = link_list + item['links']
-                    links += "\n".join(item['links'])
                     css += "\n".join(item['css'])
                     script += "\n".join(item['scripts'])
+
+                links += "\n".join(link_list)
             else:
                 log(f"No content gathered for {url}")
                 return None
@@ -1914,7 +1985,7 @@ class symChat():
             self.spinner.start()
             import symbiote.FakeNewsAnalysis as fake_news
             detector = fake_news.FakeNewsDetector()
-            if self.isValidUrl(data) is True:
+            if is_url(data):
                 text = detector.download_text_from_url(data)
             else:
                 text = data
@@ -1970,7 +2041,7 @@ class symChat():
             else:
                 url = self.textPrompt("URL to scan:")
 
-            if self.isValidUrl(url):
+            if is_url(url):
                 import symbiote.WebVulnerabilityScan as web_vuln
                 scanner = web_vuln.SecurityScanner(headless=True, browser='firefox')
                 scanner.scan(url)
@@ -2166,13 +2237,20 @@ class symChat():
             file.write(jsonl_string + "\n")
 
     def estimateTokenCount(self, text):
-        # Estimate tokens based on the average number of characters per token
-        average_chars_per_token = 4
-
-        # Calculate the number of tokens
-        token_count = len(text) / average_chars_per_token
-
-        # Return the rounded token count
+        """
+        1,000 tokens	 4,000 characters	    Short queries or summaries, single-topic prompts, or brief Q&A.
+        2,400 tokens	 9,600 characters	    Small documents, single-page summaries, basic explanations.
+        8,000 tokens 	 32,000 characters	    Medium-length documents, detailed Q&A, or multi-paragraph context.
+        16,000 tokens	 64,000 characters	    Comprehensive analyses, lengthy articles, or multiple sections.
+        32,000 tokens	 128,000 characters	    Long documents, in-depth reports, or multiple complex topics.
+        64,000 tokens	 256,000 characters	    Book chapters, extended research papers, large data collections.
+        128,000 tokens	 512,000 characters	    Entire books, extensive document collections, or archival text.
+        256,000 tokens	 1,024,000 characters	Very large datasets, multi-book volumes, or thorough archive analysis.
+        512,000 tokens	 2,048,000 characters	Collections of books or structured data, such as encyclopedias.
+        1,000,000 tokens 4,000,000 characters	Massive corpora, extensive archives, or enterprise-scale datasets.
+        On average a token = 4 characters
+        """
+        token_count = len(text)
         return round(token_count)
 
     def cleanText(self, text):
@@ -2453,30 +2531,6 @@ class symChat():
             # Show each image individually
             for img in images:
                 img.show()
-
-    def isValidUrl(self, url):
-        if re.search(r'^https?://\S+', url):
-            return True
-        else:
-            return False
-
-    def execCommand(self, command):
-        try:
-            process = subprocess.Popen(command, shell=True, text=True,
-                                       stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-            stdout, stderr = process.communicate()
-            output = stdout + stderr
-        except KeyboardInterrupt:
-            log("\nCommand interrupted by Control-C.", flush=True)
-            if process:
-                process.terminate()
-                process.wait()
-        except subprocess.CalledProcessError as e:
-            # Combine stdout and stderr from the exception
-            output = e.stdout + e.stderr if e.stdout or e.stderr else "Command exited with a status other than 0."
-
-        # Return the combined output
-        return output.strip()
 
     def displayFileBrowser(self):
         """Terminal-based file browser using prompt_toolkit to navigate and select files."""
@@ -2800,6 +2854,25 @@ class symChat():
         return "\n".join(report)
 
     def getSearchResults(self, search_term=None):
+        def _highlight(content, search_term, search_for, search_pattern):
+            if isinstance(search_for, re.Pattern):
+                highlighted_text = re.sub(
+                    search_pattern,
+                    f"[bold bright_green]\\g<0>[/bold bright_green]",
+                    content,
+                    flags=re.IGNORECASE
+                )
+            else:
+                highlighted_text = re.sub(
+                    re.escape(search_for),
+                    f"[bold bright_green]{search_term}[/bold bright_green]",
+                    content,
+                    flags=re.IGNORECASE
+                )
+
+            return highlighted_text
+
+        search_pattern = ""
         if search_term.startswith("/") and search_term.endswith("/"):
             search_pattern = rf"{search_term[1:-1]}" 
             try:
@@ -2816,9 +2889,26 @@ class symChat():
         results = self.memory.search(search_for)
 
         json_results = []
-
         if results:
-            for result in results:
+            snips_get = {} 
+            for idx, result in enumerate(results):
+                if re.search(r"\[\d+\]$", result['key']):
+                    new_key = re.sub(r"\[\d+\]", "", result['key'])
+                    if new_key in snips_get:
+                        results[snips_get[new_key]]['snippets'] = results[snips_get[new_key]]['snippets'] + result['snippets']
+                    else:
+                        new_parent = re.sub(r'\.[^.]*$', '', result['key'])
+                        index = len(results)
+                        snips_get[new_key] = index
+                        results.append({
+                            "key": new_key,
+                            "parent": new_parent,
+                            "type": "list",
+                            "snippets": [],
+                        })
+                    continue
+
+
                 result_entry = {
                     "search_term": search_term,
                     "key": result['key'],
@@ -2829,46 +2919,35 @@ class symChat():
 
                 parent = []
                 header_text = Text.from_markup(
-                    f"[bold bright_cyan]Key:[/bold bright_cyan] {result['key']}\n"
-                    f"[bold bright_cyan]Parent:[/bold bright_cyan] {result['parent']}\n"
-                    f"[bold bright_cyan]Type:[/bold bright_cyan] {result['type']}()\n"
-                    f"[bold bright_cyan]Matched:[/bold bright_cyan] {search_term}\n"
+                    f"[bold bright_cyan]Key:[/bold bright_cyan] {_highlight(result['key'], search_term, search_for, search_pattern)}\n"
+                    f"[bold bright_cyan]Parent:[/bold bright_cyan] {_highlight(result['parent'], search_term, search_for, search_pattern)}\n"
+                    f"[bold bright_cyan]Type:[/bold bright_cyan] {_highlight(result['type'], search_term, search_for, search_pattern)}()\n"
+                    f"[bold bright_cyan]Matched:[/bold bright_cyan] {search_term}"
                     )
                 parent.append(header_text)
 
                 # Loop through each snippet in the result
                 for idx, snip in enumerate(result['snippets']):
+                    parent.append(Text())
                     snip = escape(snip.strip())
                     if len(snip) > 0:
-                        if isinstance(search_for, re.Pattern):
-                            highlighted_text = re.sub(
-                                search_pattern,
-                                f"[bold bright_green underline]\\g<0>[/bold bright_green underline]",
-                                snip,
-                                flags=re.IGNORECASE
-                            )
-                        else:
-                            highlighted_text = re.sub(
-                                re.escape(search_for),
-                                f"[bold bright_green underline]{search_term}[/bold bright_green underline]",
-                                snip,
-                                flags=re.IGNORECASE
-                            )
+                        highlighted_text = _highlight(snip, search_term, search_for, search_pattern)
 
                         snippet = Text.from_markup(f"{highlighted_text.strip()}") 
                         parent.append(Padding(snippet, (1, 0, 1, 4), style="on grey15"))
-                        parent.append(Text(""))
+                        parent.append(Text())
 
                         result_entry["snippets"].append(snip)
 
-                parent.pop() 
+                    parent.pop() 
+
                 panel_group = Group(*parent)
                 print(Panel(panel_group, title=f"Key: {result['key']}", padding=(1, 2)))
 
-                if len(result_entry["snippets"]) > 0:
-                    json_results.append(result_entry)
+                json_results.append(result_entry)
         else:
             console.log(f"No results for: {search_term}")
             return None
 
         return escape(json.dumps(json_results, indent=4)) 
+

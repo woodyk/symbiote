@@ -39,7 +39,7 @@ class ModuleInspector:
             return False
         return True
 
-    def generate_report(self, output="dir"):
+    def generate_report(self, output="dir", sub=False):
         """Generates a report of the library, including classes, functions, and attributes, in the specified format."""
         # Load the library
         if not self.load_library():
@@ -398,7 +398,6 @@ if __name__ == "__main__":
         inspector = ModuleInspector(module_name)
         report = inspector.generate_report(output=output_format)
 
-        if output_format == "html":
-            print(report)
-        elif output_format == "yaml":
-            print(report)
+        if output_format != "dir":
+            if report:
+                print(report)

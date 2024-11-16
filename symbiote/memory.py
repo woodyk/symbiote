@@ -27,8 +27,9 @@ class MemoryStore:
         self.save()
 
     def read(self, path=None):
-        if path is None:
-            return self.MemoryStorage
+        if path is None or path == "":
+            log(f"Empty path requested")
+            return None 
 
         try:
             parent, key = self._get_nested_data(path)

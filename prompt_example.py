@@ -25,10 +25,12 @@ def chatBot():
     calculated_height = int(terminal_height * height_percent)
 
     style = Style.from_dict({
-        "frame.border": "fg:red",
-        "frame.title": "fg:cyan bold",
-        "content": "fg:white bg:#333333",
-        "output-field": "bg:#000044 #ffffff",
+        "frame.border": "fg:white",
+        "frame.title": "fg:cyan",
+        #"content": "fg:white bg:#333333",
+        "content": "fg:white",
+        #"output-field": "bg:#000044 #ffffff",
+        "output-field": "#ffffff",
         "input-field": "bg:#000000 #ffffff",
         "line": "#004400"
     })
@@ -96,7 +98,7 @@ def chatBot():
         key_bindings=kb,
         style=style,
         mouse_support=True,
-        full_screen=False,
+        full_screen=True,
     )
 
     app.run()

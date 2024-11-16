@@ -59,7 +59,7 @@ if __name__ == "__main__":
     wiki_search = WikipediaSearch()
     results = wiki_search.search('Quantum computing', 5)
     for article in results:
-        log(f"Title: {article['title']}")
-        log(f"URL: {article['url']}")
-        log(f"Text: {article['text'][:500]}")  # Printing only the first 500 characters of the text for brevity
+        print(f"Title: {article['title']}")
+        print(f"URL: {article['url']}")
+        print(f"Text: {article['text'][:500]}")  # Printing only the first 500 characters of the text for brevity
 

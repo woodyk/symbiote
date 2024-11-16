@@ -23,7 +23,7 @@ def recursive_inspect(obj, depth=1, max_depth=3, obj_name=None):
 
     # Display the object attributes using rich.inspect
     console.print(f"\n[bold]Inspecting level {depth}[/bold] - {obj.__class__.__name__}")
-    inspect(obj, console=console, title=obj_name, all=True, methods=True, help=True)
+    inspect(obj, console=console, title=obj_name, all=False, methods=True, help=True)
 
     # Iterate through the attributes in dir(obj)
     for attr_name in dir(obj):
