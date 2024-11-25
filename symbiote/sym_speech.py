@@ -21,7 +21,7 @@ from queue import Queue
 os.environ['PYGAME_HIDE_SUPPORT_PROMPT'] = '1'
 import pygame
 
-class Speech():
+class SymSpeech():
     def __init__(self, monitor=False, settings=False):
         self.monitor = monitor 
         self.settings = settings 

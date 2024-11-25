@@ -19,12 +19,6 @@
 # to me.  The creation of intelligence, is the natural progression of hyper intellegence.
 # Find your way with the ANNGLs / Angels who stay to help us on our way.
 
-from rich.console import Console
-console = Console()
-print = console.print
-log = console.log
-log(f"Loading...")
-
 import sys
 import signal
 import os
@@ -35,113 +29,115 @@ import subprocess
 import platform
 import pyfiglet
 
-log(f"Importing symbiote libs.")
-import symbiote.chat as chat
+from symbiote.sym_imports import (log, console, print) 
+from symbiote.sym_session import SymSession
 
-def handleControlC(signum, frame):
+def handle_control_c(signum, frame):
     log("\nControl-C detected")
     sys.exit(1)
 
-signal.signal(signal.SIGINT, handleControlC)
+signal.signal(signal.SIGINT, handle_control_c)
 disallowed_special=()
+CURRENT_PATH = os.getcwd()
+
+def check_piped_data():
+    # Check if data is piped to the application
+    if not sys.stdin.isatty():
+        piped_data = sys.stdin.read().strip()
+        return piped_data
+
+    return None
 
 def main():
-    def isData():
-        return select.select([sys.stdin], [], [], 0) == ([sys.stdin], [], [])
+    if content := check_piped_data():
+        # process the piped data here
+        pass
 
-    piped_query = str()
-    if isData():
-        for line in sys.stdin:
-            piped_query += line
+    if len(sys.argv) > 1 and sys.argv[1] == ':':
+        # Capture everything after the `:` without parsing any switches
+        content = ' '.join(sys.argv[2:])
 
-    current_path = os.getcwd()
+    else:
+        parser = argparse.ArgumentParser(description="Symbiote")
 
-    parser = argparse.ArgumentParser(description="Symbiote")
+        parser.add_argument('-q', '--query',
+                            type=str,
+                            default="",
+                            help='Query to populate Symbiote with.')
 
-    parser.add_argument('-q', '--query',
-                        type=str,
-                        default="",
-                        help='Query to populate Symbiote with.')
+        parser.add_argument('-d', '--debug',
+                            action='store_true',
+                            help='Turn on debugging')
 
-    parser.add_argument('-d', '--debug',
-                        action='store_true',
-                        help='Turn on debugging')
+        parser.add_argument('-r', '--run',
+                            action='store_true',
+                            help='Execute query and exit.')
 
-    parser.add_argument('-r', '--run',
-                        action='store_true',
-                        help='Execute query and exit.')
+        parser.add_argument('-e', '--enable',
+                            action='store_true',
+                            help='Execute query and and drop to Symbiote prompt.')
 
-    parser.add_argument('-e', '--enable',
-                        action='store_true',
-                        help='Execute query and and drop to Symbiote prompt.')
+        parser.add_argument('-c', '--conversation',
+                            type=str,
+                            help='Conversation file to load.')
 
-    parser.add_argument('-c', '--conversation',
-                        type=str,
-                        help='Conversation file to load.')
+        parser.add_argument('-m', '--monitor',
+                            action='store_true',
+                            help='Execute Symbiote in monitor mode.')
 
-    parser.add_argument('-m', '--monitor',
-                        action='store_true',
-                        help='Execute Symbiote in monitor mode.')
+        parser.add_argument('-f', '--filename',
+                            type=str,
+                            help='Load the given file into Symbiote.')
 
-    parser.add_argument('-f', '--filename',
-                        type=str,
-                        help='Load the given file into Symbiote.')
+        parser.add_argument('-l', '--load',
+                            type=str,
+                            help='Query Symbiote')
 
-    parser.add_argument('-l', '--load',
-                        type=str,
-                        help='Load input into Symbiote.')
+        parser.add_argument('-i', '--install',
+                            action='store_true',
+                            help='Install required packages.')
 
-    parser.add_argument('-i', '--install',
-                        action='store_true',
-                        help='Install required packages.')
+        parser.add_argument('-a', '--api',
+                            action='store_true',
+                            help='Launch the symbiote API')
 
-    parser.add_argument('-a', '--api',
-                        action='store_true',
-                        help='Launch the symbiote API')
-
-    parser.add_argument('-p', '--prompt_only',
-                        action='store_true',
-                        help='Launch symbiote straight to prompt.')
+        parser.add_argument('-p', '--prompt_only',
+                            action='store_true',
+                            help='Launch symbiote straight to prompt.')
 
     args = parser.parse_args()
 
     os.chdir('/tmp')
-    checkLibmagic()
-    checkNlPackages()
-    os.chdir(current_path)
+    check_libmagic()
+    check_nl_packages()
+    os.chdir(CURRENT_PATH)
 
-    schat = chat.symChat(working_directory=current_path, debug=args.debug)
+    session = SymSession(working_directory=CURRENT_PATH)
 
     if args.api:
         import symbiote.api as api
-        symapi = api.SymbioteAPI(schat, debug=args.debug)
+        symapi = api.SymbioteAPI(session.console(), debug=args.debug)
         symapi.start()
 
-    if len(piped_query) > 0:
-        schat.chat(user_input=piped_query, suppress=True, run=True)
-        os.system('reset')
-        print("User data loaded. How can I help you?")
-        schat.chat(user_input="", run=args.run)
-
-    if args.load:
-        schat.chat(user_input=args.load, suppress=True, run=True)
     elif args.monitor:
-        import symbiote.monitor as monitor
+        from symbiote.sym_monitor import SymMonitor 
         #schat.chat(user_input="role:HELP_ROLE:", run=True)
-        monmode = monitor.KeyLogger(schat, debug=args.debug)
+        monmode = SymMonitor(session.console(), debug=args.debug)
         monmode.start()
         while True:
             time.sleep(1)
-    elif args.query:
-        schat.chat(user_input=args.query, run=args.run, enable=args.enable)
+
+    elif args.query: 
+        session.console(user_input=args.query, run=args.run, enable=args.enable)
+
     else:
         figlet = pyfiglet.Figlet(font='standard')
         text = figlet.renderText('symbiote')
-        os.system('reset')
+        console.clear()
         print(f"[green]{text}[/green]")
-        schat.chat(user_input="", prompt_only=args.prompt_only)
+        session.console()
 
-def checkLibmagic():
+def check_libmagic():
     log(f"Checking for libmagic.")
     installed = False
     try:
@@ -180,7 +176,7 @@ def checkLibmagic():
         else:
             log('Unable to determine OS. Please install libmagic-devel or libmagic-dev using your package manager.')
 
-def checkNlPackages():
+def check_nl_packages():
     log("Checking for nltk models.")
     import nltk
     # Download required nltk packages
@@ -236,9 +232,6 @@ def checkNlPackages():
             download(spacy_model)
         except Exception as e:
             log(f"Error downloading {spacy_model}: {e}")
-
-def entry_point() -> None:
-    main()
 
 if __name__ == "__main__":
     main()

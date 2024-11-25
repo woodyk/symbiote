@@ -3,11 +3,7 @@
 # wikipedia.py
 
 import requests
-from rich.console import Console
-console = Console()
-print = console.print
-log = console.log
-log("Loading symbiote Wikipedia.")
+log(f"Loading WikipediaSearch.")
 
 class WikipediaSearch:
     def __init__(self, language='en'):

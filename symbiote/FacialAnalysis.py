@@ -17,7 +17,6 @@ from tqdm import auto as tqdm
 import sys
 import contextlib
 
-
 def suppress_logs():
     """Suppress unnecessary logs from TensorFlow, Keras, and other libraries."""
     os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'

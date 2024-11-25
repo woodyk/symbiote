@@ -16,7 +16,7 @@ with open('requirements.txt', 'r') as f:
 
 setup(
     name='symbiote',
-    version='0.15.0',
+    version='0.17.0',
     description='A command line harness to AI functions.',
     author='Wadih Khairallah',
     url='https://github.com/woodyk/symbiote',
@@ -28,7 +28,7 @@ setup(
     ],
     entry_points={
         'console_scripts': [
-            'symbiote=symbiote.app:entry_point',
+            'symbiote=symbiote.app:main',
         ],
     },
     python_requires='>=3.10, <3.13',

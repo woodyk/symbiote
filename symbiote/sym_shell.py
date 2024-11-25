@@ -6,15 +6,11 @@ import sys
 import os
 import re
 import select
-
-# subprocess terminal
 import tty
 import termios
 import subprocess
 
-import symbiote.chat as chat
-
-class symBash():
+class SymShell():
     def __init__(self, *args, **kwargs):
         global conversations_file
         global current_conversation
@@ -22,9 +18,6 @@ class symBash():
         global toolbar_data
 
         current_path = os.getcwd()
-
-        self.schat = chat.symchat(working_directory=current_path)
-        #schat.chat(user_data=user_data)
 
     def custom_command(self, func, *args, **kwargs):
         # Restore the original stdin and stdout

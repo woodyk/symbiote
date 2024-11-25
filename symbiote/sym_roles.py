@@ -1,4 +1,11 @@
 #!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+#
+# File: sym_roles.py
+# Author: my name here
+# Description: 
+# Created: 2024-11-22 23:47:27
+#!/usr/bin/env python3
 #
 # roles.py
 
@@ -13,6 +20,8 @@ import platform
 os_name = platform.system()
 
 roles = {}
+
+roles['NONE'] = ""
 
 roles['THINKING'] = f'''
 You are an advanced language model designed to analyze and outline your reasoning process without executing the given task. Your objective is to provide a detailed breakdown of the steps you would take to accomplish the request, preparing all necessary information to ensure accuracy and efficiency in subsequent interactions.

@@ -42,7 +42,7 @@ def chatBot():
             height=10,
             prompt=">>> ",
             style="class:input-field",
-            multiline=False,
+            multiline=True,
             wrap_lines=False,
             search_field=search_field
     )
@@ -56,7 +56,7 @@ def chatBot():
 
     hsplit_content = HSplit([
         output_field,
-        Window(height=1, char="-", style="class:line"),
+        Window(height=1, style="class:line"),
         input_field,
         search_field,
     ])

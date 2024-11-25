@@ -6,7 +6,6 @@ from rich.console import Console
 console = Console()
 print = console.print
 log = console.log
-log("Loading symbiote WebCrawler.")
 
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options as ChromeOptions
@@ -46,6 +45,38 @@ class WebCrawler:
         else:
             log(f"Unsupported browser: {self.browser}")
             return ""
+
+    def get_text_from_url(self, url):
+        """
+        Fetches a webpage from the given URL, extracts and sanitizes the text content.
+        
+        Parameters:
+            url (str): The URL of the webpage to fetch.
+        
+        Returns:
+            str: Sanitized text content of the webpage.
+        """
+        try:
+            # Fetch the content from the URL
+            response = requests.get(url, timeout=10)
+            response.raise_for_status()  # Raise an exception for HTTP errors
+            
+            # Parse the HTML content
+            soup = BeautifulSoup(response.text, 'html.parser')
+            
+            # Remove script and style elements
+            for element in soup(['script', 'style']):
+                element.decompose()
+            
+            # Extract text and sanitize
+            text = soup.get_text(separator=' ')
+            sanitized_text = ' '.join(text.split())  # Normalize whitespace
+            
+            return sanitized_text
+        except requests.RequestException as e:
+            return f"Error fetching the URL: {e}"
+        except Exception as e:
+            return f"Error processing the content: {e}"
 
     def pull_website_content(self, url=None, search_term=None, crawl=False, depth=None):
         if self.base_url is None:

@@ -7,6 +7,13 @@ from InquirerPy import inquirer
 class ThemeManager:
     def __init__(self):
         self.themes = {
+            "toolbar_off": {
+                "description": "Disable the toolbar theme.",
+                "colors": {
+                    '': '#f95393',
+                    'prompt': '#06AC6C',
+                }
+            },
             "original": {
                 "description": "Original symbiote theme",
                 "colors": {
@@ -30,7 +37,8 @@ class ThemeManager:
                 "colors": {
                     '': '#DED300',
                     'prompt': '#02788E',
-                    'bottom-toolbar': 'bg:#FFFFFF #6e757c',
+                    #'bottom-toolbar': 'bg:#FFFFFF #6e757c',
+                    'bottom-toolbar': 'bg:#FFFFFF #000000',
                     'bottom-toolbar.off': 'bg:#e5e5e5 #9A9A9A'
                 }
             },

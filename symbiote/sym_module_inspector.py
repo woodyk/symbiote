@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
 #
-# ModuleInspector.py
+# sym_module_inspector.py
 
 from rich.console import Console
+from rich.console import Group
 from rich.panel import Panel
 from rich.tree import Tree
 from rich.table import Table
@@ -11,7 +12,6 @@ from rich.markdown import Markdown
 console = Console()
 log = console.log
 print = console.print
-
 import importlib
 import inspect
 import html
@@ -24,8 +24,6 @@ class ModuleInspector:
         parts = library_name.split(".")
         self.library_name = library_name 
         self.library_last = parts.pop()
-        self.con = Console()
-        self.cp = self.con.print
         self.library = None
         self.output_data = {}
         self.visited = set()  # Track visited components by their id to avoid excessive recursion
@@ -35,7 +33,7 @@ class ModuleInspector:
         try:
             self.library = importlib.import_module(self.library_name)
         except ModuleNotFoundError:
-            self.cp(f"[red bold]Error:[/red bold] The library '{self.library_name}' could not be found.")
+            console.print(f"[red bold]Error:[/red bold] The library '{self.library_name}' could not be found.")
             return False
         return True
 
@@ -63,20 +61,20 @@ class ModuleInspector:
             return self.output_data
         elif output == "render":
             self.render_report()
-            return self.output_data
+            #return self.output_data
 
     def render_report(self):
         """Renders the report to the console using rich components."""
-        if not self.output_data:
-            self.generate_report()
+        #if not self.output_data:
+        #    self.generate_report()
+        with console.pager(styles=True):
+            # Display Library Name
+            title_panel = Panel(f"[bold cyan]Help Report for {self.library_name}[/bold cyan]", width=console.width)
+            console.print(title_panel)
 
-        # Display Library Name
-        title_panel = Panel(f"[bold cyan]Help Report for {self.library_name}[/bold cyan]", width=self.con.width)
-        self.cp(title_panel)
-
-        # Render the recursive attributes tree
-        self.cp("\n[bold cyan]Recursive Inspection of Module Attributes[/bold cyan]")
-        self._render_recursive_attributes(self.output_data["attributes"])
+            # Render the recursive attributes tree
+            tree_table = self._render_recursive_attributes(self.output_data["attributes"])
+            console.print(Panel(tree_table))
 
     def crawl_module(self, module, prefix=""):
         """Recursively crawls module attributes and gathers data for JSON output, with protection against excessive recursion."""
@@ -119,7 +117,7 @@ class ModuleInspector:
 
     def _create_class_table(self):
         """Creates a rich Table for classes and their methods."""
-        table = Table(title="Classes and Methods", show_lines=True, width=self.con.width)
+        table = Table(title="Classes and Methods", show_lines=True, width=console.width)
         table.add_column("Class", style="magenta", no_wrap=True)
         table.add_column("Method / Description", style="yellow")
 
@@ -135,7 +133,7 @@ class ModuleInspector:
 
     def _create_function_table(self):
         """Creates a rich Table for functions in the library."""
-        table = Table(title="Functions", show_lines=True, width=self.con.width)
+        table = Table(title="Functions", show_lines=True, width=console.width)
         table.add_column("Function", style="magenta", no_wrap=True)
         table.add_column("Description / Parameters", style="yellow")
 
@@ -192,8 +190,9 @@ class ModuleInspector:
 
         # Populate the tree structure with attributes and their callable paths
         render_attr_tree(attributes, root_tree, path_prefix or self.library_name)
+        return root_tree
         # Render the full tree in the console
-        self.cp(root_tree)
+        #console.print(root_tree)
 
     def to_html(self):
         """Converts output data to a styled HTML format matching the 'render' theme."""
@@ -382,12 +381,6 @@ class ModuleInspector:
         # Clear the visited set
         self.visited.clear()
 
-        # Optional: Clear or close any external resources if used
-        if hasattr(self, 'cp'):
-            del self.cp
-        if hasattr(self, 'con'):
-            del self.con
-
 # Example Usage
 if __name__ == "__main__":
     if len(sys.argv) < 2:
@@ -397,7 +390,3 @@ if __name__ == "__main__":
         output_format = sys.argv[2] if len(sys.argv) > 2 else "dir"
         inspector = ModuleInspector(module_name)
         report = inspector.generate_report(output=output_format)
-
-        if output_format != "dir":
-            if report:
-                print(report)

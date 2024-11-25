@@ -3,8 +3,10 @@
 # PiiHighConfidence.py
 
 import re
+import os
 import spacy
 import json
+import sys
 nlp = spacy.load("en_core_web_sm")
 
 def extract_ipv4_and_cidr(text):
@@ -594,67 +596,87 @@ def extract_all_from_text(text):
 
     return extracted_data
 
+def main():
 # Example usage
-text = """
-Here are examples of various data types:
+    text = """
+    Here are examples of various data types:
 
-1. **IP Addresses**:
-   IPv4: 192.168.1.1, 255.255.255.255, 10.0.0.1, 192.168.0.0/16, 127.0.0.1
-   IPv6: 2001:0db8:85a3:0000:0000:8a2e:0370:7334, fe80::1, 2001:db8::/48
+    1. **IP Addresses**:
+       IPv4: 192.168.1.1, 255.255.255.255, 10.0.0.1, 192.168.0.0/16, 127.0.0.1
+       IPv6: 2001:0db8:85a3:0000:0000:8a2e:0370:7334, fe80::1, 2001:db8::/48
 
-2. **URLs**:
-   http://example.com, https://secure-site.org, ftp://ftp.example.com, mailto:user@example.com
+    2. **URLs**:
+       http://example.com, https://secure-site.org, ftp://ftp.example.com, mailto:user@example.com
 
-3. **Email addresses**:
-   user@example.com, another.user@domain.org, test123+filter@sub.domain.com
+    3. **Email addresses**:
+       user@example.com, another.user@domain.org, test123+filter@sub.domain.com
 
-4. **Phone numbers**:
-   +1 (123) 456-7890, 123-456-7890, 5555555555, +44 20 7946 0958, +91-9876543210
+    4. **Phone numbers**:
+       +1 (123) 456-7890, 123-456-7890, 5555555555, +44 20 7946 0958, +91-9876543210
 
-5. **Dates and times**:
-   ISO date: 2023-09-01, 2023/09/01
-   US date: 09/01/2023, 09-01-2023
-   European date: 01/09/2023, 01-09-2023
-   Date with month: 15 March 2023, 7 July 2021
-   Times: 14:30, 09:45:30, 3:45 PM, 12:00 AM
+    5. **Dates and times**:
+       ISO date: 2023-09-01, 2023/09/01
+       US date: 09/01/2023, 09-01-2023
+       European date: 01/09/2023, 01-09-2023
+       Date with month: 15 March 2023, 7 July 2021
+       Times: 14:30, 09:45:30, 3:45 PM, 12:00 AM
 
-6. **Postal codes**:
-   USA: 12345, 90210-1234
-   Canada: A1A 1A1, B2B-2B2
-   UK: SW1A 1AA, EC1A 1BB
-   Germany: 10115, France: 75008, Australia: 2000
+    6. **Postal codes**:
+       USA: 12345, 90210-1234
+       Canada: A1A 1A1, B2B-2B2
+       UK: SW1A 1AA, EC1A 1BB
+       Germany: 10115, France: 75008, Australia: 2000
 
-7. **VIN numbers**:
-   1HGCM82633A123456, JH4KA4650MC000000, 5YJSA1CN5DFP01234
+    7. **VIN numbers**:
+       1HGCM82633A123456, JH4KA4650MC000000, 5YJSA1CN5DFP01234
 
-8. **MAC addresses**:
-   00:1A:2B:3C:4D:5E, 00-1A-2B-3C-4D-5E, 001A.2B3C.4D5E
+    8. **MAC addresses**:
+       00:1A:2B:3C:4D:5E, 00-1A-2B-3C-4D-5E, 001A.2B3C.4D5E
 
-9. **Routing numbers**:
-   011000015, 121000358, 123456789 (Invalid), 021000021
+    9. **Routing numbers**:
+       011000015, 121000358, 123456789 (Invalid), 021000021
 
-10. **Bank account numbers**:
-    IBAN: DE44 5001 0517 5407 3249 31, GB29 NWBK 6016 1331 9268 19
-    US: 12345678901234567, 987654321
+    10. **Bank account numbers**:
+        IBAN: DE44 5001 0517 5407 3249 31, GB29 NWBK 6016 1331 9268 19
+        US: 12345678901234567, 987654321
 
-11. **Credit card numbers**:
-    4111 1111 1111 1111 (Visa), 5500-0000-0000-0004 (MasterCard), 378282246310005 (American Express), 6011 1111 1111 1117 (Discover)
+    11. **Credit card numbers**:
+        4111 1111 1111 1111 (Visa), 5500-0000-0000-0004 (MasterCard), 378282246310005 (American Express), 6011 1111 1111 1117 (Discover)
 
-12. **Social Security Numbers (SSNs)**:
-    123-45-6789, 987654321, 000-12-3456 (Invalid)
+    12. **Social Security Numbers (SSNs)**:
+        123-45-6789, 987654321, 000-12-3456 (Invalid)
 
-13. **Passport numbers**:
-    USA: 123456789, UK: 987654321, Canada: A1234567, India: B9876543
+    13. **Passport numbers**:
+        USA: 123456789, UK: 987654321, Canada: A1234567, India: B9876543
 
-14. **SWIFT codes**:
-    BOFAUS3NXXX, CHASUS33, DEUTDEFF500, HSBCGB2LXXX
+    14. **SWIFT codes**:
+        BOFAUS3NXXX, CHASUS33, DEUTDEFF500, HSBCGB2LXXX
 
-15. **Geo-coordinates**:
-    Decimal: 37.7749, -122.4194; 40.7128, -74.0060
-    Degrees, minutes, seconds: 40°42'51"N 74°00'21"W, 37°46'29"N 122°25'09"W
+    15. **Geo-coordinates**:
+        Decimal: 37.7749, -122.4194; 40.7128, -74.0060
+        Degrees, minutes, seconds: 40°42'51"N 74°00'21"W, 37°46'29"N 122°25'09"W
 
-1HGCM82633A004352, JH4TB2H26CC000000, 5YJSA1CN5DFP01234
-"""
+    1HGCM82633A004352, JH4TB2H26CC000000, 5YJSA1CN5DFP01234
+    """
 
-extracted_data = extract_all_from_text(text)
-print(json.dumps(extracted_data, indent=4))
+    if len(sys.argv) > 1:
+        file_path = sys.argv[1].strip()
+        # Expand ~ to the full home directory path
+        abs_path = os.path.expanduser(file_path)
+
+        # Convert to an absolute path
+        abs_path = os.path.abspath(abs_path)
+
+        # Check if the file exists
+        if not os.path.exists(abs_path):
+            raise FileNotFoundError(f"The file '{abs_path}' does not exist.")
+
+        # Read the file contents into a string
+        with open(abs_path, 'r', encoding='utf-8') as file:
+            text = file.read()
+
+    extracted_data = extract_all_from_text(text)
+    print(json.dumps(extracted_data, indent=4))
+
+if __name__ == "__main__":
+    main()

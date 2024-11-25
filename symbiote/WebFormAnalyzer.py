@@ -19,7 +19,6 @@ from selenium.webdriver.chrome.options import Options as ChromeOptions
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 
-
 def init_driver(headless=True, browser='firefox', page_load_timeout=30):
     """
     Initialize Selenium WebDriver with configurable browser and timeout.

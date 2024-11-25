@@ -1,12 +1,6 @@
 #!/usr/bin/env python3
 #
-# codeextract.py
-
-from rich.console import Console
-console = Console()
-print = console.print
-log = console.log
-log("Loading symbiote CodeExtract.")
+# sym_codeextract.py
 
 import re
 import os
@@ -98,7 +92,7 @@ class CodeBlockIdentifier:
         try:
             lexer = guess_lexer_for_filename(file_name, code)
         except ClassNotFound:
-            log(f'Could not determine the language of the file: {file_name}')
+            print(f'Could not determine the language of the file: {file_name}')
             return None
 
         # Choose the linter command based on the lexer name
@@ -117,7 +111,7 @@ class CodeBlockIdentifier:
         elif 'ruby' in lexer.name.lower():
             command = ['ruby', '-c', file_name]
         else:
-            log(f'Unsupported language: {lexer.name}')
+            print(f'Unsupported language: {lexer.name}')
             return None
 
         # Run the linter command
@@ -234,7 +228,7 @@ class CodeBlockIdentifier:
         return final_score
 
     def identify_language(self, block, lang=None):
-        log(lang)
+        print(lang)
         try:
             if lang is not None:
                 # If 'lang' is provided, use it to get the lexer
@@ -295,7 +289,7 @@ if __name__ == "__main__":
     text = """Here is some Python code:
     ```python
     def hello_world():
-        log("Hello, world!")
+        print("Hello, world!")
     ```
     And here is some HTML:
     ```html

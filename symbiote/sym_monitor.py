@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 #
-# monitor.py
+# sym_monitor.py
 
 import io
 import sys
@@ -13,12 +13,12 @@ import platform
 import pyaudio
 import speech_recognition as sr
 from pynput.keyboard import Listener
-import symbiote.speech as speech
+from symbiote.sym_speech import SymSpeech
 
 if platform.system() == 'Linux':
     from evdev import InputDevice, categorize, ecodes
 
-class KeyLogger:
+class SymMonitor:
     def __init__(self, schat, debug=False):
         self.schat = schat
         self.debug = debug
@@ -36,8 +36,8 @@ class KeyLogger:
                 "keyboard": r':help::|Key\.ctrlh'
                 }
 
-        self.symspeech = speech.SymSpeech(monitor=True, debug=self.debug)
-        self.symspeech.start_keyword_listen()
+        self.speech = SymSpeech(monitor=True, debug=self.debug)
+        self.speech.start_keyword_listen()
 
         #schat.chat(user_input="role:HELP_ROLE:", suppress=True, run=True)
 

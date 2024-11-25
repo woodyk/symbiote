@@ -9,7 +9,7 @@ import requests
 import json
 import random
 import warnings
-
+log(f"Loading ObjectDetection.")
 warnings.simplefilter(action='ignore', category=FutureWarning)
 
 class ObjectDetection:

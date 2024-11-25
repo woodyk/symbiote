@@ -1,103 +1,110 @@
 #!/usr/bin/env python3
+# -*- coding: utf-8 -*-
 #
-# chat.py
-
-from rich import inspect
-from rich.tree import Tree
-from rich.console import Console
-from rich.columns import Columns 
-from rich.markdown import Markdown
-from rich.panel import Panel
-from rich.console import Group
-from rich.markup import escape
-from rich.padding import Padding
-from rich.syntax import Syntax
-from rich.table import Table
-from rich.text import Text
-from rich.live import Live
-from rich.rule import Rule
-from rich.theme import Theme
-from rich.highlighter import Highlighter, RegexHighlighter
-p = print
-console = Console()
-print = console.print
-log = console.log
+# File: sym_session.py
+# Author: my name here
+# Description: 
+# Created: 2024-11-22 19:01:02
+# Modified: 2024-11-22 23:51:44
 
 import time
 import sys
 import os
-import io
 import re
-import importlib
-import threading
-import clipboard
 import json
 import base64
-import requests
-import qrcode
+import importlib
+import queue
+import threading
 import subprocess
 import tempfile
 import platform
-
-log("Loading pgeocode.")
-import pgeocode
-nomi = pgeocode.Nominatim('us')
-
+from collections import Counter
+from io import BytesIO
 from datetime import datetime
 from pathlib import Path
+from urllib.parse import urlparse
+
+# Local imports (explicit, no wildcard)
+from symbiote.sym_imports import (
+        console, log, print,
+        box, inspect, Align,
+        SQUARE, Columns, Console,
+        Group, Highlighter, Live,
+        Markdown, escape, Padding,
+        Panel, Rule, Syntax,
+        Table, Text, Theme,
+        Tree, pretty, inspect
+    )
+log("Loading symbiote roles.")
+from symbiote.sym_roles import Roles
+log("Loading symbiote speech.")
+from symbiote.sym_speech import SymSpeech
+log("Loading symbiote utils.")
+from symbiote.sym_utils import (
+        is_url, is_image, extract_metadata,
+        extract_text
+    )
+log("Loading symbiote theme_manager.")
+from symbiote.theme_manager import ThemeManager
+log("Loading symbiote module_inspector.")
+from symbiote.sym_module_inspector import ModuleInspector as Inspect
+log("Loading symbiote memory_store.")
+from symbiote.sym_memory_store import SymMemoryStore
+log(f"Loading symbiote sym_toolbar.")
+import symbiote.sym_toolbar as sym_toolbar
+log(f"Loading symbiote sym_code_extract.")
+from symbiote.sym_code_extract import CodeIdentifier
+
+# Third-party imports
+log(f"Loading third party modules.")
+import requests
+import clipboard
+import qrcode
+import psutil
 from halo import Halo
 from PIL import Image, ImageDraw, ImageColor
-from urllib.parse import urlparse
-from io import BytesIO
 from bs4 import BeautifulSoup
+import pgeocode
+
+# Set up pgeocode (moved initialization to the script's main logic or class constructor)
+nomi = pgeocode.Nominatim('us')
 
 log("Loading inquirerpy.")
+# InquirerPy imports
 from InquirerPy import inquirer
 from InquirerPy.base.control import Choice
 from InquirerPy.validator import PathValidator
 from InquirerPy.prompts.filepath import FilePathCompleter
 
 log("Loading prompt_toolkit.")
+# Application and session management
 from prompt_toolkit import Application
 from prompt_toolkit.document import Document
 from prompt_toolkit.history import InMemoryHistory, FileHistory
-from prompt_toolkit.shortcuts import PromptSession, print_container, prompt, input_dialog, yes_no_dialog, progress_dialog, message_dialog
+from prompt_toolkit.shortcuts import (
+        PromptSession, print_container, prompt, 
+        input_dialog, yes_no_dialog, progress_dialog,
+        message_dialog
+    )
 from prompt_toolkit.key_binding import KeyBindings
 from prompt_toolkit.keys import Keys
 from prompt_toolkit.completion import Completion, WordCompleter
 from prompt_toolkit.styles import Style
 from prompt_toolkit.layout import Layout, HSplit
-from prompt_toolkit.widgets import Label, SearchToolbar, Dialog, TextArea, Frame, Box, Button
-from prompt_toolkit.layout.containers import Window, VSplit, Float, FloatContainer
+from prompt_toolkit.widgets import (
+        Label, SearchToolbar, Dialog,
+        TextArea, Frame, Box, Button
+    )
+from prompt_toolkit.layout.containers import (
+        Window, VSplit, Float,
+        FloatContainer
+    )
 from prompt_toolkit.layout.controls import FormattedTextControl
 from prompt_toolkit.cursor_shapes import CursorShape, ModalCursorShapeConfig
-
-# Add these imports at the beginning of the file
-#from symbiote.model_creator import create_model, train_model, evaluate_model
-
-log("Loading symbiote roles.")
-from symbiote.roles import Roles
-
-#log("Loading symbiote shell.")
-#import symbiote.shell as shell
-log("Loading symbiote speech.")
-from symbiote.speech import Speech
-log("Loading symbiote utils.")
-from symbiote.utilities import Utilities
-utils = Utilities()
-is_url = utils.is_url
-is_image = utils.is_image
-cleanPath = utils.cleanPath
-extractText = utils.extractText
-execCommand = utils.execCommand
-extractMetadata = utils.extractMetadata
-
-log("Loading symbiote themes.")
-from symbiote.themes import ThemeManager
-log("Loading symbiote ModuleInspector.")
-from symbiote.ModuleInspector import ModuleInspector as Inspect
-log("Loading symbiote MemoryStore.")
-from symbiote.memory import MemoryStore
+from prompt_toolkit.application.current import get_app
+from prompt_toolkit.formatted_text import ANSI, HTML
+from prompt_toolkit.layout.dimension import Dimension
 
 system = platform.system()
 
@@ -208,15 +215,6 @@ audio_triggers = {
         'scroll': [r'keyword scroll file', 'scroll::'],
     }
 
-# Define prompt_toolkit keybindings
-global kb
-kb = KeyBindings()
-
-@kb.add('c-c')
-def _(event):
-    ''' Exit Application '''
-    log("Control-C detected.")
-    sys.exit(0) 
 
 # Default settings for openai and symbiote module.
 homedir = os.getenv('HOME')
@@ -245,24 +243,24 @@ symbiote_settings = {
         "config_file": f"{homedir}/.symbiote/config"
     }
 
-class symChat():
+class SymSession():
     def __init__(self, *args, **kwargs):
         self.config_file = symbiote_settings['config_file']
-        settings = self.loadSettings()
+        settings = self.load_settings()
         if settings is None:
             self.settings = symbiote_settings 
             settings = symbiote_settings
 
         self.settings = settings 
         self.conversation_history = []
-        self.estimated_tokens = self.estimateTokenCount(json.dumps(self.conversation_history))
+        self.estimated_tokens = self.estimate_token_count(json.dumps(self.conversation_history))
         self.audio_triggers = audio_triggers
         self.spinner = Halo(text='Processing ', spinner='dots')
         self.shell_mode = False
         self.command_register = []
 
         # initialize memory manager
-        self.memory = MemoryStore()
+        self.memory = SymMemoryStore(save_path="/tmp/symbiote_mem.json")
 
         if 'debug' in kwargs:
             self.settings['debug'] = kwargs['debug']
@@ -304,11 +302,8 @@ class symChat():
         self.history = FileHistory(history_file)
 
         # Load the default conversation
-        #self.current_conversation = self.loadConversation(self.conversations_file)
+        #self.current_conversation = self.load_conversation(self.conversations_file)
         self.current_conversation = []
-
-        # Load utils object
-        #self.utils = Utilities()
 
         # Init the shell theme manager
         self.theme_manager = ThemeManager()
@@ -331,7 +326,7 @@ class symChat():
         else:
             self.suppress = False
 
-    def displaySettings(self):
+    def display_settings(self):
         table = Table(show_header=True, expand=True, header_style="bold magenta")
         table.add_column("Key", style="cyan", no_wrap=True)
         table.add_column("Value", style="white")
@@ -341,18 +336,40 @@ class symChat():
 
         print(table)
 
-    def displayHelp(self):
+    def display_help(self):
         table = Table(show_header=True, expand=True, header_style="bold magenta")
         table.add_column("Command", style="cyan", no_wrap=True)
         table.add_column("Description", style="white")
 
-        for cmd, desc in sorted(self.command_list.items()):
+        for cmd, desc in sorted(command_list.items()):
             table.add_row(cmd, desc)
 
         print(table)
 
-    def displayConvo(self, convo=False):
-        conversations = sorted(self.getConversations(self.conversations_dir))
+        """
+        # Panel with instructions
+        panel = Panel(
+            table,
+            title="Command Help",
+            subtitle="Press 'q' or 'Escape' to exit",
+            height=console.height,
+        )
+
+        # Key bindings for prompt_toolkit
+        help_keys = KeyBindings()
+
+        @help_keys.add(Keys.Any)  # Catch any key not explicitly handled
+        def _(event):
+            event.app.exit()
+
+        help_session = PromptSession(key_bindings=help_keys)
+        with Live(panel, console=console, screen=True, refresh_per_second=10) as live:
+            user_input = help_session.prompt(key_bindings=help_keys)
+            return
+        """
+
+    def display_convo(self, convo=False):
+        conversations = sorted(self.get_conversations(self.conversations_dir))
 
         if convo:
             selected_file = convo
@@ -364,17 +381,17 @@ class symChat():
             conversations.insert(0, Choice("export", name="Export conversation."))
             convesations.insert(0, Choice("new", name="Create new conversation."))
 
-            selected_file = self.listSelector("Select a conversation:", conversations)
+            selected_file = self.list_selector("Select a conversation:", conversations)
 
         if selected_file == None:
             return
 
         if selected_file == "new":
-            selected_file = self.textPrompt("File name:")
+            selected_file = self.text_prompt("File name:")
         elif selected_file == "notes":
             selected_file = self.settings['notes']
         elif selected_file == "clear":
-            clear_file = self.listSelector("Select a conversation:", conversations)
+            clear_file = self.list_selector("Select a conversation:", conversations)
 
             clear_file = os.path.join(self.conversations_dir, clear_file)
 
@@ -385,13 +402,13 @@ class symChat():
                 log(f"Unable to clear {clear_file}")
 
             if self.settings['conversation'] == os.path.basename(clear_file):
-                self.current_conversation = self.sym.loadConversation(clear_file)
+                self.current_conversation = self.sym.load_conversation(clear_file)
 
             log(f"Conversation cleared: {clear_file}")
 
             return
         elif selected_file == "export":
-            export_file = self.listSelector("Select a conversation:", conversations)
+            export_file = self.list_selector("Select a conversation:", conversations)
 
             file_name = os.path.join(self.conversations_dir, export_file)
             self.sym.export_conversation(file_name)
@@ -406,7 +423,7 @@ class symChat():
         else:
             self.settings['conversation'] = selected_file
             self.conversations_file = os.path.join(self.conversations_dir, selected_file)
-            self.current_conversation = self.sym.loadConversation(self.conversations_file)
+            self.current_conversation = self.sym.load_conversation(self.conversations_file)
             self.convo_file = os.path.basename(self.conversations_file)
 
         log(f"Loaded conversation: {selected_file}")
@@ -424,21 +441,15 @@ class symChat():
                 log(f"No such model: {model_name}")
                 return None
         except:
-            selected_model = self.listSelector("Select a model:", sorted(model_list))
+            selected_model = self.list_selector("Select a model:", sorted(model_list))
 
         self.settings['model'] = selected_model
-        self.saveSettings()
+        self.save_settings()
 
         return None
 
-    def chat(self, *args, **kwargs):
-        # Begin symchat loop
+    def console(self, *args, **kwargs):
         #history = InMemoryHistory() 
-        if 'run' in kwargs:
-            self.run = kwargs['run']
-        else:
-            self.run = False
-
         if 'prompt_only' in kwargs:
             self.prompt_only = kwargs['prompt_only']
         else:
@@ -449,12 +460,6 @@ class symChat():
         else:
             self.suppress = False
 
-        if 'enable' in kwargs:
-            self.enable = kwargs['enable']
-            self.run = True
-        else:
-            self.enable = False
-
         if 'user_input' in kwargs:
             user_input = kwargs['user_input']
 
@@ -462,113 +467,132 @@ class symChat():
             self.working_directory = kwargs['working_directory']
             self.previous_directory = self.working_directory
             os.chdir(self.working_directory)
-      
-        self.chat_session = PromptSession(key_bindings=kb, vi_mode=self.settings['vi_mode'], history=self.history, style=self.prompt_style)
 
-        def getPrompt():
-            if self.prompt_only:
-                self.chat_session.bottom_toolbar = None
-            else:
-                self.chat_session.bottom_toolbar = f"Model: {self.settings['model']} | Role: {self.settings['role']}\nEstimated Tokens: {self.estimated_tokens} | Shell Mode: {self.shell_mode}\nMemoryStore: {sys.getsizeof(self.memory)}b"
+        kb = KeyBindings()
+        # handle control-c
+        @kb.add('c-c')
+        def handle_inturrupt():
+            log("Control-C detected.")
+            sys.exit(1)
 
+        def handle_control_c(event):
+            handle_inturrupt()
+
+        def update_toolbar():
+            tb_settings = { 
+                "Time": datetime.now().strftime("%H:%M:%S"),
+                "Model": self.settings['model'],
+                "Role": self.settings['role'],
+                "Shell": self.shell_mode
+            }
+            tb_functions = {
+                "CPU": lambda: f"{psutil.cpu_percent()}%",
+                "Memory": lambda: f"{psutil.virtual_memory().percent}%",
+            }
+
+            log_watch_file = ""
+            bottom_toolbar = sym_toolbar.render_dashboard(
+                settings=tb_settings,
+                functions=tb_functions,
+                max_lines=8,
+                tail_lines=log_watch_file,
+            )
+            return bottom_toolbar
+
+        def get_prompt():
             if self.shell_mode is True:
                 prompt_content = "shell mode> "
             else:
                 prompt_content = f"{self.settings['role'].lower()}> "
-
+            
             prompt = f"{prompt_content}"
             return prompt 
 
+        ps = PromptSession(
+            key_bindings=kb,
+            vi_mode=self.settings['vi_mode'],
+            history=self.history,
+            style=self.prompt_style,
+            enable_system_prompt=True,
+            bottom_toolbar=update_toolbar(),
+            enable_suspend=True,
+            enable_open_in_editor=False,
+            mouse_support=False,
+            )
+
         while True:
-            print()
             user_input = str()
             now = datetime.now()
             current_time = now.strftime("%H:%M:%S")
             current_date = now.strftime("%m/%d/%Y")
 
+            print("\n")
+            print(Rule(title=f"{current_date} {current_time}", style="gray54"))
+            print("\n")
+
             # Chack for a change in settings and write them
             check_settings = hash(json.dumps(self.settings, sort_keys=True)) 
 
-            self.estimated_tokens = self.estimateTokenCount(json.dumps(self.conversation_history))
+            self.estimated_tokens = self.estimate_token_count(json.dumps(self.conversation_history))
 
-            if self.settings['listen'] and self.run is False:
+            if self.settings['listen']:
                 if not hasattr(self, 'symspeech'):
-                    speech = Speech(settings=self.settings)
-                    speechQueue = Speech.start_keyword_listen()
+                    speech = SymSpeech(settings=self.settings)
+                    speechQueue = SymSpeech.start_keyword_listen()
 
-                self.spinner.start()
-                user_input = self.symspeech.keyword_listen()
-                self.spinner.succeed('Completed')
-                self.enable = True
-                self.run = True
+                user_input = self.speech.keyword_listen()
+                # Need to setup prompt passthrough options
 
             # Get the current path
             current_path = os.getcwd()
-
             # Get the home directory
             home_dir = os.path.expanduser('~')
 
             # Replace the home directory with ~
             if current_path.startswith(home_dir):
                 current_path = '~' + current_path[len(home_dir):]
+            
+            user_input = ps.prompt(
+                message=get_prompt(),
+                multiline=True,
+                default=user_input,
+                cursor=CursorShape.BLOCK,
+                rprompt="",
+                vi_mode=self.settings['vi_mode'],
+                completer=self.command_completer,
+                complete_while_typing=False,
+                refresh_interval=0.5,
+                bottom_toolbar=update_toolbar(),
+            )
 
-            if self.run is False:
-                user_input = self.chat_session.prompt(message=getPrompt(),
-                                                   multiline=True,
-                                                   default=user_input,
-                                                   cursor=CursorShape.UNDERLINE,
-                                                   rprompt="",
-                                                   vi_mode=self.settings['vi_mode'],
-                                                   completer=self.command_completer,
-                                                   complete_while_typing=False,
-                                                   refresh_interval=0.5
-                                                )
+            def not_empty(user_input):
+                if user_input is None or user_input.startswith("\n") or user_input == "":
+                    return False 
+                else:
+                    return True 
 
-            print()
-            user_input = self.processCommands(user_input)
+            # check user input for any command syntax
+            if not_empty(user_input):
+                user_input = self.process_commands(user_input)
 
             if check_settings != self.default_hash:
-                self.saveSettings()
+                self.save_settings()
                 self.default_hash = check_settings
-
-            if user_input is None or re.search(r'^\n+$', user_input) or user_input == "":
-                print()
-                print(Rule(title=f"{current_date} {current_time}", style="gray54"))
-
-                if self.run is True and self.enable is False:
-                    return None 
-                    break
-
-                self.enable = False
-                self.run = False
-                continue
-            
-            returned = self.sendMessage(user_input)
-
-            if returned is None:
                 continue
 
-            print()
-            print(Rule(title=f"{current_date} {current_time}", style="gray54"))
-            print()
+            if not_empty(user_input):
+                response = self.send_message(user_input)
 
             if self.shell_mode is True:
-                if returned.startswith("`") and returned.endswith("`"):
-                    returned = returned[1:-1]
-                print(f"{returned}\n")
-                response = self.yesNoPrompt("Execute command?")
-                if response is True:
-                    output = execCommand(returned)
+                if response.startswith("`") and response.endswith("`"):
+                    response = response[1:-1]
+
+                confirm = self.yes_no_prompt("Execute command?")
+                if confirm is True:
+                    output = self.exec_command(response)
                     print(f"\n{output}\n")
                     self.writeHistory('user', output)
                     continue
-
-            if self.enable is True:
-                self.run = False
-                self.enable = False
-
-            if self.run is True:
-                return returned
 
     def writeHistory(self, role, text):
         hist_entry = {
@@ -644,7 +668,7 @@ class symChat():
         self.suppress = False
         return response
 
-    def sendMessage(self, user_input):
+    def send_message(self, user_input):
         print()
         if self.settings['model'] is None:
             log(f"No model selected.  Issue model::")
@@ -671,23 +695,25 @@ class symChat():
 
             suffix += f"{key}: {val},"
 
-        system_prompt = f"{available_roles[current_role]}\n{suffix.strip()}"
-        self.writeHistory('system', system_prompt)
+        #system_prompt = f"{available_roles[current_role]}\n{suffix.strip()}"
+        #system_prompt = available_roles[current_role available_roles[current_role] 
+    
+        #self.writeHistory('system', system_prompt)
         self.writeHistory('user', user_input)
 
         '''
-        self.estimated_tokens = self.estimateTokenCount(json.dumps(self.conversation_history))
+        self.estimated_tokens = self.estimate_token_count(json.dumps(self.conversation_history))
         num_ctx = self.estimated_tokens + 8192
         if self.estimated_tokens > self.settings['max_tokens']:
-            self.conversation_history = self.truncateHistory(self.conversation_history, self.settings['max_tokens'])
-            self.estimated_tokens = self.estimateTokenCount(json.dumps(self.conversation_history))
+            self.conversation_history = self.truncate_history(self.conversation_history, self.settings['max_tokens'])
+            self.estimated_tokens = self.estimate_token_count(json.dumps(self.conversation_history))
             num_ctx = self.estimated_tokens + 8192
         '''
         num_ctx = self.settings['max_tokens']
 
         """ Rule of thumb character count for efficent queries """
         message = self.conversation_history
-        tlen = self.estimateTokenCount(json.dumps(message))
+        tlen = self.estimate_token_count(json.dumps(message))
         if int(tlen) >= 100000:
             log(f"High token estimate {tlen}: concider flush::")
 
@@ -710,7 +736,7 @@ class symChat():
             return None
 
         if markdown is True and streaming is True:
-           live = Live(console=console, refresh_per_second=5)
+           live = Live(console=console, screen=False, refresh_per_second=1)
            live.start()
 
         if self.settings['model'].startswith("openai"):
@@ -745,9 +771,9 @@ class symChat():
                         if chunk.choices[0].delta.content is not None:
                             response += chunk.choices[0].delta.content
                             if markdown is True:
-                                live.update(Markdown(response))
+                                live.update((response))
                             else:
-                                log(chunk.choices[0].delta.content, end='', flush=True)
+                                log(chunk.choices[0].delta.content, end='')
                 else:
                     response = stream.choices[0].message.content
                     if markdown is True:
@@ -781,7 +807,7 @@ class symChat():
                         if markdown is True:
                             live.update(Markdown(response))
                         else:
-                            print(chunk['message']['content'], end='', flush=True)
+                            print(chunk['message']['content'], end='')
                 else:
                     response = stream['message']['content']
                     if markdown is True:
@@ -813,7 +839,7 @@ class symChat():
                             if markdown is True:
                                 live.update(Markdown(response))
                             else:
-                                print(chunk.choices[0].delta.content, end='', flush=True)
+                                print(chunk.choices[0].delta.content, end='')
                 else:
                     response = stream.choices[0].message.content
                     if markdown is True:
@@ -837,15 +863,15 @@ class symChat():
 
         return response
 
-    def truncateHistory(self, history, size):
-        tokens = self.estimateTokenCount(json.dumps(history))
+    def truncate_history(self, history, size):
+        tokens = self.estimate_token_count(json.dumps(history))
         while tokens > size:
             history.pop(0)
-            tokens = self.estimateTokenCount(json.dumps(history))
+            tokens = self.estimate_token_count(json.dumps(history))
 
         return history
 
-    def processCommands(self, user_input):
+    def process_commands(self, user_input):
         def _registerCommand(command=None):
             if command is None: 
                 return None
@@ -956,9 +982,24 @@ class symChat():
 
         _registerCommand("test::")
         if user_input.startswith('test::'):
-            print(Panel(Text("hello world", justify="center"), title="test"))
+            test_text = """
+            Send funds to support@example.org
+            Visit https://example.com for more info.
+            Check the config at /etc/config/settings.ini or C:\\Windows\\System32\\drivers\\etc\\hosts.
+            Here is some JSON: {"key": "value"} or an array: [1, 2, 3].
+            IPv4: 192.168.1.1, IPv6: fe80::1ff:fe23:4567:890a, MAC: 00:1A:2B:3C:4D:5E.
+            Timestamp: 2023-11-18T12:34:56Z, Hex: 0x1A2B3C, Env: $HOME or %APPDATA%.
+            UUID: 550e8400-e29b-41d4-a716-446655440000
+            """
+
+            print(Panel(Text(test_text), title="test"))
+            time.sleep(5)
             print()
             print("[red]hello world[/red]")
+            print(test_text)
+            time.sleep(5)
+            self.display_pager(Syntax(test_text))
+
             return None
 
         _registerCommand("perifious::")
@@ -974,10 +1015,10 @@ class symChat():
         if re.search(r'^shell::', user_input):
             if self.shell_mode is False:
                 self.shell_mode = True
-                self.chat_session.style = self.theme_manager.get_theme("liveshell")
+                self.ps.style = self.theme_manager.get_theme("liveshell")
             else:
                 self.shell_mode = False
-                self.chat_session.style = self.theme_manager.get_theme(self.settings["theme"])
+                self.ps.style = self.theme_manager.get_theme(self.settings["theme"])
 
             log(f"Shell mode set: {self.shell_mode}")
 
@@ -987,7 +1028,7 @@ class symChat():
 
         _registerCommand("help::")
         if re.search(r'^help::', user_input):
-            self.displayHelp()
+            self.display_help()
             return None 
 
 
@@ -999,12 +1040,12 @@ class symChat():
 
         _registerCommand("save::")
         if re.search(r"^save::", user_input):
-            self.saveSettings()
+            self.save_settings()
             return None
 
         _registerCommand("exit::")
         if re.search(r'^exit::', user_input):
-            self.saveSettings()
+            self.save_settings()
             os.system('reset')
             sys.exit(0)
 
@@ -1025,14 +1066,14 @@ class symChat():
         clipboard_pattern = r'clipboard::|clipboard:(.*):'
         match = re.search(clipboard_pattern, user_input)
         if match:
-            import symbiote.WebCrawler as webcrawler
+            import symbiote.sym_crawler as webcrawler
             contents = clipboard.paste()
             if match.group(1):
                 sub_command = match.group(1).strip()
                 if sub_command == 'get':
                     if re.search(r'^https?://\S+', contents):
                         log(f"Fetching content from: {contents}")
-                        crawler = webcrawler.WebCrawler(browser='firefox')
+                        crawler = webcrawler.WebCrawler(browser='chrome')
                         pages = crawler.pull_website_content(url, search_term=None, crawl=False, depth=None)
                         crawler.close()
                         website_content = str()
@@ -1073,10 +1114,11 @@ class symChat():
 
         # Trigger to choose role
         _registerCommand("roles::")
-        role_pattern = r'^roles::|roles:(.*):'
+        _registerCommand("role::")
+        role_pattern = r'^roles?::|roles?:(.*):'
         match = re.search(role_pattern, user_input)
         if match:
-            importlib.reload(roles)
+            #importlib.reload(sym_roles)
             available_roles = Roles.get_roles()
 
             if match.group(1):
@@ -1091,14 +1133,14 @@ class symChat():
                     role_list.append(role_name)
 
                 print(f"Current Role: {self.settings['role']}")
-                selected_role = self.listSelector("Select a role:", sorted(role_list))
+                selected_role = self.list_selector("Select a role:", sorted(role_list))
 
                 if selected_role is None:
                     return None
 
             if selected_role in available_roles:
                 self.settings['role'] = selected_role 
-                self.saveSettings()
+                self.save_settings()
             else:
                 log(f"No such role: {selected_role}")
 
@@ -1141,9 +1183,9 @@ class symChat():
                             
                             self.geo = nomi.query_postal_code(set_value)
                     self.settings[setting] = set_value
-                    self.saveSettings()
+                    self.save_settings()
             else:
-                self.displaySettings()
+                self.display_settings()
 
             return None 
 
@@ -1167,9 +1209,9 @@ class symChat():
         if match:
             if match.group(1):
                 convo_name = match.group(1).strip()
-                self.displayConvo(convo_name) 
+                self.display_convo(convo_name) 
             else:
-                self.displayConvo()
+                self.display_convo()
         
             return None 
 
@@ -1220,7 +1262,7 @@ class symChat():
                 file_path = match.group(1)
                 screenshot_pattern = r'^screenshot$'
                 if re.search(screenshot_pattern, file_path):
-                    file_path = utils.getScreenShot()
+                    file_path = capture_screen()
                     index = True
 
             if match.group(2):
@@ -1231,7 +1273,7 @@ class symChat():
                     reindex = False
 
             if file_path is None:
-                file_path = self.displayFileBrowser()
+                file_path = self.file_browser()
 
             if file_path is None:
                 return None
@@ -1239,9 +1281,9 @@ class symChat():
             file_path = os.path.expanduser(file_path)
 
             if os.path.isfile(file_path):
-                metadata = extractMetadata(file_path)
+                metadata = extract_metadata(file_path)
                 if metadata:
-                    content = extractText(file_path)
+                    content = extract_text(file_path)
 
                 if content:
                     metadata["contents"] = content
@@ -1258,7 +1300,7 @@ class symChat():
         flush_pattern = r'^flush::'
         match = re.search(flush_pattern, user_input)
         if match:
-            self.flushHistory()
+            self.flush_history()
             return None 
 
         # Trigger for history::. Show the history of the messages.
@@ -1292,18 +1334,12 @@ class symChat():
         if match:
             log(f"Disabled...")
             return None
-            import symbiote.CodeExtract as codeextract
             codeRun = False
             if match.group(1):
                 text = match.group(1)
-                if re.search(r'^https?://\S+', text):
-                    print(f"Fetching content from: {url}")
-                    codeidentify = codeextract.CodeBlockIdentifier(website_content)
-                elif text == 'run':
-                    codeRun = True
-                else:
-                    # process any text placed in code:<text>: for extraction
-                    codeidentify = codeextract.CodeBlockIdentifier(text)
+                codeidentify = CodeIdentifier.analyze(text)
+                print(codeidentify)
+                return
             else:
                 # process the last conversation message for code to extract
                 last_message = self.conversation_history[-1]
@@ -1329,7 +1365,7 @@ class symChat():
             else:
                 pass
 
-            self.saveConversation(user_input, self.settings['notes'])
+            self.save_conversation(user_input, self.settings['notes'])
 
             return None
 
@@ -1344,9 +1380,9 @@ class symChat():
             else:
                 theme_name, prompt_style = self.theme_manager.select_theme() 
 
-            self.chat_session.style = prompt_style
+            self.ps.style = prompt_style
             self.settings['theme'] = theme_name
-            self.saveSettings()
+            self.save_settings()
 
             return None 
 
@@ -1360,17 +1396,17 @@ class symChat():
             if match.group(1):
                 file_path = match.group(1)
             else:
-                #file_path = self.fileSelector('File name:')
-                file_path = self.displayFileBrowser()
+                file_path = self.file_selector('File name:')
+                #file_path = self.file_browser()
 
-            file_path = cleanPath(file_path)
+            file_path = clean_path(file_path)
             if is_image(file_path):
-                content = utils.imageToAscii(file_path)
+                content = imageToAscii(file_path)
                 p(content)
                 return None
             elif is_url(file_path):
-                import symbiote.WebCrawler as webcrawler
-                crawler = webcrawler.WebCrawler(browser='firefox')
+                import symbiote.sym_crawler as webcrawler
+                crawler = webcrawler.WebCrawler(browser='chrome')
                 pages = crawler.pull_website_content(file_path, search_term=None, crawl=False, depth=None)
                 crawler.close()
                 if pages:
@@ -1388,7 +1424,7 @@ class symChat():
                     log(f"No content gathered for {url}")
                     return None
             else:
-                content = extractText(file_path)
+                content = extract_text(file_path)
 
             print(Panel(Markdown(content), title=f"Content: {file_path}"))
 
@@ -1403,8 +1439,8 @@ class symChat():
             if match.group(1):
                 image_path = match.group(1)
             else:
-                #image_path = self.fileSelector('Image path:')
-                image_path = self.displayFileBrowser()
+                #image_path = self.file_selector('Image path:')
+                image_path = self.file_browser()
                 image_path = os.path.expanduser(image_path)
                 image_path = os.path.abspath(image_path)
 
@@ -1427,10 +1463,10 @@ class symChat():
         if match:
             if match.group(1):
                 pattern = match.group(1)
-                result = self.findFiles(pattern)
+                result = self.find_files(pattern)
                 return None
 
-            result = self.findFiles()   
+            result = self.find_files()   
 
             return None
 
@@ -1443,8 +1479,8 @@ class symChat():
             if match.group(1):
                 file_path = match.group(1)
 
-            #file_path = self.fileSelector("File name:")
-            file_path = self.displayFileBrowser()
+            #file_path = self.file_selector("File name:")
+            file_path = self.file_browser()
             print(file_path)
 
             if file_path is None:
@@ -1453,7 +1489,7 @@ class symChat():
             file_path = os.path.expanduser(file_path)
             absolute_path = os.path.abspath(file_path)
 
-            utils.scrollContent(absolute_path)
+            scroll_content(absolute_path)
 
             return None
 
@@ -1502,43 +1538,26 @@ class symChat():
         google_pattern = r'google:(.*):'
         match = re.search(google_pattern, user_input)
         if match:
-            import symbiote.googleSearch as gs
+            from symbiote.sym_google import GoogleSearch
             if match.group(1):
                 search_term = match.group(1)
             else:
-                search_term = getDisplayText("Search term>")
+                search_term = get_display_text("Search term>")
 
-            if search_term:
-                search = gs.googleSearch()
-                links = search.fetch_links(search_term)
-                result = search.fetch_text_from_urls(links)
-                result = self.cleanText(result)
-                self.memory.create("google_command",
-                                   { "links": links,
-                                     "result": result,
-                                     "search_term": search_term
-                                    })
-
-                print(Panel(Text(result[:5000]), title=f"Search Result: {search_term}"))
-                content = str()
-                link_list = str()
-                for link in links:
-                    link_list += f"{link}\n"
-
-                print(Panel(Text(link_list.strip()), title=f"Links:"))
-
-                content = f"```Search Term: {search_term}\n{result}\n{content}\n```"
-                content += f"```Link Results\n{link_list}\n```"
-
-                if _checkCommand(user_input) is None:
-                    log(f"Results written to history")
-                    self.writeHistory("user", content)
-                    return None
-
-                user_input = user_input[:match.start()] + content + user_input[match.end():]
-                return user_input
-            else:
+            if not search_term:
                 log("No search term provided.")
+                return None
+            else:
+                search = GoogleSearch()
+                search_results = search.google_search(search_term)
+                search.display_google_search_results(search_results)
+                self.memory.create(
+                        "google_command",
+                        search_results
+                    )
+
+
+                log(f"Results saved to memory key:google_")
                 return None
 
         # Trigger for define::
@@ -1610,9 +1629,9 @@ class symChat():
         if match:
             if match.group(1):
                 url = match.group(1)
-                self.openW3m(url)
+                self.open_w3m(url)
             else:
-                self.openW3m()
+                self.open_w3m()
 
             return None
 
@@ -1623,7 +1642,7 @@ class symChat():
         if match:
             if match.group(1):
                 url = match.group(1)
-                self.urlImageExtract(url)
+                self.url_image_extract(url)
             else:
                 log('No url specified.')
 
@@ -1636,7 +1655,7 @@ class symChat():
         if match:
             if match.group(1):
                 content = match.group(1)
-                self.generateQr(content)
+                self.generate_qr(content)
             else:
                 log("No content provided for the qr.")
 
@@ -1656,7 +1675,7 @@ class symChat():
                 log("No location set in settings::")
                 return None
 
-            result = self.getWeather(location)
+            result = self.get_weather(location)
 
             if result is None:
                 log(f"Unable to get weather for {location}")
@@ -1685,7 +1704,7 @@ class symChat():
                 obj = match.group(1)
             else:
                 all_objs = list({**globals(), **locals()}.keys())
-                obj = self.listSelector("Objects:", all_objs)
+                obj = self.list_selector("Objects:", all_objs)
 
             if obj:
                 inspector = Inspect(obj)
@@ -1704,7 +1723,7 @@ class symChat():
 
             return None
 
-        # Trigger for memget:: management
+            # Trigger for memget:: management
         _registerCommand("memget::")
         memget_pattern = r"memget::|memget:(.*):"
         match = re.search(memget_pattern, user_input)
@@ -1713,7 +1732,7 @@ class symChat():
             if match.group(1):
                 getobj = match.group(1)
             else:
-                getobj = self.textPrompt("Object>") 
+                getobj = self.text_prompt("Object>") 
 
             if getobj is None or getobj == "":
                 log(f"Empty object requeted.")
@@ -1749,7 +1768,7 @@ class symChat():
             if match.group(1):
                 info = match.group(1)
 
-            instpect(self.memory)
+            inspect(self.memory)
             return None
 
         # Trigger for search:: on memory 
@@ -1760,9 +1779,9 @@ class symChat():
             if match.group(1):
                 search_term = match.group(1)
             else:
-                search_term = self.textPrompt("Search term|regex>") 
+                search_term = self.text_prompt("Search term|regex>") 
 
-            text_result = self.getSearchResults(search_term)
+            text_result = self.get_search_results(search_term)
 
             if text_result:
                 self.memory.create("search_command", text_result)
@@ -1777,7 +1796,6 @@ class symChat():
 
             return None
 
-
         # Trigger for file:: processing. Load file content into user_input for ai consumption.
         # file:: - opens file or directory to be pulled into the conversation
         _registerCommand("file::")
@@ -1785,10 +1803,13 @@ class symChat():
         match = re.search(file_pattern, user_input)
         if match: 
             file_path = None
+            content = None
+            metadata = None
             if match.group(1):
                 file_path = match.group(1)
             else:
-                file_path = self.displayFileBrowser()
+                #file_path = self.file_browser()
+                file_path = self.file_selector('File name:')
 
             if file_path is None:
                 log(f"No such file or directory: {file_path}")
@@ -1797,41 +1818,42 @@ class symChat():
             file_path = os.path.abspath(os.path.expanduser(file_path))
 
             if os.path.isfile(file_path):
-                content = extractText(file_path)
-                metadata = extractMetadata(file_path)
+                content = extract_text(file_path)
+                metadata = extract_metadata(file_path)
+                ci = CodeIdentifier()
+                code_check = ci.analyze(content)
+                metadata["is_code_file"] = code_check["is_code_file"]
+                metadata["contains_code"] = code_check["contains_code"]
 
                 if metadata:
                     self.memory.create("file_command_metadata", metadata)
+                    metadata["readable_strings"] = str(len(metadata["readable_strings"]))
+                    self.display_object(metadata)
+                    log(f"memory key created: file_command_metadataa")
 
                 if content:
-                    display = Markdown(content)
-                    print(Panel(display, title=f"Content: {file_path}"))
                     self.memory.create("file_command_content", content)
+                    log(f"memory key created: file_command_content")
 
-                    if _checkCommand(user_input) is None:
-                        log(f"Results written to history")
-                        self.writeHistory('user', f"file name: {file_path}\n" + content)
-                        return None
-
-                    file_content = f'\n```file name: {file_path}\n{content}\n```\n'
-                    user_input = user_input[:match.start()] + file_content + user_input[match.end():]
-                    return user_input
-                else:
-                    log(f"File returned empty content.")
+                if _checkCommand(user_input) is None:
+                    #print(Panel(displayed, title=f"File: {file_path}"))
                     return None
+
+                file_content = f'\n```file name: {file_path}\n{content}\n```\n'
+                user_input = user_input[:match.start()] + file_content + user_input[match.end():]
+                return user_input
 
             elif os.path.isdir(file_path):
                 log(f"Directory crawling is temporarily disabled due to memory consumption.")
                 return None
                 '''
-                content = utils.extractDirText(file_path)
+                content = extractDirText(file_path)
                 if content is None:
                     log(f"No content found in directory: {file_path}")
                     return None
                 print(Panel(display, title=f"Content: {file_path}"))
                 user_input = user_input[:match.start()] + dir_content + user_input[match.end():]
                 '''
-
             return None
 
         # Trigger image:: execution for AI image generation
@@ -1841,7 +1863,7 @@ class symChat():
         if match:
             if match.group(1):
                 query = match.group(1)
-                self.fluxImageGenerator(query)
+                self.flux_image_generator(query)
             else:
                 log(f"No image description provided.")
 
@@ -1854,7 +1876,7 @@ class symChat():
         if match:
             if match.group(1):
                 command = match.group(1)
-                result = execCommand(command)
+                result = self.exec_command(command)
 
                 if result:
                     self.memory.create("exec_command", result)
@@ -1878,8 +1900,8 @@ class symChat():
         getip_pattern = r'getip::'
         match = re.search(getip_pattern, user_input)
         if match:
-            ipinfo = self.getIp()
-            report = self.ifaceReport(ipinfo)
+            ipinfo = self.get_network_data()
+            report = self.iface_report(ipinfo)
             self.memory.create("getip_command", report)
 
             print(Panel(Text(report), title=f"Network Info:"))
@@ -1906,16 +1928,14 @@ class symChat():
             if match.group(1):
                 url = match.group(1)
             else:
-                url = self.textPrompt("URL to load:")
-            
+                url = self.text_prompt("URL to load:")
             if url is None:
                 log(f"No URL given: {url}")
                 return None 
 
-            
             log(f"Fetching {url}.")
-            import symbiote.WebCrawler as webcrawler
-            crawler = webcrawler.WebCrawler(browser='firefox')
+            import symbiote.sym_crawler as webcrawler
+            crawler = webcrawler.WebCrawler(browser='chrome')
             pages = crawler.pull_website_content(url, search_term=None, crawl=crawl, depth=None)
             crawler.close()
 
@@ -1942,13 +1962,17 @@ class symChat():
                                 "css": css,
                                 "scripts": script
                                 })
-
-            content = self.cleanText(content)
-            css = self.cleanText(css)
-            script = self.cleanText(script)
-
+            content = self.clean_text(content)
+            css = self.clean_text(css)
+            script = self.clean_text(script)
+            #self.web_data_stats(self.memory.read("get_command"))
+            self.display_object(self.memory.read("get_command"))
+            """
+            print(Panel(Text(f"Content: {url}")))
+            print(Text(content[:1000]))
+            print(Panel(Text(f"footer info)")))
+            """
             '''
-            print(Panel(Text(content[:1000]), title=f"Content: {url}"))
             if css:
                 print(Panel(Text(css[:1000]), title=f"CSS: {url}"))
             if script:
@@ -1976,7 +2000,7 @@ class symChat():
             if match.group(1):
                 data = match.group(1)
             else:
-                data = self.textPrompt("URL or text to analyze:")
+                data = self.text_prompt("URL or text to analyze:")
 
             if data is None:
                 log(f"No data provided.")
@@ -2011,7 +2035,7 @@ class symChat():
             if match.group(1):
                 yt_url = match.group(1)
             else:
-                yt_url = self.textPrompt("Youtube URL:")
+                yt_url = self.text_prompt("Youtube URL:")
 
             if yt_url == None:
                 log(f"No transciprts url set.")
@@ -2039,11 +2063,11 @@ class symChat():
             if match.group(1):
                 url = match.group(1)
             else:
-                url = self.textPrompt("URL to scan:")
+                url = self.text_prompt("URL to scan:")
 
             if is_url(url):
                 import symbiote.WebVulnerabilityScan as web_vuln
-                scanner = web_vuln.SecurityScanner(headless=True, browser='firefox')
+                scanner = web_vuln.SecurityScanner(headless=True, browser='chrome')
                 scanner.scan(url)
                 report = scanner.generate_report()
                 self.memory.create("vscan_command", report)
@@ -2066,7 +2090,7 @@ class symChat():
             if match.group(1):
                 analysis_src = match.group(1)
             else:
-                analysis_src = self.textPrompt("Text or URL:")
+                analysis_src = self.text_prompt("Text or URL:")
 
             if analysis_src == None:
                 log("No content to analyze.")
@@ -2104,13 +2128,13 @@ class symChat():
             if match.group(1):
                 url = match.group(1)
             else:
-                url = self.textPrompt("URL to load:")
+                url = self.text_prompt("URL to load:")
             
             if url == None:
                 log(f"No URL specified.")
                 return None 
 
-            crawler = webcrawler.WebCrawler(browser='firefox')
+            crawler = webcrawler.WebCrawler(browser='chrome')
             self.spinner.start()
             pages = crawler.pull_website_content(url, search_term=None, crawl=crawl, depth=None)
             crawler.close()
@@ -2124,15 +2148,16 @@ class symChat():
 
         return user_input
 
-    def saveSettings(self):
+    def save_settings(self):
         try:
             with open(self.config_file, "w") as file:
                 json.dump(self.settings, file, indent=4, sort_keys=True)
         except Exception as e:
             log(f"Error Writing: {e}")
-            return None
 
-    def loadSettings(self):
+        return None
+
+    def load_settings(self):
         try:
             with open(self.config_file, "r") as file:
                 settings = json.load(file)
@@ -2144,12 +2169,12 @@ class symChat():
 
         return settings
 
-    def createDialog(self, title, text):
+    def create_dialog(self, title, text):
         message_dialog(
             title=title,
             text=text).run()
 
-    def fileSelector(self, message, start_path='./'):
+    def file_selector(self, message, start_path='./'):
         result = inquirer.filepath(
                 message=message,
                 default=start_path,
@@ -2159,25 +2184,25 @@ class symChat():
             ).execute()
         return result
 
-    def listSelector(self, message, selection):
+    def list_selector(self, message, selection):
         result = inquirer.select(
                 message=message,
                 choices=selection,
                 mandatory=False).execute()
         return result 
 
-    def textPrompt(self, message):
+    def text_prompt(self, message):
         result = inquirer.text(
                 message=message,
                 mandatory=False,
             ).execute()
         return result
 
-    def yesNoPrompt(self, question="Continue?"):
+    def yes_no_prompt(self, question="Continue?"):
         answer = inquirer.confirm(message=question, default=False).execute()
         return answer
             
-    def findFiles(self, pattern=None):
+    def find_files(self, pattern=None):
         # Recursively get a list of all files from the current directory
         all_files = []
         for root, dirs, files in os.walk('.'):
@@ -2197,7 +2222,7 @@ class symChat():
                     matching_files.append(file)
 
             if len(matching_files) > 0:
-                selected_file = self.listSelector("Matching files:", sorted(matching_files))
+                selected_file = self.list_selector("Matching files:", sorted(matching_files))
                 return selected_file
             else:
                 log(f"No matching file found for: {pattern}")
@@ -2206,7 +2231,8 @@ class symChat():
         except re.error:
             log("Invalid regex pattern!")
 
-    def loadConversation(self):
+    def load_conversation(self):
+        return
         self.conversations_file = conversations_file
         data = []
 
@@ -2222,7 +2248,7 @@ class symChat():
 
         return data
 
-    def saveConversation(self, role, text):
+    def save_conversation(self, role, text):
         ''' Save conversation output to loaded conversation file '''
         json_conv = {
                 "epoch": time.time(),
@@ -2236,7 +2262,7 @@ class symChat():
             #json.dump(data, file, indent=2)
             file.write(jsonl_string + "\n")
 
-    def estimateTokenCount(self, text):
+    def estimate_token_count(self, text):
         """
         1,000 tokens	 4,000 characters	    Short queries or summaries, single-topic prompts, or brief Q&A.
         2,400 tokens	 9,600 characters	    Small documents, single-page summaries, basic explanations.
@@ -2253,13 +2279,10 @@ class symChat():
         token_count = len(text)
         return round(token_count)
 
-    def cleanText(self, text):
+    def clean_text(self, text):
         # Remove leading and trailing whitespace
         text = text.strip()
 
-        # Replace multiple spaces with a single space
-        text = re.sub(r' +', ' ', text)
-        text = re.sub(r'\n+', '\n', text)
 
         # Remove any non-ASCII characters (optional, based on your needs)
         text = re.sub(r'[^\x00-\x7F]+', '', text)
@@ -2277,21 +2300,25 @@ class symChat():
         # Further replace double punctuation (optional)
         text = re.sub(r'\.{2,}', '.', text)  # Replace multiple dots with a single dot
 
+        # Replace multiple spaces with a single space
+        text = re.sub(r' +', ' ', text)
+        text = re.sub(r'\n+', '\n', text)
+
         #text = text.lower()
 
         return text
 
-    def imageBase64(self, image_path):
+    def image_to_base64(self, image_path):
         # Open the image
         try:
             with Image.open(image_path) as img:
                 # Convert to PNG format if not already in JPEG, JPG, or PNG
                 if img.format not in ['JPEG', 'JPG', 'PNG']:
-                    with io.BytesIO() as output:
+                    with BytesIO() as output:
                         img.save(output, format="PNG")
                         png_data = output.getvalue()
                 else:
-                    with io.BytesIO() as output:
+                    with BytesIO() as output:
                         img.save(output, format=img.format)
                         png_data = output.getvalue()
 
@@ -2301,9 +2328,9 @@ class symChat():
             log(f"Error processing image: {e}")
             return None
 
-    def describeImage(self, image_path):
+    def describe_image(self, image_path):
         try:
-            encoded_image = self.imageBase64(image_path)
+            encoded_image = self.image_to_base64(image_path)
         except:
             return None
 
@@ -2322,7 +2349,7 @@ class symChat():
             log(f"Error processing image: {e}")
             return None
 
-    def pythonTool(self, code):
+    def python_tool(self, code):
         # Start the Python subprocess in interactive mode
         python_interpreter = sys.executable 
         child = pexpect.spawn(python_interpreter, ['-i'], encoding='utf-8')
@@ -2374,7 +2401,7 @@ class symChat():
 
         return interaction_log.strip()
 
-    def fluxImageGenerator(self, query_text):
+    def flux_image_generator(self, query_text):
         self.spinner.start()
         # Get the API key from environment variables
         api_key = os.getenv("HUGGINGFACE_API_KEY")
@@ -2392,13 +2419,13 @@ class symChat():
         })
 
         # You can access the image with PIL.Image for example
-        image = Image.open(io.BytesIO(image_bytes))
+        image = Image.open(BytesIO(image_bytes))
         self.spinner.succeed('Completed')
 
         # Open the image for viewing
         image.show()
 
-    def generateQr(self, text: str, center_color: str = "#00FF00", outer_color: str = "#0000FF", back_color: str = "black", dot_size: int = 10, border_size: int = 10):
+    def generate_qr(self, text: str, center_color: str = "#00FF00", outer_color: str = "#0000FF", back_color: str = "black", dot_size: int = 10, border_size: int = 10):
         # Create a QR code object
         qr = qrcode.QRCode(
             version=1,
@@ -2457,7 +2484,7 @@ class symChat():
         # Display the image
         img.show()
 
-    def openW3m(self, website_url='https://google.com'):
+    def open_w3m(self, website_url='https://google.com'):
         try:
             subprocess.run(['w3m', website_url])
         except FileNotFoundError:
@@ -2465,7 +2492,7 @@ class symChat():
         except Exception as e:
             log(f"An error occurred: {e}")
 
-    def urlImageExtract(self, url, mode='merged', images_per_row=3):
+    def url_image_extract(self, url, mode='merged', images_per_row=3):
         # Send a request to the URL
         response = requests.get(url)
 
@@ -2532,7 +2559,7 @@ class symChat():
             for img in images:
                 img.show()
 
-    def displayFileBrowser(self):
+    def file_browser(self):
         """Terminal-based file browser using prompt_toolkit to navigate and select files."""
         current_path = Path.home()  # Start in the user's home directory
         #current_path = Path.cwd()
@@ -2544,7 +2571,7 @@ class symChat():
         terminal_height = int(os.get_terminal_size().lines)
         max_display_lines = terminal_height - 4  # Reduce by 2 for header and footer lines
 
-        def updateFileList():
+        def update_file_list():
             """Update the list of files in the current directory, with '..' as the first entry to go up."""
             nonlocal files, selected_index, scroll_offset
             # List current directory contents and insert '..' at the top for navigating up
@@ -2556,7 +2583,7 @@ class symChat():
             selected_index = 0
             scroll_offset = 0
 
-        def getDisplayText():
+        def get_display_text():
             """Display text for the current directory contents with the selected item highlighted."""
             text = []
             visible_files = files[scroll_offset:scroll_offset + max_display_lines]
@@ -2574,13 +2601,13 @@ class symChat():
             return text
 
         # Initialize file list with the home directory contents
-        updateFileList()
+        update_file_list()
 
         # Key bindings
         kb = KeyBindings()
 
         @kb.add("up")
-        def moveUp(event):
+        def move_up(event):
             nonlocal selected_index, scroll_offset
             selected_index = (selected_index - 1) % len(files)
             # Scroll up if the selection goes above the visible area
@@ -2588,7 +2615,7 @@ class symChat():
                 scroll_offset = max(0, scroll_offset - 1)
 
         @kb.add("down")
-        def moveDown(event):
+        def move_down(event):
             nonlocal selected_index, scroll_offset
             selected_index = (selected_index + 1) % len(files)
             # Scroll down if the selection goes beyond the visible area
@@ -2596,36 +2623,36 @@ class symChat():
                 scroll_offset = min(len(files) - max_display_lines, scroll_offset + 1)
 
         @kb.add("enter")
-        def enterDirectory(event):
+        def enter_directory(event):
             nonlocal current_path
             selected_file = files[selected_index]
 
             if selected_file == "..":
                 # Move up to the parent directory
                 current_path = current_path.parent
-                updateFileList()
+                update_file_list()
             elif isinstance(selected_file, Path) and selected_file.is_dir():
                 # Enter the selected directory
                 current_path = selected_file
-                updateFileList()
+                update_file_list()
             elif isinstance(selected_file, Path) and selected_file.is_file():
                 # Select the file and exit
                 event.app.exit(result=str(selected_file))  # Return the file path as a string
 
         @kb.add("escape")
-        def cancelSelection(event):
+        def cancel_selection(event):
             event.app.exit(result=None)  # Exit with None if canceled
 
         @kb.add("c-h")
-        def toggleHidden(event):
+        def toggle_hidden(event):
             """Toggle the visibility of hidden files."""
             nonlocal show_hidden
             show_hidden = not show_hidden
-            updateFileList()
+            update_file_list()
 
         # Layout with footer for shortcut hint
         header_window = Frame(Window(FormattedTextControl(lambda: f"Current Directory: {current_path}"), height=1))
-        file_list_window = Window(content=FormattedTextControl(getDisplayText), wrap_lines=False, height=max_display_lines)
+        file_list_window = Window(content=FormattedTextControl(get_display_text), wrap_lines=False, height=max_display_lines)
         footer_window = Window(content=FormattedTextControl(lambda: "Press Ctrl-H to show/hide hidden files. Escape to exit."), height=1, style="grey")
 
         layout = Layout(HSplit([
@@ -2640,12 +2667,13 @@ class symChat():
         # Run the application and return the selected file path (or None if canceled)
         return app.run()
 
-    def flushHistory(self):
+    def flush_history(self):
         self.conversation_history = []
         self.current_conversation = []
+        return
 
 
-    def getConversations(self, path):
+    def get_conversations(self, path):
         files = os.listdir(path)
         if not files:
             log("No conversations found.")
@@ -2657,7 +2685,7 @@ class symChat():
 
         return conversations
 
-    def displayPager(self, text):
+    def display_pager(self, text):
         search_field = SearchToolbar()
 
         output_field = TextArea(
@@ -2689,7 +2717,7 @@ class symChat():
 
         return app.run()
 
-    def getWeather(self, location="33004"):
+    def get_weather(self, location="33004"):
         text = None 
         try:
             # Format the URL for wttr.in with the specified location
@@ -2706,7 +2734,7 @@ class symChat():
 
         return text
 
-    def getIp(self):
+    def get_network_data(self):
         import netifaces
         import dns.resolver
         network_info = {
@@ -2784,7 +2812,7 @@ class symChat():
 
         return network_info
 
-    def ifaceReport(self, network_info):
+    def iface_report(self, network_info):
         report = []
         report.append("Network Information\n" + "="*20)
 
@@ -2853,25 +2881,7 @@ class symChat():
         # Join the report list into a single string
         return "\n".join(report)
 
-    def getSearchResults(self, search_term=None):
-        def _highlight(content, search_term, search_for, search_pattern):
-            if isinstance(search_for, re.Pattern):
-                highlighted_text = re.sub(
-                    search_pattern,
-                    f"[bold bright_green]\\g<0>[/bold bright_green]",
-                    content,
-                    flags=re.IGNORECASE
-                )
-            else:
-                highlighted_text = re.sub(
-                    re.escape(search_for),
-                    f"[bold bright_green]{search_term}[/bold bright_green]",
-                    content,
-                    flags=re.IGNORECASE
-                )
-
-            return highlighted_text
-
+    def get_search_results(self, search_term=None):
         search_pattern = ""
         if search_term.startswith("/") and search_term.endswith("/"):
             search_pattern = rf"{search_term[1:-1]}" 
@@ -2891,6 +2901,7 @@ class symChat():
         json_results = []
         if results:
             snips_get = {} 
+            parent = []
             for idx, result in enumerate(results):
                 if re.search(r"\[\d+\]$", result['key']):
                     new_key = re.sub(r"\[\d+\]", "", result['key'])
@@ -2908,7 +2919,6 @@ class symChat():
                         })
                     continue
 
-
                 result_entry = {
                     "search_term": search_term,
                     "key": result['key'],
@@ -2917,37 +2927,262 @@ class symChat():
                     "snippets": []  # This will hold each highlighted snippet
                 }
 
-                parent = []
                 header_text = Text.from_markup(
-                    f"[bold bright_cyan]Key:[/bold bright_cyan] {_highlight(result['key'], search_term, search_for, search_pattern)}\n"
-                    f"[bold bright_cyan]Parent:[/bold bright_cyan] {_highlight(result['parent'], search_term, search_for, search_pattern)}\n"
-                    f"[bold bright_cyan]Type:[/bold bright_cyan] {_highlight(result['type'], search_term, search_for, search_pattern)}()\n"
+                    f"[bold bright_cyan]Key:[/bold bright_cyan] {result['key']}\n"
+                    f"[bold bright_cyan]Parent:[/bold bright_cyan] {result['parent']}\n"
+                    f"[bold bright_cyan]Type:[/bold bright_cyan] {result['type']}()\n"
                     f"[bold bright_cyan]Matched:[/bold bright_cyan] {search_term}"
                     )
                 parent.append(header_text)
+                print(header_text)
 
                 # Loop through each snippet in the result
                 for idx, snip in enumerate(result['snippets']):
                     parent.append(Text())
                     snip = escape(snip.strip())
                     if len(snip) > 0:
-                        highlighted_text = _highlight(snip, search_term, search_for, search_pattern)
+                        if isinstance(search_for, re.Pattern):
+                            highlighted_text = re.sub(
+                                search_pattern,
+                                f"[bold bright_green]\\g<0>[/bold bright_green]",
+                                snip,
+                                flags=re.IGNORECASE
+                            )
+                        else:
+                            highlighted_text = re.sub(
+                                re.escape(search_for),
+                                f"[bold bright_green]{search_term}[/bold bright_green]",
+                                snip,
+                                flags=re.IGNORECASE
+                            )
 
                         snippet = Text.from_markup(f"{highlighted_text.strip()}") 
                         parent.append(Padding(snippet, (1, 0, 1, 4), style="on grey15"))
-                        parent.append(Text())
 
                         result_entry["snippets"].append(snip)
 
-                    parent.pop() 
-
-                panel_group = Group(*parent)
-                print(Panel(panel_group, title=f"Key: {result['key']}", padding=(1, 2)))
-
                 json_results.append(result_entry)
+                parent.append(Text())
+                #parent.append(print(Panel(, title=f"Key: {result['key']}", padding=(1, 2))))
+            panel_group = Group(*parent)
+            print(Panel(panel_group))
         else:
-            console.log(f"No results for: {search_term}")
+            log(f"No results for: {search_term}")
             return None
 
         return escape(json.dumps(json_results, indent=4)) 
+
+    def exec_command(self, command):
+        try:
+            process = subprocess.Popen(command, shell=True, text=True,
+            stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            stdout, stderr = process.communicate()
+            output = stdout + stderr
+        except KeyboardInterrupt:
+            log("\nCommand interrupted by Control-C.", flush=True)
+            if process:
+                process.terminate()
+                process.wait()
+        except subprocess.CalledProcessError as e:
+            output = e.stdout + e.stderr if e.stdout or e.stderr else "Command exited with a status other than 0."
+
+            return output.strip()
+
+    def web_data_stats(self, data):
+        content = data.get("content", "")
+        console.clear()
+        
+        words = content.split()
+        word_count = len(words)
+        char_count = len(content)
+        line_count = content.count('\n') + 1
+
+        links = data.get("links", [])
+        links_list = []
+        for link in links:
+            if re.search(r'^https?://\S+', link):
+                domain = link.split("/")[2]
+                links_list.append(domain)
+        domains = set(links_list)
+
+        css_files = data.get("css", [])
+        css_size = sum(len(css) for css in css_files)
+
+        scripts = data.get("scripts", [])
+        script_size = sum(len(script) for script in scripts)
+
+        coll = []
+        header = Panel(
+            Text("Dashboard: Website Analysis", justify="center", style="cyan"),
+            style=""
+        )
+        print(header)
+        coll.append(header)
+
+        content_table = Table.grid(expand=True )
+        content_table.add_column(justify="left", no_wrap=True)
+        content_table.add_row("[bold]Words:[/bold] ", f"{word_count}")
+        content_table.add_row("[bold]Characters:[/bold] ", f"{char_count}")
+        content_table.add_row("[bold]Lines:[/bold] ", f"{line_count}")
+
+        content_panel = Panel(content_table, title="[bold magenta]Content Stats[/bold magenta]")
+        print(content_panel)
+        coll.append(content_panel)
+
+        links_table = Table.grid(expand=True)
+        links_table.add_column(justify="left")
+        links_table.add_row("[bold]Total Links:[/bold] ", f"{len(links)}")
+        links_table.add_row("[bold]Unique Domains:[/bold] ", ", ".join(domains) or "None")
+
+        links_panel = Panel(links_table, title="[bold yellow]Links Stats[/bold yellow]")
+        print(links_panel)
+        coll.append(links_panel)
+
+        css_table = Table.grid(expand=True)
+        css_table.add_column(justify="left")
+        css_table.add_row("[bold]CSS Files:[/bold] ", f"{len(css_files)}")
+        css_table.add_row("[bold]Total Size:[/bold] ", f"{css_size / 1024:.2f} KB")
+
+        css_panel = Panel(css_table, title="[bold green]CSS Stats[/bold green]")
+        print(css_panel)
+        coll.append(css_panel)
+
+        scripts_table = Table.grid(expand=True)
+        scripts_table.add_column(justify="left")
+        scripts_table.add_row("[bold]JS Files:[/bold] ", f"{len(scripts)}")
+        scripts_table.add_row("[bold]Total Size:[/bold] ", f"{script_size / 1024:.2f} KB")
+
+        scripts_panel = Panel(scripts_table, title="[bold blue]Scripts Stats[/bold blue]")
+        print(scripts_panel)
+        coll.append(scripts_panel)
+
+        layout = Table.grid(expand=True, padding=(0, 0))
+        layout.add_column(ratio=1)
+        layout.add_column(ratio=2)
+        layout.add_column(ratio=1)
+        footer = Panel(
+            Text("Web Stats", justify="center", style=""),
+            style=""
+        )
+        layout.add_row(header, header, header)  # Header spans all columns
+        layout.add_row(content_panel, links_panel, css_panel)  # Main panels
+        layout.add_row(scripts_panel, footer, footer)  # Footer spans columns
+        
+        container = Panel(layout)
+        coll.append(footer)
+        print(layout)
+
+    def display_metadata(self, metadata):
+        def render_hashes(hashes):
+            table = Table(show_header=False, header_style="", expand=True)
+            table.add_column("Algorithm", justify="right")
+            table.add_column("Value", justify="left")
+            for key, value in hashes.items():
+                table.add_row(key, value)
+            return table
+
+        def render_urls(urls):
+            table = Table(show_header=False, header_style="", expand=True)
+            table.add_column("URL", justify="left")
+            for url in urls:
+                table.add_row(url)
+            return table
+
+        def render_exif(exif):
+            table = Table(show_header=False, header_style="", expand=True)
+            table.add_column("Key", ratio=1, justify="right")
+            table.add_column("Value", ratio=4, justify="left")
+            for key, value in exif.items():
+                table.add_row(key, str(value))
+            return table
+
+        table = Table(show_header=False, box=None, expand=True, header_style="bold", title="File Information")
+        table.add_column("Key", justify="right", style="gold1")
+        table.add_column("Value", justify="left")
+
+        for key, value in metadata.items():
+            if key == "hashes":
+                value = render_hashes(value)
+            elif key == "embedded_urls":
+                value = render_urls(value)
+            elif key == "exif":
+                value = render_exif(value)
+            elif key == "readable_strings":
+                value = str(len(value))
+            elif key == "is_code":
+                value = str(value)
+            else:
+                value = str(value) if value is not None else "None"
+
+            table.add_row(key, value)
+
+        terminal_width = console.width
+        table_width = max(len(line) for line in str(table).split("\n"))
+        padding = (terminal_width - table_width) // 2
+
+        console.print(" " * padding, table)
+
+    def display_object(self, data):
+        """
+        Render a table for the given dictionary or list.
+        """
+        def render_dict(d):
+            """
+            Render a dictionary as a table.
+            """
+            table = Table(show_header=False, expand=True)
+            table.add_column("Key", ratio=1, justify="right", style="gold1")
+            table.add_column("Value", ratio=4, justify="left")
+
+            for key, value in d.items():
+                value = render_value(value)
+                table.add_row(key, value)
+            return table
+
+        def render_list(lst):
+            """
+            Render a list as a table.
+            """
+            table = Table(show_header=False, expand=True)
+            table.add_column("Index", ratio=1, justify="right", style="gold1")
+            table.add_column("Value", ratio=4, justify="left")
+
+            for idx, value in enumerate(lst):
+                value = render_value(value)
+                table.add_row(str(idx), value)
+            return table
+
+        def render_value(value):
+            """
+            Render a value, handling nested dictionaries, lists, and other types.
+            """
+            if isinstance(value, dict):
+                return render_dict(value)
+            elif isinstance(value, list):
+                truncated_list = value[:20]
+                return render_list(truncated_list)
+                #return render_list(value)
+            elif isinstance(value, str):
+                return value[:1000] + "..." if len(value) > 1000 else value
+            elif value is None:
+                return "None"
+            else:
+                return str(value)
+
+        # Decide what to render based on the type of the input data
+        if isinstance(data, dict):
+            table = render_dict(data)
+        elif isinstance(data, list):
+            table = render_list(data)
+        else:
+            raise TypeError("Input must be a dictionary or a list.")
+
+        # Center the table in the terminal
+        terminal_width = console.width
+        table_width = max(len(line) for line in str(table).split("\n"))
+        padding = (terminal_width - table_width) // 2
+        table.box = None
+
+        # Print the table
+        console.print(" " * padding, table)
 

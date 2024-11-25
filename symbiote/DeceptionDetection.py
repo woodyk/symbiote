@@ -1,6 +1,118 @@
 #!/usr/bin/env python3
 #
 # DeceptionDetection.py
+"""
+Project Overview:
+The `DeceptionDetection.py` script is a sophisticated tool designed to analyze 
+text or URLs for potential indicators of deception. This solution leverages 
+Natural Language Processing (NLP), statistical analysis, and machine learning 
+techniques to identify linguistic, emotional, and syntactic patterns commonly 
+associated with deceptive behavior. It offers a detailed and holistic analysis 
+of input text or web-based content.
+
+Purpose and Goals:
+- To detect and quantify deception in written communication using evidence-based 
+  linguistic markers and statistical features.
+- To provide interpretability by generating a detailed explanation of the 
+  deception score based on multiple analysis dimensions.
+- To facilitate extensibility for future research or real-world applications 
+  in domains like security, journalism, or fraud detection.
+
+Key Features:
+1. **Deception Pattern Recognition**:
+   - A comprehensive set of regex-based deception patterns including:
+     - Hedging statements, verbal fillers, and certainty words.
+     - Non-contracted denials and overly formal language.
+     - Chronological storytelling and excessive detail.
+     - Linguistic minimization, repetition, and negations.
+   - These patterns are aggregated into scores reflecting their frequency and 
+     impact on the overall deception score.
+
+2. **Sentiment and Emotional Analysis**:
+   - Leverages Hugging Face Transformers for sentiment analysis and emotion 
+     classification.
+   - Identifies sentiment shifts and emotional inconsistencies in the text to 
+     assess narrative reliability.
+
+3. **Linguistic and Syntactic Features**:
+   - Evaluates lexical diversity, syntactic complexity, passive voice usage, 
+     and modal verb frequency.
+   - Combines these linguistic markers to quantify how text complexity relates 
+     to potential deception.
+
+4. **Anomaly Detection**:
+   - Uses statistical techniques like Isolation Forest and Z-Score to identify 
+     anomalies in sentence structure and length.
+   - Detects outlier sentences that may signal fabricated or deceptive content.
+
+5. **Readability Scoring**:
+   - Employs Flesch-Kincaid grade level to measure text readability and normalize 
+     its contribution to the deception score.
+
+6. **Integration with Web Content**:
+   - Processes both plain text and web pages by extracting visible content using 
+     BeautifulSoup.
+   - Can analyze URLs directly, making it versatile for news, social media, 
+     and other web-based text sources.
+
+7. **Comprehensive Scoring and Explanation**:
+   - Generates a deception score by combining multiple dimensions:
+     - Readability, tone variability, linguistic complexity, emotional patterns, 
+       and deception markers.
+   - Provides an interpretive explanation for each contributing factor, offering 
+     transparency and insight into the analysis.
+
+Methodologies:
+- **NLP Pipelines**: Utilizes Hugging Face Transformers for sentiment and emotion 
+  analysis, and NLTK for tokenization and linguistic feature extraction.
+- **Regex-Based Detection**: Patterns are implemented to capture behavioral and 
+  linguistic markers of deception.
+- **Statistical Modeling**: Applies machine learning techniques (e.g., Isolation 
+  Forest) and statistical scores (e.g., Z-Score) for anomaly detection.
+- **Contextual Scoring**: Combines individual feature scores with weighted 
+  contributions to calculate the overall deception score.
+
+Extensibility:
+- Adding New Deception Patterns:
+  - Define new regex patterns and integrate them into the `self.deception_patterns` 
+    dictionary.
+- Supporting Additional Models:
+  - Replace or extend Hugging Face pipelines with domain-specific models for 
+    improved sentiment or emotion analysis.
+- Scaling for Larger Texts or Datasets:
+  - Adapt machine learning algorithms and pre-processing techniques for 
+    batch processing or streaming analysis.
+
+Best Practices:
+- Ensure input text is preprocessed to remove noise (e.g., HTML tags) for 
+  improved accuracy.
+- Use the `analyze_text` method as a high-level entry point for analysis to 
+  ensure all components are properly utilized.
+- For web-based analysis, validate URL accessibility and expected content structure 
+  before running the tool.
+
+Reusable Prompt for Extending:
+- "Develop a deception detection model focusing on [specific linguistic or emotional 
+  patterns]. Use multi-dimensional scoring and statistical methods to enhance 
+  reliability and interpretability."
+
+Personal Style Alignment:
+- The project reflects a modular and extensible design, prioritizing clarity and 
+  reusability in its structure.
+- Heavy use of helper methods ensures functionality is encapsulated, facilitating 
+  updates and debugging.
+- The explanation system adds an interpretability layer, aligning the tool with 
+  user-centric applications like fraud prevention, journalism integrity, or legal 
+  investigations.
+
+Usage Example:
+```
+detector = DeceptionDetector()
+text_or_url = "Honestly, I didn't take the money. To the best of my knowledge, the document was misplaced."
+result = detector.analyze_text(text_or_url)
+print(json.dumps(result, indent=4))
+```
+"""
 
 import re
 import json
@@ -18,10 +130,6 @@ from scipy.stats import zscore
 from transformers import pipeline
 import os
 import warnings
-from rich.console import Console
-console = Console()
-print = console.print
-log = console.log
 
 # Suppress NLTK output and Hugging Face FutureWarning
 with warnings.catch_warnings():

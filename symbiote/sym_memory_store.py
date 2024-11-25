@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 #
-# memory.py
+# sym_memory_store.py
 
 from rich.console import Console
 console = Console()
@@ -11,7 +11,7 @@ import json
 import re
 import os
 
-class MemoryStore:
+class SymMemoryStore:
     def __init__(self, save_path=None):
         self.MemoryStorage = {}
         self.save_path = save_path
@@ -268,7 +268,7 @@ class MemoryStore:
                 return False
 
 if __name__ == "__main__":
-    memory = MemoryStore(save_path="/tmp/test.json")
+    memory = SymMemoryStore(save_path="/tmp/test.json")
 
     log("1. Creating entries:")
     memory.create("user1", {

@@ -12,10 +12,6 @@ import threading
 from queue import Queue, Empty
 import tempfile
 from pathlib import Path
-from rich.console import Console
-console = Console()
-print = console.print
-log = console.log
 
 class DockerManager:
     def __init__(self, image_name="symbiote_playground"):

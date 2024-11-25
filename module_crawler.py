@@ -135,4 +135,4 @@ def generate_library_help(library_name):
 user_input = sys.argv[1]
 generate_library_help(user_input)  # Replace "json" with any library name you want to inspect
 
-isp(user_input, title=user_input, all=True)
+isp(user_input, title=user_input, help=True, methods=True, all=True)

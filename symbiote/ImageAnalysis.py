@@ -2,12 +2,6 @@
 #
 # ImageAnalysis.py
 
-from rich.console import Console
-console = Console()
-print = console.print
-log = console.log
-log("Loading symbiote ImageAnalysis.")
-
 import os
 import sys
 import base64

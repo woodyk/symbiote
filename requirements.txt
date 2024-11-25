@@ -79,3 +79,4 @@ pgeocode
 netifaces
 dnspython
 markdownify
+tabulate

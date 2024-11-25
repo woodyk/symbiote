@@ -13,10 +13,6 @@ import time
 import re
 from ollama import Client
 olclient = Client(host='http://localhost:11434')
-from rich.console import Console
-console = Console()
-print = console.print
-log = console.log
 log("Loading symbiote GetEmail.")
 
 class MailChecker:
