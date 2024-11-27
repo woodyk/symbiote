@@ -1,9 +1,18 @@
 #!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+#
+# File: tui-char.py
+# Author: Wadih Khairallah
+# Description: 
+# Created: 2024-11-26 10:15:59
+# Modified: 2024-11-26 16:26:50
+#!/usr/bin/env python3
 #
 # tui-char.py
 
 def get_tui_characters():
     """Categorize and collect Unicode characters useful for TUI design."""
+    """
     categories = {
         "Box Drawing": (0x2500, 0x257F),  # Basic box-drawing characters
         "Block Elements": (0x2580, 0x259F),  # Full block, half block, and other large shapes
@@ -37,8 +46,10 @@ def get_tui_characters():
         "CJK Compatibility Forms": (0xFE30, 0xFE4F),  # Wide punctuation and brackets
         "Miscellaneous Pictographs": (0x1F300, 0x1F5FF),  # Decorative emojis, weather symbols, etc.
     }
-
-
+    """
+    categories = {
+        "All": (0x0000, 0xFFFD),
+    }
 
     tui_characters = []
     for category, (start, end) in categories.items():
@@ -48,19 +59,24 @@ def get_tui_characters():
         #tui_characters.extend(chr(i) for i in range(start, end + 1) if chr(i).isprintable())
     return tui_characters
 
-def print_table(characters, columns=30, spacing=4):
+def print_table(characters, single_line=False, columns=30, spacing=4):
     """Print characters in a table format with specified columns and spacing."""
+    if single_line is True:
+        end_char = ""
+    else:
+        end_char = "\n"
+
     for i, char in enumerate(characters):
         print(char.ljust(spacing), end="")
         if (i + 1) % columns == 0:
-            print()  # New line after reaching the column count
+            print(end=end_char)  # New line after reaching the column count
     if len(characters) % columns != 0:
-        print()  # Final newline if the last row is incomplete
+        print(end=end_char)  # Final newline if the last row is incomplete
 
 def main():
     print("TUI-Friendly Unicode Characters:\n")
     tui_characters = get_tui_characters()
-    print_table(tui_characters, columns=30, spacing=4)
+    print_table(tui_characters, single_line=False, columns=28, spacing=2)
 
 if __name__ == "__main__":
     main()

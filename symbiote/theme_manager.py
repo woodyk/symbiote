@@ -1,4 +1,12 @@
 #!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+#
+# File: theme_manager.py
+# Author: Wadih Khairallah
+# Description: 
+# Created: 2024-11-26 15:51:35
+# Modified: 2024-11-27 03:14:24
+#!/usr/bin/env python3
 
 import random
 from prompt_toolkit.styles import Style
@@ -32,13 +40,50 @@ class ThemeManager:
                     'bottom-toolbar.off': 'bg:#2E2E2E #B22222'
                 }
             },
+            "experiment": {
+                "description": "Developed with the help of AI.",
+                "colors": {
+                    "": "#afd7ff",                  
+                    "body": "blue",                 
+                    "prompt": "#00d75f",            
+                    "rprompt": "#ffd700",           
+                    "bottom-toolbar": "bg:#ffd700 #121212", 
+                    "search": "bg:#005f5f #ffffff", 
+                    "search.current": "bg:#00d75f #000000", 
+                    "selected": "bg:#444444 #ffffff", 
+                    "scrollbar": "bg:#262626",      
+                    "scrollbar.button": "#87d7d7", 
+                    "menu.completion": "bg:#005f87 #ffffff", 
+                    "menu.completion.current": "bg:#87afd7 #000000", 
+                    "menu.border": "fg:#00d75f",
+                    "scrollbar": "bg:#262626",
+                    "scrollbar.button": "bg:#87d7d7",
+                    "validation-toolbar": "bg:#ff0000 #ffffff", 
+                    "line-number": "bg:#303030 #afd7ff", 
+                    "line-number.current": "bg:#444444 #ffd700", 
+                    "tab-bar": "bg:#1c1c1c #afd7ff",  
+                    "tab-bar.tab": "bg:#3a3a3a #ffffff", 
+                    "tab-bar.tab.selected": "bg:#005f87 #ffd700" 
+                }
+            },
+            "primary": {
+                "description": "Developed with the help of ai.",
+                "colors": {
+                    '': '#afd7ff',
+                    "body": "blue",
+                    'prompt': '#00d75f', 
+                    'rprompt': '#ffd700',
+                    'bottom-toolbar': 'bg:#ffd700 #121212',
+                }
+            },
             "default": {
                 "description": "Default symbiote theme",
                 "colors": {
                     '': '#DED300',
                     'prompt': '#02788E',
+                    'rprompt': "#ffd700",
                     #'bottom-toolbar': 'bg:#FFFFFF #6e757c',
-                    'bottom-toolbar': 'bg:#FFFFFF #000000',
+                    'bottom-toolbar': 'bg:#ffd700 #121212',
                     'bottom-toolbar.off': 'bg:#e5e5e5 #9A9A9A'
                 }
             },

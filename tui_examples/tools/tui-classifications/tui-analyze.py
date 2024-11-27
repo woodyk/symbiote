@@ -1,4 +1,11 @@
 #!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+#
+# File: tui-analyze.py
+# Author: Wadih Khairallah
+# Description: 
+# Created: 2024-11-26 09:36:33
+#!/usr/bin/env python3
 #
 
 import os

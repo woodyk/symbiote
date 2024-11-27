@@ -1,4 +1,11 @@
 #!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+#
+# File: panel_test.py
+# Author: Wadih Khairallah
+# Description: 
+# Created: 2024-11-26 09:28:46
+#!/usr/bin/env python3
 #
 # panel_test.py
 

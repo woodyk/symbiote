@@ -5,7 +5,7 @@
 # Author: my name here
 # Description: 
 # Created: 2024-11-22 19:01:02
-# Modified: 2024-11-22 23:51:44
+# Modified: 2024-11-27 03:10:54
 
 import time
 import sys
@@ -27,7 +27,6 @@ from urllib.parse import urlparse
 
 # Local imports (explicit, no wildcard)
 from symbiote.sym_imports import (
-        console, log, print,
         box, inspect, Align,
         SQUARE, Columns, Console,
         Group, Highlighter, Live,
@@ -36,6 +35,12 @@ from symbiote.sym_imports import (
         Table, Text, Theme,
         Tree, pretty, inspect
     )
+from symbiote.sym_highlighter import SymHighlighter
+sym_theme = SymHighlighter()
+console = Console(highlighter=sym_theme, theme=sym_theme.theme)
+print = console.print
+log = console.log
+
 log("Loading symbiote roles.")
 from symbiote.sym_roles import Roles
 log("Loading symbiote speech.")
@@ -43,7 +48,7 @@ from symbiote.sym_speech import SymSpeech
 log("Loading symbiote utils.")
 from symbiote.sym_utils import (
         is_url, is_image, extract_metadata,
-        extract_text
+        extract_text, clean_path
     )
 log("Loading symbiote theme_manager.")
 from symbiote.theme_manager import ThemeManager
@@ -79,7 +84,7 @@ from InquirerPy.prompts.filepath import FilePathCompleter
 
 log("Loading prompt_toolkit.")
 # Application and session management
-from prompt_toolkit import Application
+from prompt_toolkit import Application, print_formatted_text 
 from prompt_toolkit.document import Document
 from prompt_toolkit.history import InMemoryHistory, FileHistory
 from prompt_toolkit.shortcuts import (
@@ -105,6 +110,8 @@ from prompt_toolkit.cursor_shapes import CursorShape, ModalCursorShapeConfig
 from prompt_toolkit.application.current import get_app
 from prompt_toolkit.formatted_text import ANSI, HTML
 from prompt_toolkit.layout.dimension import Dimension
+from prompt_toolkit.lexers import PygmentsLexer
+from pygments.lexers.python import PythonLexer
 
 system = platform.system()
 
@@ -327,25 +334,41 @@ class SymSession():
             self.suppress = False
 
     def display_settings(self):
-        table = Table(show_header=True, expand=True, header_style="bold magenta")
-        table.add_column("Key", style="cyan", no_wrap=True)
-        table.add_column("Value", style="white")
+        table = Table(show_header=False, box=None, expand=True, header_style="")
+        table.add_column("Key", style="gold1", ratio=2, no_wrap=True, justify="right")
+        table.add_column("Value", style="", ratio=4, justify="left")
 
         for key, val in sorted(self.settings.items()):
             table.add_row(key, str(val))
 
         print(table)
 
-    def display_help(self):
-        table = Table(show_header=True, expand=True, header_style="bold magenta")
-        table.add_column("Command", style="cyan", no_wrap=True)
-        table.add_column("Description", style="white")
+    def display_help(self, short=True):
+        if short:
+            # Create a table with three columns for commands only
+            table = Table(show_header=False, box=None, expand=True, header_style="")
+            table.add_column("Command 1", style="gold1", ratio=1, no_wrap=True, justify="left")
+            table.add_column("Command 2", style="gold1", ratio=1, no_wrap=True, justify="left")
+            table.add_column("Command 3", style="gold1", ratio=1, no_wrap=True, justify="left")
 
-        for cmd, desc in sorted(command_list.items()):
-            table.add_row(cmd, desc)
+            # Prepare rows for three-column layout
+            commands = sorted(self.command_list.keys())
+            for i in range(0, len(commands), 3):
+                row = commands[i:i + 3]  # Get the next three commands
+                while len(row) < 3:  # Ensure the row has exactly three items
+                    row.append("")
+                table.add_row(*row)
+        else:
+            # Create a two-column table with commands and descriptions
+            table = Table(show_header=False, box=None, expand=True, header_style="")
+            table.add_column("Command", style="gold1", ratio=2, no_wrap=True, justify="right")
+            table.add_column("Description", style="", ratio=6, justify="left")
+
+            # Add rows with command descriptions
+            for cmd, desc in sorted(self.command_list.items()):
+                table.add_row(cmd, desc)
 
         print(table)
-
         """
         # Panel with instructions
         panel = Panel(
@@ -468,36 +491,43 @@ class SymSession():
             self.previous_directory = self.working_directory
             os.chdir(self.working_directory)
 
+        self.toolbar_message = "none" 
+
         kb = KeyBindings()
         # handle control-c
         @kb.add('c-c')
-        def handle_inturrupt():
+        def handle_inturrupt(event):
             log("Control-C detected.")
             sys.exit(1)
 
-        def handle_control_c(event):
-            handle_inturrupt()
+        def get_toolbar():
+            return self.toolbar_message
 
-        def update_toolbar():
-            tb_settings = { 
-                "Time": datetime.now().strftime("%H:%M:%S"),
-                "Model": self.settings['model'],
-                "Role": self.settings['role'],
-                "Shell": self.shell_mode
-            }
-            tb_functions = {
-                "CPU": lambda: f"{psutil.cpu_percent()}%",
-                "Memory": lambda: f"{psutil.virtual_memory().percent}%",
-            }
+        def update_toolbar(watch_file=None):
+            while True:
+                time.sleep(2)
+                tb_settings = { 
+                    "Time": datetime.now().strftime("%H:%M:%S"),
+                    "Model": self.settings['model'],
+                    "Role": self.settings['role'],
+                    "Shell": self.shell_mode
+                }
+                tb_functions = {
+                    "CPU": lambda: f"{psutil.cpu_percent()}%",
+                    "Memory": lambda: f"{psutil.virtual_memory().percent}%",
+                }
+                try:
+                    self.toolbar_message = sym_toolbar.render_dashboard(
+                        settings=tb_settings,
+                        functions=tb_functions,
+                        max_lines=8,
+                        tail_lines=watch_file,
+                    )
+                    app = get_app()
+                    app.invalidate()
+                except Exception as e:
+                    log(f"Failure to pull toolbar message: {e}")
 
-            log_watch_file = ""
-            bottom_toolbar = sym_toolbar.render_dashboard(
-                settings=tb_settings,
-                functions=tb_functions,
-                max_lines=8,
-                tail_lines=log_watch_file,
-            )
-            return bottom_toolbar
 
         def get_prompt():
             if self.shell_mode is True:
@@ -508,26 +538,36 @@ class SymSession():
             prompt = f"{prompt_content}"
             return prompt 
 
-        ps = PromptSession(
-            key_bindings=kb,
-            vi_mode=self.settings['vi_mode'],
-            history=self.history,
-            style=self.prompt_style,
-            enable_system_prompt=True,
-            bottom_toolbar=update_toolbar(),
-            enable_suspend=True,
-            enable_open_in_editor=False,
-            mouse_support=False,
-            )
+        try:
+            self.ps = PromptSession(
+                key_bindings=kb,
+                vi_mode=self.settings['vi_mode'],
+                history=self.history,
+                style=self.prompt_style,
+                enable_system_prompt=True,
+                bottom_toolbar=get_toolbar,
+                enable_suspend=True,
+                enable_open_in_editor=False,
+                mouse_support=True,
+                )
+
+            toolbar_updater = threading.Thread(target=update_toolbar, daemon=True)
+            toolbar_updater.start()
+        except Exception as e:
+            log(f"Failure to start PromptSession: {e}")
+            return None
+
 
         while True:
+            response = str()
             user_input = str()
             now = datetime.now()
             current_time = now.strftime("%H:%M:%S")
             current_date = now.strftime("%m/%d/%Y")
 
+            #ￚￂￃￚￄￅￆￚￚￇￊￚￋￌￍￎￚￚￏￒￚￓￔￕￚￚￖￗￛￚￚￗￚￖￕￚￓￒￚￏￚￎￍￚￌￋￚￚￊￇￚￆￅￚￄￃￂￚ
             print("\n")
-            print(Rule(title=f"{current_date} {current_time}", style="gray54"))
+            #print(Rule(align="right", title=f"{current_date} {current_time}", style="dim gray54"))
             print("\n")
 
             # Chack for a change in settings and write them
@@ -551,37 +591,59 @@ class SymSession():
             # Replace the home directory with ~
             if current_path.startswith(home_dir):
                 current_path = '~' + current_path[len(home_dir):]
+
+            def process_input(user_input=None):
+                def not_empty(user_input):
+                    if user_input is None or user_input.startswith("\n") or user_input == "":
+                        return False 
+                    else:
+                        return True 
+
+                if not_empty(user_input):
+                    user_input = self.process_commands(user_input)
+
+                response = ""
+                if not_empty(user_input):
+                    response = self.send_message(user_input)
+
+                return response
+
+            try:
+                user_input = self.ps.prompt(
+                    message=get_prompt(),
+                    multiline=True,
+                    default=user_input,
+                    cursor=CursorShape.BLOCK,
+                    rprompt=f"{current_date} {current_time}",
+                    vi_mode=self.settings['vi_mode'],
+                    completer=self.command_completer,
+                    complete_while_typing=False,
+                    refresh_interval=0.5,
+                )
+
+                if re.search(r'^exit::', user_input):
+                    self.save_settings()
+                    sys.exit(0)
+
+                user_input_processing = threading.Thread(
+                        target=process_input,
+                        args=(user_input,),
+                        daemon=True
+                    )
+                user_input_processing.start()
+
+            except KeyboardInterrupt:
+                break
             
-            user_input = ps.prompt(
-                message=get_prompt(),
-                multiline=True,
-                default=user_input,
-                cursor=CursorShape.BLOCK,
-                rprompt="",
-                vi_mode=self.settings['vi_mode'],
-                completer=self.command_completer,
-                complete_while_typing=False,
-                refresh_interval=0.5,
-                bottom_toolbar=update_toolbar(),
-            )
-
-            def not_empty(user_input):
-                if user_input is None or user_input.startswith("\n") or user_input == "":
-                    return False 
-                else:
-                    return True 
-
-            # check user input for any command syntax
-            if not_empty(user_input):
-                user_input = self.process_commands(user_input)
-
             if check_settings != self.default_hash:
                 self.save_settings()
                 self.default_hash = check_settings
-                continue
 
-            if not_empty(user_input):
-                response = self.send_message(user_input)
+            # Prompt waits here for processing to complete
+            app = get_app()
+            app.invalidate()
+            while user_input_processing.is_alive():
+                time.sleep(0.1)
 
             if self.shell_mode is True:
                 if response.startswith("`") and response.endswith("`"):
@@ -736,8 +798,9 @@ class SymSession():
             return None
 
         if markdown is True and streaming is True:
-           live = Live(console=console, screen=False, refresh_per_second=1)
-           live.start()
+            pass
+           #live = Live(console=console, screen=False, refresh_per_second=1)
+           #live.start()
 
         if self.settings['model'].startswith("openai"):
             model_name = self.settings['model'].split(":")
@@ -771,9 +834,10 @@ class SymSession():
                         if chunk.choices[0].delta.content is not None:
                             response += chunk.choices[0].delta.content
                             if markdown is True:
-                                live.update((response))
+                                #live.update((response))
+                                print(chunk.choices[0].delta.content, end="")
                             else:
-                                log(chunk.choices[0].delta.content, end='')
+                                print(chunk.choices[0].delta.content, end='')
                 else:
                     response = stream.choices[0].message.content
                     if markdown is True:
@@ -783,6 +847,10 @@ class SymSession():
 
         elif self.settings['model'].startswith("ollama"):
             # Ollama Chat Completion
+            available_functions = {
+                    "test": "function_to_call",
+                    }
+
             model_name = self.settings['model'].split(":")
             model = model_name[1] + ":" + model_name[2]
 
@@ -793,11 +861,13 @@ class SymSession():
                         stream = streaming,
                         #format = "json",
                         options = { "num_ctx": num_ctx },
+                        tools=[],
                         )
+
             except Exception as e:
                 log(e)
                 return None
-            
+
             if self.suppress is True:
                 response = stream['message']['content']
             else:
@@ -805,9 +875,9 @@ class SymSession():
                     for chunk in stream:
                         response += chunk['message']['content']
                         if markdown is True:
-                            live.update(Markdown(response))
+                            print(chunk['message']['content'], end="")
                         else:
-                            print(chunk['message']['content'], end='')
+                            print(chunk['message']['content'], end='', highlight=False, style="grey89")
                 else:
                     response = stream['message']['content']
                     if markdown is True:
@@ -815,6 +885,18 @@ class SymSession():
                     else:
                         print(response)
 
+            """
+            if stream.message.tool_calls:
+            # There may be multiple tool calls in the response
+                for tool in stream.message.tool_calls:
+                    # Ensure the function is available, and then call it
+                    if function_to_call := available_functions.get(tool.function.name):
+                        print('Calling function:', tool.function.name)
+                        print('Arguments:', tool.function.arguments)
+                        print('Function output:', function_to_call(**tool.function.arguments))
+                    else:
+                      print('Function', tool.function.name, 'not found')
+            """
         elif self.settings['model'].startswith("groq"):
             model_name = self.settings['model'].split(":")
             model = model_name[1]
@@ -837,7 +919,8 @@ class SymSession():
                         if chunk.choices[0].delta.content is not None:
                             response += chunk.choices[0].delta.content
                             if markdown is True:
-                                live.update(Markdown(response))
+                                #live.update(Markdown(response))
+                                print(chunk.choices[0].delta.content, end="")
                             else:
                                 print(chunk.choices[0].delta.content, end='')
                 else:
@@ -992,13 +1075,20 @@ class SymSession():
             UUID: 550e8400-e29b-41d4-a716-446655440000
             """
 
-            print(Panel(Text(test_text), title="test"))
+            print(Panel(test_text, title="test"))
             time.sleep(5)
             print()
             print("[red]hello world[/red]")
             print(test_text)
             time.sleep(5)
-            self.display_pager(Syntax(test_text))
+            with console.capture() as capture:
+                console.print(test_text)
+
+            ansii_text = capture.get()
+            for i in range(50):
+                test_text += "Test the length\n"
+            self.display_pager(test_text)
+            self.layout_pager(test_text)
 
             return None
 
@@ -1027,10 +1117,16 @@ class SymSession():
             return None
 
         _registerCommand("help::")
-        if re.search(r'^help::', user_input):
-            self.display_help()
-            return None 
+        help_pattern = r"^help::|^help:(.*):"
+        match = re.search(help_pattern, user_input)
+        if match:
+            short = True
+            if match.group(1):
+                short = False 
 
+            self.display_help(short)
+
+            return None
 
         _registerCommand("clear::")
         _registerCommand("reset::")
@@ -1046,7 +1142,6 @@ class SymSession():
         _registerCommand("exit::")
         if re.search(r'^exit::', user_input):
             self.save_settings()
-            os.system('reset')
             sys.exit(0)
 
         # Trigger introspect::
@@ -1067,7 +1162,7 @@ class SymSession():
         match = re.search(clipboard_pattern, user_input)
         if match:
             import symbiote.sym_crawler as webcrawler
-            contents = clipboard.paste()
+            contents = clipboard.pshort()
             if match.group(1):
                 sub_command = match.group(1).strip()
                 if sub_command == 'get':
@@ -1425,8 +1520,7 @@ class SymSession():
                     return None
             else:
                 content = extract_text(file_path)
-
-            print(Panel(Markdown(content), title=f"Content: {file_path}"))
+                print(content)
 
             return None
 
@@ -1650,12 +1744,12 @@ class SymSession():
 
         # Trigger for qr code generation qr::
         _registerCommand("qr::")
-        qr_pattern = r'qr:([\s\S]*?):'
+        qr_pattern = r"qr:(.*):"
         match = re.search(qr_pattern, user_input)
         if match:
             if match.group(1):
                 content = match.group(1)
-                self.generate_qr(content)
+                self.generate_qr_terminal(content)
             else:
                 log("No content provided for the qr.")
 
@@ -1823,7 +1917,7 @@ class SymSession():
                 ci = CodeIdentifier()
                 code_check = ci.analyze(content)
                 metadata["is_code_file"] = code_check["is_code_file"]
-                metadata["contains_code"] = code_check["contains_code"]
+                metadata["has_code"] = code_check["has_code"]
 
                 if metadata:
                     self.memory.create("file_command_metadata", metadata)
@@ -2146,6 +2240,12 @@ class SymSession():
             print()
             return user_input 
 
+        # Catchall for stray command entries. 
+        catchall_pattern = r"^.*::?$"
+        if re.search(catchall_pattern, user_input):
+            log(f"Unknown command: {user_input}")
+            return None
+
         return user_input
 
     def save_settings(self):
@@ -2206,6 +2306,11 @@ class SymSession():
         # Recursively get a list of all files from the current directory
         all_files = []
         for root, dirs, files in os.walk('.'):
+            # Filter out hidden directories
+            dirs[:] = [d for d in dirs if not d.startswith('.')]
+            # Filter out hidden files
+            files = [f for f in files if not f.startswith('.')]
+            # Collect full paths of remaining files
             for f in files:
                 full_path = os.path.join(root, f)
                 all_files.append(full_path)
@@ -2425,7 +2530,14 @@ class SymSession():
         # Open the image for viewing
         image.show()
 
-    def generate_qr(self, text: str, center_color: str = "#00FF00", outer_color: str = "#0000FF", back_color: str = "black", dot_size: int = 10, border_size: int = 10):
+    def generate_qr(self,
+        text: str,
+        center_color: str = "#00FF00",
+        outer_color: str = "#0000FF",
+        back_color: str = "black",
+        dot_size: int = 10,
+        border_size: int = 10
+    ):
         # Create a QR code object
         qr = qrcode.QRCode(
             version=1,
@@ -2483,6 +2595,95 @@ class SymSession():
 
         # Display the image
         img.show()
+
+    def generate_qr_terminal(self,
+        text: str,
+        center_color: str = "#00FF00",
+        outer_color: str = "#0000FF",
+        back_color: str = "#000000",
+    ):
+        log(f"QR requested for : {text}")
+
+        # Generate QR code matrix
+        qr = qrcode.QRCode(
+            version=1,
+            error_correction=qrcode.constants.ERROR_CORRECT_H,
+            box_size=1,
+            border=4,  # Ensure QR standard border
+        )
+        qr.add_data(text)
+        qr.make(fit=True)
+        qr_matrix = qr.get_matrix()
+
+        # Dimensions of the QR code
+        qr_size = len(qr_matrix)
+
+        # Convert hex colors to RGB
+        def hex_to_rgb(hex_color):
+            hex_color = hex_color.lstrip("#")
+            return tuple(int(hex_color[i:i + 2], 16) for i in (0, 2, 4))
+
+        center_rgb = hex_to_rgb(center_color)
+        outer_rgb = hex_to_rgb(outer_color)
+
+        # Interpolate between colors
+        def interpolate_color(x, y, center_x, center_y, max_dist):
+            dist = ((x - center_x) ** 2 + (y - center_y) ** 2) ** 0.5
+            ratio = min(dist / max_dist, 1)
+
+            r = int(center_rgb[0] + ratio * (outer_rgb[0] - center_rgb[0]))
+            g = int(center_rgb[1] + ratio * (outer_rgb[1] - center_rgb[1]))
+            b = int(center_rgb[2] + ratio * (outer_rgb[2] - center_rgb[2]))
+
+            return f"rgb({r},{g},{b})"
+
+        # Calculate center and max distance
+        center_x = qr_size // 2
+        center_y = qr_size // 2
+        max_dist = ((center_x) ** 2 + (center_y) ** 2) ** 0.5
+
+        # Prepare to center the QR code in the terminal
+        terminal_width = console.size.width
+        qr_width = qr_size * 2  # Each QR column rendered takes 2 spaces in terminal
+        padding = max((terminal_width - qr_width) // 2, 0)
+
+        # Render QR code as a square
+        qr_render = []
+        for y in range(0, qr_size, 2):  # Process two rows at a time
+            line = Text(" " * padding)  # Add left padding to center the QR code
+            for x in range(qr_size):
+                upper = qr_matrix[y][x]
+                lower = qr_matrix[y + 1][x] if y + 1 < qr_size else 0
+
+                if upper and lower:
+                    color = interpolate_color(x, y, center_x, center_y, max_dist)
+                    line.append("█", style=f"{color} on {color}")
+                elif upper:
+                    color = interpolate_color(x, y, center_x, center_y, max_dist)
+                    line.append("▀", style=f"{color} on {back_color}")
+                elif lower:
+                    color = interpolate_color(x, y + 1, center_x, center_y, max_dist)
+                    line.append("▄", style=f"{color} on {back_color}")
+                else:
+                    line.append(" ", style=f"{back_color} on {back_color}")
+            console.print(line)
+            qr_render.append(line)
+
+        """
+        # Example Usage
+        generate_qr_terminal(
+            "https://example.com",
+            center_color="#00FF00",
+            outer_color="#0000FF",
+            back_color="#000000",
+        )
+
+            qr_render.append(line)
+        """
+
+        return qr_render
+
+
 
     def open_w3m(self, website_url='https://google.com'):
         try:
@@ -2672,7 +2873,6 @@ class SymSession():
         self.current_conversation = []
         return
 
-
     def get_conversations(self, path):
         files = os.listdir(path)
         if not files:
@@ -2687,17 +2887,19 @@ class SymSession():
 
     def display_pager(self, text):
         search_field = SearchToolbar()
-
+        
         output_field = TextArea(
                 text,
-                scrollbar=True,
+                lexer=PygmentsLexer(PythonLexer),
+                scrollbar=False,
                 search_field=search_field,
+                read_only=True,
                 )
 
-        kb = KeyBindings()
+        pager_kb = KeyBindings()
 
-        @kb.add("escape")
-        @kb.add("q")
+        @pager_kb.add("escape")
+        @pager_kb.add("q")
         def _(event):
             event.app.exit()
 
@@ -2710,7 +2912,7 @@ class SymSession():
 
         app = Application(
                 layout=layout,
-                key_bindings=kb,
+                key_bindings=pager_kb,
                 mouse_support=True,
                 full_screen=True
                 )
@@ -3185,4 +3387,3 @@ class SymSession():
 
         # Print the table
         console.print(" " * padding, table)
-

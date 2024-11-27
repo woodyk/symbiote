@@ -3,7 +3,7 @@
 # AutoDash.py
 
 from rich.console import Console, Group
-from rich.layout import Layout
+from rich.table import Table
 from rich.panel import Panel
 from rich.columns import Columns
 from rich.pretty import Pretty

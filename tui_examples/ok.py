@@ -1,4 +1,11 @@
 #!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+#
+# File: ok.py
+# Author: Wadih Khairallah
+# Description: 
+# Created: 2024-11-26 09:25:24
+#!/usr/bin/env python3
 #
 # ok.py
 

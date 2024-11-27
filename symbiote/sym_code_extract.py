@@ -59,7 +59,7 @@ Functionality Implemented:
 Patterns and Preferences:
 --------------------------
 - **Clear Separation of Concerns**:
-  - Detection (`is_code_file` and `contains_code`) is decoupled from extraction.
+  - Detection (`is_code_file` and `has_code`) is decoupled from extraction.
 - **Graceful Handling**:
   - Returns meaningful outputs and error messages for invalid or unsupported inputs.
 - **Comprehensive Analysis**:
@@ -118,9 +118,9 @@ class CodeIdentifier:
             lexer = guess_lexer(text)
             return True  # Pygments identifies it as code
         except ClassNotFound:
-            return self.contains_code(text)  # Fallback to heuristic check
+            return self.has_code(text)  # Fallback to heuristic check
 
-    def contains_code(self, text):
+    def has_code(self, text):
         """
         Determines if the text contains identifiable code blocks.
         """
@@ -152,7 +152,7 @@ class CodeIdentifier:
             content = file.read()
 
         is_code = self.is_code_file(content)
-        has_code_blocks = self.contains_code(content)
+        has_code_blocks = self.has_code(content)
 
         # Harmonize flags: if it's a code file, it must contain code
         if is_code:
@@ -167,8 +167,8 @@ class CodeIdentifier:
 
         return {
             "is_code_file": is_code,
-            "contains_code": has_code_blocks,
-            "extracted_code_blocks": extracted_blocks
+            "has_code": has_code_blocks,
+            "code_blocks": extracted_blocks
         }
 
     def analyze_url(self, url, mode="visible"):
@@ -195,8 +195,8 @@ class CodeIdentifier:
                 return {
                     "mode": "visible",
                     "is_code_file": is_code,
-                    "contains_code": is_code,  # If it's a code file, it contains code by definition
-                    "extracted_code_blocks": [content] if is_code else []
+                    "has_code": is_code,  # If it's a code file, it contains code by definition
+                    "code_blocks": [content] if is_code else []
                 }
 
             # If the content is HTML, process it for visible snippets
@@ -204,12 +204,12 @@ class CodeIdentifier:
                 content = response.text
                 soup = BeautifulSoup(content, 'html.parser')
                 plain_text = soup.get_text(separator="\n")  # Extract visible text
-                has_code_blocks = self.contains_code(plain_text)
+                has_code_blocks = self.has_code(plain_text)
 
                 return {
                     "mode": "visible",
-                    "contains_code": has_code_blocks,
-                    "extracted_code_blocks": self.extract_code_blocks(plain_text) if has_code_blocks else []
+                    "has_code": has_code_blocks,
+                    "code_blocks": self.extract_code_blocks(plain_text) if has_code_blocks else []
                 }
 
             else:
@@ -224,7 +224,7 @@ class CodeIdentifier:
         Analyzes a string to determine if it is purely code or contains code blocks.
         """
         is_code = self.is_code_file(text)
-        has_code_blocks = self.contains_code(text)
+        has_code_blocks = self.has_code(text)
 
         # Harmonize flags
         if is_code:
@@ -232,8 +232,8 @@ class CodeIdentifier:
 
         return {
             "is_code_file": is_code,
-            "contains_code": has_code_blocks,
-            "extracted_code_blocks": self.extract_code_blocks(text) if has_code_blocks else []
+            "has_code": has_code_blocks,
+            "code_blocks": self.extract_code_blocks(text) if has_code_blocks else []
         }
 
     def analyze(self, input_data, mode="visible"):
@@ -285,14 +285,14 @@ def main():
         print(f"Analyzing input: {input_data}")
         print(f"Mode: {result.get('mode', 'N/A')}")
         print(f"Is code file: {result.get('is_code_file', 'N/A')}")
-        print(f"Contains code: {result.get('contains_code', 'N/A')}")
+        print(f"Contains code: {result.get('has_code', 'N/A')}")
 
         if mode == "source" and "source_code" in result:
             print("\nExtracted Source Code:")
             print(result["source_code"])
-        elif extract_code and result.get("contains_code"):
+        elif extract_code and result.get("has_code"):
             print("\nExtracted Code Blocks:")
-            for idx, block in enumerate(result["extracted_code_blocks"], start=1):
+            for idx, block in enumerate(result["code_blocks"], start=1):
                 print(f"\nBlock {idx}:\n{'-' * 20}\n{block.strip()}\n{'-' * 20}")
 
     except FileNotFoundError as e:

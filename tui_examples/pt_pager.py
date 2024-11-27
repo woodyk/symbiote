@@ -222,6 +222,6 @@ if __name__ == "__main__":
 
     hello_world()
     """
-    pager3 = Pager(title="Python Code Example", file="./inspect2.py")
+    pager3 = Pager(title="Python Code Example", file="./curses_panel.py")
     pager3.run()
 

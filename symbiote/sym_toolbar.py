@@ -1,13 +1,23 @@
 #!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+#
+# File: sym_toolbar.py
+# Author: Wadih Khairallah
+# Description: 
+# Created: 2024-11-26 15:56:34
+# Modified: 2024-11-26 21:33:48
+#!/usr/bin/env python3
 #
 # sym_toolbar.py
 
 from rich.console import Console, Group
 from rich.panel import Panel
+from rich.rule import Rule
 from rich.text import Text
 from rich.table import Table
 from rich.syntax import Syntax
 from rich.markdown import Markdown
+from wcwidth import wcwidth
 import psutil
 
 
@@ -26,6 +36,7 @@ def render_dashboard(settings=None, functions=None, max_lines=12, tail_lines=Non
     """
     console = Console()
     col_pad = 0 
+    
 
     # Initialize settings and functions
     settings = settings or {}
@@ -87,14 +98,25 @@ def render_dashboard(settings=None, functions=None, max_lines=12, tail_lines=Non
         width=viewer_width,
     )
 
+    char_head = "ￚￂￃￚￄￅￆￚￚￇￊￚￋￌￍￎￚￚￏￒￚￓￔￕￚￚￖￗￛￚￚￗￚￖￕￚￓￒￚￏￚￎￍￚￌￋￚￚￊￇￚￆￅￚￄￃￂￚ"
+    char_foot = "￣"
+
+    grid = Table.grid(expand=True)
+    grid.add_column(justify="center")
+    grid.add_row(Rule(characters=char_head, style=None))
+
     # Create the grid for the dashboard
     dashboard_grid = Table.grid(expand=True, padding=(0, 0))
     dashboard_grid.add_column(ratio=1)
     dashboard_grid.add_column(ratio=2)
     dashboard_grid.add_row(dashboard_panel, log_panel)
 
+    grid.add_row(dashboard_grid)
+    grid.add_row()
+    #grid.add_row(Rule(characters=char_foot, style=None))
+    
     # Use Group to organize the dashboard
-    dashboard_group = Group(dashboard_grid)
+    dashboard_group = Group(grid)
 
     # Capture and return the rendered dashboard as a string
     with console.capture() as capture:

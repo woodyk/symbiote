@@ -1,4 +1,12 @@
 #!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+#
+# File: tui_crawler.py
+# Author: Wadih Khairallah
+# Description: 
+# Created: 2024-11-26 09:30:11
+# Modified: 2024-11-26 09:33:11
+#!/usr/bin/env python3
 #
 # tui_crawler.py
 
@@ -188,12 +196,13 @@ def crawl_unicode_and_test_elements(start=0x2500, end=0x259F, limit=10):
                 render_sample_panel(console, box, line_char, corner_char, line_name, corner_name)
                 count += 1
             except Exception as e:
-                console.print(f"[red]Error rendering panel for {repr(line_char)} and {repr(corner_char)}: {e}[/red]")
+                pass
+                #console.print(f"[red]Error rendering panel for {repr(line_char)} and {repr(corner_char)}: {e}[/red]")
 
 
 if __name__ == "__main__":
     # Set range to box-drawing characters for focused testing
-    start_unicode = 0x2500
+    start_unicode = 0x0000
     end_unicode = 0x259F
     test_limit = 20  # Limit for tests
 
