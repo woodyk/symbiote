@@ -1,4 +1,11 @@
 #!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+#
+# File: sym_extract.py
+# Author: Wadih Khairallah
+# Description: 
+# Created: 2024-11-27 20:38:27
+#!/usr/bin/env python3
 #
 # sym_extract.py
 

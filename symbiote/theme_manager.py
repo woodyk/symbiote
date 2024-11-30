@@ -83,7 +83,7 @@ class ThemeManager:
                     'prompt': '#02788E',
                     'rprompt': "#ffd700",
                     #'bottom-toolbar': 'bg:#FFFFFF #6e757c',
-                    'bottom-toolbar': 'bg:#ffd700 #121212',
+                    'bottom-toolbar': 'bg:#ffffff #121212',
                     'bottom-toolbar.off': 'bg:#e5e5e5 #9A9A9A'
                 }
             },

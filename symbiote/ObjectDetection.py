@@ -1,4 +1,11 @@
 #!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+#
+# File: ObjectDetection.py
+# Author: Wadih Khairallah
+# Description: 
+# Created: 2024-11-27 06:25:36
+#!/usr/bin/env python3
 #
 # ObjectDetection.py
 
@@ -9,7 +16,6 @@ import requests
 import json
 import random
 import warnings
-log(f"Loading ObjectDetection.")
 warnings.simplefilter(action='ignore', category=FutureWarning)
 
 class ObjectDetection:

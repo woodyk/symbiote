@@ -5,11 +5,13 @@
 # Author: Wadih Khairallah
 # Description: 
 # Created: 2024-11-27 14:04:06
+# Modified: 2024-11-28 04:45:50
 
 from rich.console import Console
 from rich.highlighter import ReprHighlighter
 from rich.highlighter import RegexHighlighter
 import textwrap
+import re
 import sys
 
 class StreamWrap:
@@ -18,7 +20,7 @@ class StreamWrap:
     word wrapping, incremental processing logic, and real-time highlighting.
     """
 
-    def __init__(self, width=75, indent=0, subsequent_indent=0, highlighter=None):
+    def __init__(self, width=20, indent=0, subsequent_indent=0, highlighter=None):
         """
         Initializes the StreamWrap instance.
 
@@ -28,7 +30,7 @@ class StreamWrap:
         :param highlighter: Optional `rich.highlighter` instance for applying text highlights.
         """
         self.console = Console()
-        self.target_width = width
+        self.target_width = (self.console.width * (75 / 100)) - int(indent)
         self.chunk_buffer = ""
         self.wrapper = textwrap.TextWrapper(
             width=self.target_width,
@@ -38,9 +40,8 @@ class StreamWrap:
             break_on_hyphens=False,
         )
         self.highlighter = highlighter or ReprHighlighter()
-
-        self.input_chunk = "" 
-        self.input_stream = "" 
+        self.linecheck = False
+        self.linecounter = 0
 
     def _render_output(self, text):
         """
@@ -62,17 +63,6 @@ class StreamWrap:
         # Debugging: Log the buffer content and wrapped lines
         #print(f"[DEBUG] Buffer content: {self.chunk_buffer}")
         #print(f"[DEBUG] Wrapped lines: {wrapped_lines}")
-        strip_len = len(self.input_chunk) 
-        if wrapped_lines:
-            render_content = wrapped_lines[0] 
-            last_char = render_content
-            print(f"*{last_char}*")
-            #print(f"{render_content[-1:]}", end="", flush=True)
-
-            """
-            render_content = ''.join(item + "\n" for item in wrapped_lines)
-            print(render_content[:-strip_len], end="", flush=True)
-            """
 
         # Print all complete lines
         for line in wrapped_lines[:-1]:  # Exclude the last (incomplete) line
@@ -85,17 +75,27 @@ class StreamWrap:
         else:
             self.chunk_buffer = ""
 
-    def __call__(self, text):
+    def __call__(self, chunk):
         """
         Handles incremental streaming of text into the buffer and processes it.
 
         :param text: Input text to stream.
         """
-        self.input_chunk = text
-        self.input_stream += text
+        chunk_len = len(chunk)
+        self.chunk_buffer += chunk
+        wrapped = self.wrapper.wrap(self.chunk_buffer)
+        wrapped_len = len(wrapped) - 1
+        wrapped_data = wrapped.pop()
+        if wrapped_len > 1:
+            print("\n")
 
-        self.chunk_buffer += text
-        self._process_buffer()
+        if re.search(r"^\s", wrapped_data) and self.linecheck is False:
+            print(wrapped_data, end="", flush=True)
+            self.linecheck = True
+        elif chunk == " ":
+            print(chunk, end="", flush=True)
+        else:
+            print(wrapped_data[-chunk_len:], end="", flush=True)
 
     def finalize(self):
         """
@@ -116,18 +116,15 @@ if __name__ == "__main__":
         highlights = [r"\b(test|validate|functionality|wrapping|processing)\b"]
 
     # Create a StreamWrap instance with custom highlighting
-    stream_wrap = StreamWrap(width=50, indent=4, subsequent_indent=4, highlighter=MyHighlighter())
+    stream_wrap = StreamWrap(width=50, indent=0, subsequent_indent=0, highlighter=MyHighlighter())
 
-    test_input = (
-        "This is a test to validate the StreamWrap functionality. "
-        "The goal is to check proper word wrapping and incremental processing."
-    )
+    test_input = "This is a test to validate the StreamWrap functionality.  The goal is to check proper word wrapping and incremental processing."
 
     # Simulating character-by-character streaming
     import time
     for char in test_input:
-        time.sleep(0.01)  # Simulate streaming delay
         stream_wrap(char)
+        time.sleep(0.1)  # Simulate streaming delay
 
     # Finalize to print any remaining text
     stream_wrap.finalize()

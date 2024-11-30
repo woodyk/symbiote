@@ -1,5 +1,10 @@
 #!/usr/bin/env python3
+# -*- coding: utf-8 -*-
 #
+# File: FacialAnalysis.py
+# Author: Wadih Khairallah
+# Description: 
+# Created: 2024-11-27 06:24:45
 # FacialAnalysis.py
 
 import os

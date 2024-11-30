@@ -5,7 +5,7 @@
 # Author: my name here
 # Description: 
 # Created: 2024-11-22 19:01:02
-# Modified: 2024-11-27 03:10:54
+# Modified: 2024-11-30 04:50:53
 
 import time
 import sys
@@ -27,6 +27,7 @@ from urllib.parse import urlparse
 
 # Local imports (explicit, no wildcard)
 from symbiote.sym_imports import (
+        print, sp,
         box, inspect, Align,
         SQUARE, Columns, Console,
         Group, Highlighter, Live,
@@ -124,11 +125,11 @@ log("Loading ollama.")
 from ollama import Client
 olclient = Client(host='http://localhost:11434')
 try:
-    response = olclient.list()
-    for model in response['models']:
-        models.append("ollama:" + model['name'])
+    model_obj = olclient.list()
+    for mod in model_obj['models']:
+        models.append("ollama:" + mod.model)
 except Exception as e:
-    pass
+    log(f"Failed to load ollama models: {e}")
 
 log("Loading openai.")
 import openai
@@ -393,7 +394,6 @@ class SymSession():
 
     def display_convo(self, convo=False):
         conversations = sorted(self.get_conversations(self.conversations_dir))
-
         if convo:
             selected_file = convo
         else:
@@ -492,8 +492,9 @@ class SymSession():
             os.chdir(self.working_directory)
 
         self.toolbar_message = "none" 
-
         kb = KeyBindings()
+        self.live_render_buffer = ""
+
         # handle control-c
         @kb.add('c-c')
         def handle_inturrupt(event):
@@ -503,7 +504,7 @@ class SymSession():
         def get_toolbar():
             return self.toolbar_message
 
-        def update_toolbar(watch_file=None):
+        def update_toolbar():
             while True:
                 time.sleep(2)
                 tb_settings = { 
@@ -521,13 +522,12 @@ class SymSession():
                         settings=tb_settings,
                         functions=tb_functions,
                         max_lines=8,
-                        tail_lines=watch_file,
+                        tail_lines=self.live_render_buffer,
                     )
                     app = get_app()
                     app.invalidate()
                 except Exception as e:
                     log(f"Failure to pull toolbar message: {e}")
-
 
         def get_prompt():
             if self.shell_mode is True:
@@ -565,9 +565,7 @@ class SymSession():
             current_time = now.strftime("%H:%M:%S")
             current_date = now.strftime("%m/%d/%Y")
 
-            #ￚￂￃￚￄￅￆￚￚￇￊￚￋￌￍￎￚￚￏￒￚￓￔￕￚￚￖￗￛￚￚￗￚￖￕￚￓￒￚￏￚￎￍￚￌￋￚￚￊￇￚￆￅￚￄￃￂￚ
             print("\n")
-            #print(Rule(align="right", title=f"{current_date} {current_time}", style="dim gray54"))
             print("\n")
 
             # Chack for a change in settings and write them
@@ -581,7 +579,6 @@ class SymSession():
                     speechQueue = SymSpeech.start_keyword_listen()
 
                 user_input = self.speech.keyword_listen()
-                # Need to setup prompt passthrough options
 
             # Get the current path
             current_path = os.getcwd()
@@ -592,12 +589,13 @@ class SymSession():
             if current_path.startswith(home_dir):
                 current_path = '~' + current_path[len(home_dir):]
 
-            def process_input(user_input=None):
+            def process_user_input(user_input=None):
                 def not_empty(user_input):
-                    if user_input is None or user_input.startswith("\n") or user_input == "":
+                    if (user_input is None
+                        or user_input.startswith("\n")
+                        or user_input == ""):
                         return False 
-                    else:
-                        return True 
+                    return True 
 
                 if not_empty(user_input):
                     user_input = self.process_commands(user_input)
@@ -605,6 +603,17 @@ class SymSession():
                 response = ""
                 if not_empty(user_input):
                     response = self.send_message(user_input)
+                    print()
+
+                    if self.shell_mode is True:
+                        if response.startswith("`") and response.endswith("`"):
+                            response = response[1:-1]
+
+                        print(response)
+                        confirm = self.yes_no_prompt("Execute command?")
+                        if confirm is True:
+                            output = self.exec_command(response)
+                            print(f"\n{output}\n")
 
                 return response
 
@@ -626,12 +635,11 @@ class SymSession():
                     sys.exit(0)
 
                 user_input_processing = threading.Thread(
-                        target=process_input,
+                        target=process_user_input,
                         args=(user_input,),
                         daemon=True
                     )
                 user_input_processing.start()
-
             except KeyboardInterrupt:
                 break
             
@@ -645,16 +653,6 @@ class SymSession():
             while user_input_processing.is_alive():
                 time.sleep(0.1)
 
-            if self.shell_mode is True:
-                if response.startswith("`") and response.endswith("`"):
-                    response = response[1:-1]
-
-                confirm = self.yes_no_prompt("Execute command?")
-                if confirm is True:
-                    output = self.exec_command(response)
-                    print(f"\n{output}\n")
-                    self.writeHistory('user', output)
-                    continue
 
     def writeHistory(self, role, text):
         hist_entry = {
@@ -664,74 +662,8 @@ class SymSession():
                 }
         self.conversation_history.append(hist_entry)
 
-    def think(self, user_input):
-        available_roles = Roles.get_roles()
-        self.writeHistory('user', f"{available_roles['THINKING']}\n\nQUERY:\n{user_input}")
-
-        print('<THINKING>')
-        response = str() 
-
-        if self.settings['model'].startswith("openai"):
-            model_name = self.settings['model'].split(":")
-            model = model_name[1]
-            # OpenAI Chat Completion
-            try:
-                stream = oaiclient.chat.completions.create(
-                        model = model,
-                        messages = self.conversation_history,
-                        stream = True,
-                        )
-            except Exception as e:
-                log(e)
-                return response
-
-            for chunk in stream:
-                if chunk.choices[0].delta.content is not None:
-                    print(chunk.choices[0].delta.content, end="", flush=True)
-                    response += chunk.choices[0].delta.content
-
-        elif self.settings['model'].startswith("ollama"):
-            # Ollama Chat Completion
-            model_name = self.settings['model'].split(":")
-
-            model = model_name[1] + ":" + model_name[2]
-
-            stream = olclient.chat(
-                    model = model,
-                    messages = self.conversation_history,
-                    stream = True,
-                    #format = "json",
-                    options = { "num_ctx": num_ctx },
-                    )
-
-            for chunk in stream:
-                print(chunk['message']['content'], end='', flush=True)
-                response += chunk['message']['content']
-
-        elif self.settings['model'].startswith("groq"):
-            model_name = self.settings['model'].split(":")
-            model = model_name[1]
-
-            stream = grclient.chat.completions.create(
-                    model = model,
-                    messages = self.conversation_history,
-                    stream = True,
-                    )
-
-            for chunk in stream:
-                if chunk.choices[0].delta.content is not None:
-                    print(chunk.choices[0].delta.content, end='', flush=True)
-                    response += chunk.choices[0].delta.content
-
-        self.writeHistory('assistant', response)
-
-        print()
-        print('</THINKING>')
-        self.suppress = False
-        return response
 
     def send_message(self, user_input):
-        print()
         if self.settings['model'] is None:
             log(f"No model selected.  Issue model::")
             return None
@@ -797,11 +729,6 @@ class SymSession():
             log(f"The user input is empty.  Possibly your input was too large.")
             return None
 
-        if markdown is True and streaming is True:
-            pass
-           #live = Live(console=console, screen=False, refresh_per_second=1)
-           #live.start()
-
         if self.settings['model'].startswith("openai"):
             model_name = self.settings['model'].split(":")
             model = model_name[1]
@@ -834,7 +761,6 @@ class SymSession():
                         if chunk.choices[0].delta.content is not None:
                             response += chunk.choices[0].delta.content
                             if markdown is True:
-                                #live.update((response))
                                 print(chunk.choices[0].delta.content, end="")
                             else:
                                 print(chunk.choices[0].delta.content, end='')
@@ -919,7 +845,6 @@ class SymSession():
                         if chunk.choices[0].delta.content is not None:
                             response += chunk.choices[0].delta.content
                             if markdown is True:
-                                #live.update(Markdown(response))
                                 print(chunk.choices[0].delta.content, end="")
                             else:
                                 print(chunk.choices[0].delta.content, end='')
@@ -929,11 +854,6 @@ class SymSession():
                         print(Markdown(response))
                     else:
                         print(response)
-        try:
-            if live.is_started:
-                live.stop()
-        except:
-            pass
 
         self.writeHistory('assistant', response)
 
@@ -956,10 +876,8 @@ class SymSession():
 
     def process_commands(self, user_input):
         def _registerCommand(command=None):
-            if command is None: 
-                return None
-
-            self.command_register.append(command)
+            if command is not None: 
+                self.command_register.append(command)
 
         def _isCommand(command=None):
             is_command = None
@@ -1089,7 +1007,6 @@ class SymSession():
                 test_text += "Test the length\n"
             self.display_pager(test_text)
             self.layout_pager(test_text)
-
             return None
 
         _registerCommand("perifious::")
@@ -1101,6 +1018,7 @@ class SymSession():
             else:
                 user_input = 'settings:perifious:1:'
 
+
         _registerCommand("shell::")
         if re.search(r'^shell::', user_input):
             if self.shell_mode is False:
@@ -1109,12 +1027,8 @@ class SymSession():
             else:
                 self.shell_mode = False
                 self.ps.style = self.theme_manager.get_theme(self.settings["theme"])
-
-            log(f"Shell mode set: {self.shell_mode}")
-
-            # needs to be fixed
-            #shell.symBash().launch_shell()
             return None
+
 
         _registerCommand("help::")
         help_pattern = r"^help::|^help:(.*):"
@@ -1123,10 +1037,9 @@ class SymSession():
             short = True
             if match.group(1):
                 short = False 
-
             self.display_help(short)
-
             return None
+
 
         _registerCommand("clear::")
         _registerCommand("reset::")
@@ -1134,15 +1047,18 @@ class SymSession():
             os.system('reset')
             return None
 
+
         _registerCommand("save::")
         if re.search(r"^save::", user_input):
             self.save_settings()
             return None
 
+
         _registerCommand("exit::")
         if re.search(r'^exit::', user_input):
             self.save_settings()
             sys.exit(0)
+
 
         # Trigger introspect::
         _registerCommand("introspect::")
@@ -1169,7 +1085,10 @@ class SymSession():
                     if re.search(r'^https?://\S+', contents):
                         log(f"Fetching content from: {contents}")
                         crawler = webcrawler.WebCrawler(browser='chrome')
-                        pages = crawler.pull_website_content(url, search_term=None, crawl=False, depth=None)
+                        pages = crawler.pull_website_content(
+                                url, search_term=None,
+                                crawl=False, depth=None
+                            )
                         crawler.close()
                         website_content = str()
                         if pages:
@@ -1179,10 +1098,8 @@ class SymSession():
                             log(f"Unable to fetch data for {url}")
 
                         user_input = user_input[:match.start()] + website_content + user_input[match.end():]
-            else:
-                user_input = user_input[:match.start()] + contents + user_input[match.end():]
-
             return user_input
+
 
         # Trigger to reload modules
         _registerCommand("reload::")
@@ -1204,8 +1121,8 @@ class SymSession():
                         module = sys.modules.get(module_name)
                         log(f"Reloading {module}")
                         importlib.reload(module)
-
             return None
+
 
         # Trigger to choose role
         _registerCommand("roles::")
@@ -1213,76 +1130,73 @@ class SymSession():
         role_pattern = r'^roles?::|roles?:(.*):'
         match = re.search(role_pattern, user_input)
         if match:
-            #importlib.reload(sym_roles)
             available_roles = Roles.get_roles()
-
             if match.group(1):
                 selected_role = match.group(1).strip()
                 selected_role = selected_role.upper()
             else:
                 if not available_roles:
                     return None
-
                 role_list = []
                 for role_name in available_roles:
                     role_list.append(role_name)
-
                 print(f"Current Role: {self.settings['role']}")
                 selected_role = self.list_selector("Select a role:", sorted(role_list))
-
                 if selected_role is None:
                     return None
-
             if selected_role in available_roles:
                 self.settings['role'] = selected_role 
                 self.save_settings()
             else:
                 log(f"No such role: {selected_role}")
-
             return None
 
-        # Trigger to display openai settings  
+
+        # Trigger to display settings
         _registerCommand("settings::")
         setting_pattern = r'^settings::|settings:(.*):(.*):'
         match = re.search(setting_pattern, user_input)
+
         if match:
-            if match.group(1):
-                setting = match.group(1).lower()
-                set_value = match.group(2)
+            # Extract setting key and value
+            setting = match.group(1).lower() if match.group(1) else None
+            set_value = match.group(2) if match.group(2) else None
+
+            if setting:
                 if setting in self.settings:
-                    get_type = type(self.settings[setting])
-                    if get_type == bool:
-                        if re.search(r'^false$|^0$|^off$', set_value):
-                            set_value = False
-                        else:
-                            set_value = True
-                    else:
-                        set_value = set_value
+                    # Get the current type of the setting
+                    current_type = type(self.settings[setting])
 
+                    # Handle boolean settings
+                    if isinstance(self.settings[setting], bool):
+                        set_value = str(set_value).lower() not in ("false", "0", "off")
+
+                    # Special handling for the "location" setting
                     if setting == "location":
-                        prior = str(set_value).lower()
                         try:
+                            # Attempt to query postal code first
+                            prior = set_value.lower()
                             self.geo = nomi.query_postal_code(set_value)
-                            set_value = self.geo['postal_code']
-                            set_value = str(set_value).lower()
-                        except Exception as e:
-                            log(f"error {e}")
+                            set_value = str(self.geo['postal_code']).lower()
 
-                        if str(set_value).lower() == prior:
-                            try:
+                            # If no change, try querying location details
+                            if set_value == prior:
                                 tmp = nomi.query_location(set_value, top_k=1)
                                 set_value = tmp['postal_code'].iloc[0]
-                            except Exception as e:
-                                log(f"error {e}")
-                                return None
-                            
-                            self.geo = nomi.query_postal_code(set_value)
-                    self.settings[setting] = set_value
-                    self.save_settings()
-            else:
-                self.display_settings()
+                                self.geo = nomi.query_postal_code(set_value)
+                        except Exception as e:
+                            log(f"Error processing location: {e}")
+                            return None
 
-            return None 
+                    # Update the setting and save
+                    self.settings[setting] = current_type(set_value)
+                    self.save_settings()
+                    return None
+
+            # Display settings if no valid setting key was found
+            self.display_settings()
+            return None
+
 
         # Trigger for changing gpt model 
         _registerCommand("model::")
@@ -1294,8 +1208,8 @@ class SymSession():
                 self.selectModel(model_name)
             else:
                 self.selectModel()
-
             return None 
+
 
         # Trigger for changing the conversation file
         _registerCommand("convo::")
@@ -1307,8 +1221,8 @@ class SymSession():
                 self.display_convo(convo_name) 
             else:
                 self.display_convo()
-        
             return None 
+
 
         # Trigger for changing working directory in chat
         _registerCommand("cd::")
@@ -1334,6 +1248,7 @@ class SymSession():
 
             return None 
 
+
         # Trigger to list verbal keywords prompts.
         _registerCommand("keywords::")
         keywords_pattern = r'^keywords::'
@@ -1346,12 +1261,10 @@ class SymSession():
 
             return None 
 
-        # Trigger for extract:: processing. Load file content and generate a json object about the file.
+        # Trigger for extract:: processing.
         _registerCommand("extract::")
         summary_pattern = r'^extract::|^extract:(.*):(.*):|^extract:(.*):'
         match = re.search(summary_pattern, user_input)
-        file_path = None
-        
         if match:
             if match.group(1):
                 file_path = match.group(1)
@@ -1368,10 +1281,7 @@ class SymSession():
                     reindex = False
 
             if file_path is None:
-                file_path = self.file_browser()
-
-            if file_path is None:
-                return None
+                file_path = self.file_selector()
 
             file_path = os.path.expanduser(file_path)
 
@@ -1390,6 +1300,7 @@ class SymSession():
             log(f"File details stored: key: extract_command")
             return None 
 
+
         # Trigger to flush current running conversation from memory.
         _registerCommand("flush::")
         flush_pattern = r'^flush::'
@@ -1402,9 +1313,6 @@ class SymSession():
         _registerCommand("history::")
         history_pattern = r'^history::|^history:(.*):'
         match = re.search(history_pattern, user_input)
-        if self.settings['conversation'] == '/dev/null':
-            return None
-
         if match:
             if match.group(1):
                 history_length = int(match.group(1))
@@ -1421,6 +1329,7 @@ class SymSession():
                 print()
 
             return None
+
 
         # Trigger for code:: extraction from provided text
         _registerCommand("code::")
@@ -1450,6 +1359,7 @@ class SymSession():
 
             return files
 
+
         # Trigger for note:: taking.
         _registerCommand("note::")
         note_pattern = r'^note::|^note:([\s\S]*?):'
@@ -1457,12 +1367,11 @@ class SymSession():
         if match:
             if match.group(1):
                 user_input = match.group(1)
-            else:
-                pass
 
             self.save_conversation(user_input, self.settings['notes'])
 
             return None
+
 
         # Trigger menu for cli theme change
         _registerCommand("theme::")
@@ -1480,6 +1389,7 @@ class SymSession():
             self.save_settings()
 
             return None 
+
 
         # trigger terminal image rendering view:: 
         _registerCommand("view::")
@@ -1502,7 +1412,10 @@ class SymSession():
             elif is_url(file_path):
                 import symbiote.sym_crawler as webcrawler
                 crawler = webcrawler.WebCrawler(browser='chrome')
-                pages = crawler.pull_website_content(file_path, search_term=None, crawl=False, depth=None)
+                pages = crawler.pull_website_content(
+                        file_path, search_term=None,
+                        crawl=False, depth=None
+                    )
                 crawler.close()
                 if pages:
                     content = ""   
@@ -1523,6 +1436,7 @@ class SymSession():
                 print(content)
 
             return None
+
 
         # Trigger image analysis and reporting analyse_image::
         _registerCommand("analyze_image::")
@@ -1550,6 +1464,7 @@ class SymSession():
 
             return content
 
+
         # Trigger to find files by search find::
         _registerCommand("find::")
         find_pattern = r'^find::|^find:(.*):'
@@ -1563,6 +1478,7 @@ class SymSession():
             result = self.find_files()   
 
             return None
+
 
         # Trigger to init scrolling
         _registerCommand("scroll::")
@@ -1586,6 +1502,7 @@ class SymSession():
             scroll_content(absolute_path)
 
             return None
+
 
         # Trigger for wikipedia search wiki::
         _registerCommand("wiki::")
@@ -1611,6 +1528,7 @@ class SymSession():
                 log("No search term provided.")
                 return None
 
+
         # Trigger for headline analysis
         _registerCommand("news::")
         _registerCommand("headlines::")
@@ -1626,6 +1544,7 @@ class SymSession():
             user_input = user_input[:match.start()] + content + user_input[match.end():]
 
             return user_input
+
 
         # Trigger for google search or dorking
         _registerCommand("google::")
@@ -1661,16 +1580,10 @@ class SymSession():
         if match:
             if match.group(1):
                 term = match.group(1)
-                content = f"""Provide the definition and details of "{term}". The response must be in markdown, .md format. The response should incude the following fields.
-
-"term": {term} 
-"definition": A brief definition of the {term}.
-"examples": A list of 3 facts related to "{term}".
-"related_terms": A list of 5 terms related to the searched term.
-"""
-                user_input = content
+                user_input = f"Provide detailed definition for the word {term}" 
 
                 return user_input
+
 
         # Trigger for imap mail checker mail::
         _registerCommand("mail::")
@@ -1715,6 +1628,7 @@ class SymSession():
 
             return user_input
 
+
         # Trigger for w3m web browser functionality browser::
         _registerCommand("w3m::")
         _registerCommand("browser::")
@@ -1729,6 +1643,7 @@ class SymSession():
 
             return None
 
+
         # Trigger to extract images from a url image_extract::
         _registerCommand("image_extract::")
         image_extract_pattern = r'^image_extract:(.*):'
@@ -1741,6 +1656,7 @@ class SymSession():
                 log('No url specified.')
 
             return None
+
 
         # Trigger for qr code generation qr::
         _registerCommand("qr::")
@@ -1755,6 +1671,7 @@ class SymSession():
 
             return None
 
+        
         # Trigger for weather::
         _registerCommand("weather::")
         weather_pattern = r"weather::|weather:(.*):"
@@ -1789,6 +1706,7 @@ class SymSession():
 
             return user_input
 
+        
         # Trigger for inspect:: command to inspect running python objects.
         _registerCommand("inspect::")
         inspect_pattern = r'inspect::|inspect:(.*):'
@@ -1817,7 +1735,8 @@ class SymSession():
 
             return None
 
-            # Trigger for memget:: management
+
+        # Trigger for memget:: management
         _registerCommand("memget::")
         memget_pattern = r"memget::|memget:(.*):"
         match = re.search(memget_pattern, user_input)
@@ -1854,6 +1773,7 @@ class SymSession():
 
             return None
 
+
         # Trigger for memory:: management
         _registerCommand("memory::")
         memory_pattern = r"^memory::|^memory:(.*):"
@@ -1865,6 +1785,7 @@ class SymSession():
             inspect(self.memory)
             return None
 
+        
         # Trigger for search:: on memory 
         _registerCommand("search::")
         search_pattern = r"search::|search:(.*):"
@@ -1890,8 +1811,18 @@ class SymSession():
 
             return None
 
-        # Trigger for file:: processing. Load file content into user_input for ai consumption.
-        # file:: - opens file or directory to be pulled into the conversation
+        
+        # Trigger for toolbar::
+        _registerCommand("toolbar::")
+        if user_input.startswith("toolbar:"):
+            content = user_data.split(":")
+            if len(content) > 1:
+                self.live_render_buffer = content[1]
+
+            return None
+
+        
+        # Trigger for file:: processing.
         _registerCommand("file::")
         file_pattern = r'file::|file:(.*):'
         match = re.search(file_pattern, user_input)
@@ -1950,6 +1881,7 @@ class SymSession():
                 '''
             return None
 
+        
         # Trigger image:: execution for AI image generation
         _registerCommand("image::")
         image_pattern = r'^image:([\s\S]*?):'
@@ -1963,6 +1895,7 @@ class SymSession():
 
             return None
 
+        
         # Trigger system execution of a command
         _registerCommand("$")
         exec_pattern = r'\$:(.*):'
@@ -1989,6 +1922,7 @@ class SymSession():
                 log(f"No commands specified.")
                 return None
 
+        
         # Trigger for getip::
         _registerCommand("getip::")
         getip_pattern = r'getip::'
@@ -2012,6 +1946,7 @@ class SymSession():
 
             return user_input
 
+        
         # Trigger for get:URL processing. Load website content into user_input for model consumption.
         _registerCommand("get::")
         get_pattern = r'get::|get:(https?://\S+):'
@@ -2085,6 +2020,7 @@ class SymSession():
 
             return None 
 
+        
         # Trigger for fake news analysis fake_news::
         _registerCommand("fake_news::")
         fake_news_pattern = r'\bfake_news::|\bfake_news:(.*):'
@@ -2121,6 +2057,7 @@ class SymSession():
             
             return user_input
 
+        
         # Trigger for downloading youtube transcripts yt_transcript::
         _registerCommand("yt_transcript::")
         yt_transcript_pattern = r'yt_transcript::|yt_transcript:(.*):'
@@ -2149,6 +2086,7 @@ class SymSession():
 
             return user_input
 
+        
         # Trigger web vulnerability scan vscan::
         _registerCommand("vscan::")
         vscan_pattern = r'vscan::|vscan:(.*):'
@@ -2175,6 +2113,7 @@ class SymSession():
                 user_input = user_input[:match.start()] + report + user_input[match.end():]
                 return user_input
 
+        
         # Trigger for textual deception analysis deception::
         _registerCommand("deception::")
         deception_pattern = r'deception::|deception:(.*):'
@@ -2212,6 +2151,7 @@ class SymSession():
                 log("No results returned.")
                 return None
 
+        
         # Trigger for crawl:URL processing. Load website content into user_input for model consumption.
         _registerCommand("crawl::")
         crawl_pattern = r'crawl::|crawl:(https?://\S+):'
@@ -2240,6 +2180,7 @@ class SymSession():
             print()
             return user_input 
 
+        
         # Catchall for stray command entries. 
         catchall_pattern = r"^.*::?$"
         if re.search(catchall_pattern, user_input):
@@ -2247,6 +2188,7 @@ class SymSession():
             return None
 
         return user_input
+
 
     def save_settings(self):
         try:
@@ -2257,6 +2199,7 @@ class SymSession():
 
         return None
 
+    
     def load_settings(self):
         try:
             with open(self.config_file, "r") as file:
@@ -2264,9 +2207,7 @@ class SymSession():
         except Exception as e:
             log(f"Error Reading: {e}")
             return None
-
         print(settings)
-
         return settings
 
     def create_dialog(self, title, text):
@@ -3175,6 +3116,7 @@ class SymSession():
         return escape(json.dumps(json_results, indent=4)) 
 
     def exec_command(self, command):
+        output = ""
         try:
             process = subprocess.Popen(command, shell=True, text=True,
             stdout=subprocess.PIPE, stderr=subprocess.PIPE)
@@ -3188,7 +3130,7 @@ class SymSession():
         except subprocess.CalledProcessError as e:
             output = e.stdout + e.stderr if e.stdout or e.stderr else "Command exited with a status other than 0."
 
-            return output.strip()
+        return output.strip()
 
     def web_data_stats(self, data):
         content = data.get("content", "")

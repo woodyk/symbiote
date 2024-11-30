@@ -1,14 +1,19 @@
 #!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+#
+# File: term_color.py
+# Author: Wadih Khairallah
+# Description: 
+# Created: 2024-11-27 06:14:43
+#!/usr/bin/env python3
 #
 # term_color.py
 
 from math import sqrt
 from typing import Tuple, Dict, List, Union
 
-
 class TermColor:
     """Library for managing terminal colors and escape codes."""
-
     @staticmethod
     def terminal_palette() -> List[Tuple[int, int, int]]:
         """Generate the 256-color terminal palette."""

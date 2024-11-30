@@ -1,4 +1,11 @@
 #!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+#
+# File: ImageQuestionAnswer.py
+# Author: Wadih Khairallah
+# Description: 
+# Created: 2024-11-27 06:40:29
+#!/usr/bin/env python3
 #
 # ImageQuestionAnswer.py
 

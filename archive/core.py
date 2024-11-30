@@ -42,7 +42,7 @@ class symbiotes:
           }
 
         self.settings = settings
-        self.remember = self.models[self.settings['model']]
+        #self.remember = self.models[self.settings['model']]
 
         self.ce = codeextract.CodeBlockIdentifier()
 
@@ -234,7 +234,6 @@ class symbiotes:
         message = ""
         chunk_block = ""
         response = {} 
-        print(messages)
 
         # Proper use of openai.ChatCompletion.create() function.
         try:
@@ -427,12 +426,9 @@ class symbiotes:
         truncated_conversation.append(assistant_content)
         if logging:
             self.save_conversation(assistant_content, self.conversations_file)
-        #conversation = self.load_conversation(self.conversations_file)
-
         return truncated_conversation, (total_user_tokens + total_assist_tokens), total_user_tokens, total_assist_tokens, char_count, self.remember, original_user_input, response
 
     def load_conversation(self, conversations_file, flush=False):
-        ''' Load openai conversation json file '''
         self.conversations_file = conversations_file
         data = []
 
